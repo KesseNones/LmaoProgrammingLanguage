@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.1
+//Version: 0.1.2
 
 use std::collections::HashMap;
 
@@ -47,11 +47,14 @@ enum Value{
     MiscBox(usize)
 }
 
+//Can either be a value to push to the stack or 
+// a command to run an operator or something like that.
 enum Token{
     V(Value),
     Cmd(String)
 }
 
+//The various types of nodes that are part of the Abstract Syntax Tree
 enum ASTNode{
     Terminal(Token),
     If {ifTrue: Box<ASTNode>, ifFalse: Box<ASTNode>},
@@ -61,6 +64,16 @@ enum ASTNode{
     Variable{varName: String, varCmd: String},
     LocVar{name: String, cmd: String},
     BoxOp(String)
+}
+
+//Main mutable state
+struct State{
+    stack: Vec<Value>,
+    fns: HashMap<String, ASTNode>,
+    vars: HashMap<String, Value>,
+    frames: Vec<HashMap<String, Value>>,
+    heap: Vec<(Value, bool)>,
+    freeList: Vec<usize>
 }
 
 fn main(){
