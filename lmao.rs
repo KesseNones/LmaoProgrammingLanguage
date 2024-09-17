@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.0
+//Version: 0.1.1
 
 use std::collections::HashMap;
 
@@ -45,6 +45,22 @@ enum Value{
     Object(HashMap<String, Value>),
     ObjectBox(usize),
     MiscBox(usize)
+}
+
+enum Token{
+    V(Value),
+    Cmd(String)
+}
+
+enum ASTNode{
+    Terminal(Token),
+    If {ifTrue: Box<ASTNode>, ifFalse: Box<ASTNode>},
+    While(Box<ASTNode>),
+    Expression(Vec<ASTNode>),
+    Function{funcCmd: String, funcName: String, funcBod: Box<ASTNode>},
+    Variable{varName: String, varCmd: String},
+    LocVar{name: String, cmd: String},
+    BoxOp(String)
 }
 
 fn main(){
