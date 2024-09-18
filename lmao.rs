@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.4
+//Version: 0.1.5
 
 use std::collections::HashMap;
 use std::env;
@@ -80,6 +80,98 @@ struct State{
     free_list: Vec<usize>
 }
 
+//Tokenizes list of chars into list of strings.
+fn tokenize(chars: &Vec<char>) -> Vec<String>{
+    let mut tokens: Vec<String> = Vec::new();
+    let mut curr_token: Vec<char> = Vec::new();
+
+    let mut in_string = false;
+    let mut in_comment = false;
+
+    let mut i: usize = 0;
+    while i < chars.len(){
+        match (chars[i], in_string, in_comment){
+            //Char tokenization
+            ('\'', false, false) => {
+                if ((i + 2) < chars.len()) && (chars[i + 2] == '\''){
+                    tokens.push(String::from(format!("\'{}\'", chars[i + 1])));
+                    i += 3;
+                }else if ((i + 3) < chars.len()) && (chars[i + 1] == '\\') && (chars[i + 3] == '\'') {
+                    tokens.push(String::from(format!("\'\\{}\'", chars[i + 2])));
+                    i += 4;
+                }else{
+                    panic!("Parse error! Char missing closing apostraphie!");
+                }
+            },
+            //Start of string case.
+            ('\"', false, false) => {
+                curr_token.push(chars[i]);
+                in_string = true;
+                i += 1;
+
+            },
+            //Makes it so strings can have double quotes inside them, as long as they are escaped.
+            ('\\', true, false) => {
+                if ((i + 1) < chars.len()) && (chars[i + 1] == '\"'){
+                    curr_token.push('\\');
+                    curr_token.push('\"');
+                    i += 2;
+                }else{
+                    curr_token.push('\\');
+                    i += 1;
+                }
+            },
+            //End of string case.
+            ('\"', true, false) => {
+                curr_token.push(chars[i]);
+                tokens.push(curr_token.iter().collect());
+                curr_token.clear();
+                in_string = false;
+                i += 1;
+            },
+            //In string case.
+            (_, true, false) => {
+                curr_token.push(chars[i]);
+                i += 1;
+            },
+            //Comment entry case.
+            ('/', false, false) => {
+                if ((i + 1) < chars.len()) && (chars[i + 1] == '/'){
+                    in_comment = true;
+                    i += 2;
+                }else{
+                    curr_token.push(chars[i]);
+                    i += 1;
+                }
+            },
+            //Exit comment case.
+            ('\n', false, true) => {
+                in_comment = false;
+                i += 1;
+            },
+            //In comment case.
+            (_, false, true) => i += 1,
+            //General parsing case.
+            (c, false, false) => {
+                if !c.is_whitespace(){
+                    curr_token.push(c);
+                }else{
+                    if curr_token.len() > 0{
+                        tokens.push(curr_token.iter().collect());
+                        curr_token.clear();
+                    }
+                }
+
+                i += 1;
+            },
+            _ => panic!("SHOULD NEVER GET HERE!!!!!!!"),
+        }
+    }
+
+    tokens
+
+}
+
 fn main(){
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
@@ -102,14 +194,12 @@ fn main(){
         Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
     }
 
-    println!("READ IN FILE CONTENTS:\n\n{}", file_string);
-
     let file_chars: Vec<char> = file_string.chars().collect();
+    let tokens = tokenize(&file_chars);
 
-    println!("LEN {}", file_chars.len());
-
-    for c in file_chars.iter(){
-        print!("{} ", c);
+    for tok in tokens.iter(){
+        print!("{} ", tok);
     }
+    println!("");
 
 }
