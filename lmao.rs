@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.5
+//Version: 0.1.6
 
 use std::collections::HashMap;
 use std::env;
@@ -166,6 +166,10 @@ fn tokenize(chars: &Vec<char>) -> Vec<String>{
             },
             _ => panic!("SHOULD NEVER GET HERE!!!!!!!"),
         }
+    }
+
+    if in_string{
+        panic!("Parse error! String not ended with matching double quotation!");
     }
 
     tokens
