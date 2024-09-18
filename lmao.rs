@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.3
+//Version: 0.1.4
 
 use std::collections::HashMap;
 use std::env;
@@ -102,6 +102,14 @@ fn main(){
         Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
     }
 
-    println!("Read in file:\n\n{}", file_string);
+    println!("READ IN FILE CONTENTS:\n\n{}", file_string);
+
+    let file_chars: Vec<char> = file_string.chars().collect();
+
+    println!("LEN {}", file_chars.len());
+
+    for c in file_chars.iter(){
+        print!("{} ", c);
+    }
 
 }
