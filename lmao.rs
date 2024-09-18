@@ -1,8 +1,12 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.2
+//Version: 0.1.3
 
 use std::collections::HashMap;
+use std::env;
+use std::path::Path;
+use std::fs::File;
+use std::io::Read;
 
 enum IntSigned{
     Int8(i8),
@@ -57,11 +61,11 @@ enum Token{
 //The various types of nodes that are part of the Abstract Syntax Tree
 enum ASTNode{
     Terminal(Token),
-    If {ifTrue: Box<ASTNode>, ifFalse: Box<ASTNode>},
+    If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
     While(Box<ASTNode>),
     Expression(Vec<ASTNode>),
-    Function{funcCmd: String, funcName: String, funcBod: Box<ASTNode>},
-    Variable{varName: String, varCmd: String},
+    Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
+    Variable{var_name: String, var_cmd: String},
     LocVar{name: String, cmd: String},
     BoxOp(String)
 }
@@ -73,9 +77,31 @@ struct State{
     vars: HashMap<String, Value>,
     frames: Vec<HashMap<String, Value>>,
     heap: Vec<(Value, bool)>,
-    freeList: Vec<usize>
+    free_list: Vec<usize>
 }
 
 fn main(){
-    
+    let argv: Vec<String> = env::args().collect();
+    let argc = argv.len();
+
+    if argc < 2{
+        panic!("Error! No program given in arguments for Lmao to run!");
+    }
+
+    let file_path = Path::new(&argv[1]);
+    let file_name = file_path.display();
+
+    let mut code_file = match File::open(&file_path){
+        Ok(f) => f,
+        Err(reason) => panic!("Unable to open Lmao file {} for parsing because {}", file_name, reason),
+    };
+
+    let mut file_string = String::new();
+    match code_file.read_to_string(&mut file_string){
+        Ok(_) => {},
+        Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
+    }
+
+    println!("Read in file:\n\n{}", file_string);
+
 }
