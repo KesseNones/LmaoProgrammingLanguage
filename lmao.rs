@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.6
+//Version: 0.1.7
 
 use std::collections::HashMap;
 use std::env;
@@ -55,7 +55,7 @@ enum Value{
 // a command to run an operator or something like that.
 enum Token{
     V(Value),
-    Cmd(String)
+    Word(String)
 }
 
 //The various types of nodes that are part of the Abstract Syntax Tree
@@ -176,6 +176,42 @@ fn tokenize(chars: &Vec<char>) -> Vec<String>{
 
 }
 
+//Given reference to list of seperated tokens, 
+// differentiates each one as either a value or word.
+//WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
+fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
+    let mut lexed: Vec<Token> = Vec::new();
+
+    for tok in tokens.into_iter(){
+        match tok{
+            ref t if t == "True" || t == "true" => {
+                lexed.push(Token::V(
+                    Value::Boolean(true))
+                );
+            },
+            ref t if t == "False" || t == "false" => {
+                lexed.push(Token::V(
+                    Value::Boolean(false))
+                );
+            },
+            //SLICING HERE MIGHT BE A BIT IFFY
+            ref t if t.starts_with("\"") && t.ends_with("\"") => {
+                lexed.push(Token::V(Value::String(tok[1..(tok.len() - 1)].to_string())));
+            }, 
+            ref t if t.starts_with("\'") && t.ends_with("\'") => {
+                lexed.push(Token::V(Value::Char(
+                    tok[1..].chars().next().unwrap()))
+                );
+            },
+            ref t if t == "[]" => lexed.push(Token::V(Value::List(Vec::new()))),
+            ref t if t == "{}" => lexed.push(Token::V(Value::Object(HashMap::new()))),
+            _ => lexed.push(Token::Word(tok)),
+        }
+    }
+
+    lexed
+}
+
 fn main(){
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
@@ -205,5 +241,7 @@ fn main(){
         print!("{} ", tok);
     }
     println!("");
+
+    let lexed = lex_tokens(tokens);
 
 }
