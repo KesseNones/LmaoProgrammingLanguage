@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.7
+//Version: 0.1.8
 
 use std::collections::HashMap;
 use std::env;
@@ -28,14 +28,10 @@ enum IntUnsigned{
 
 //This enum is used to contain all the possible data types of Lmao.
 enum Value{
-    //General integer type from type inference
-    Integer(isize),
     //Specific signed integers found from type declarations. (coming soonTM)
     Int(IntSigned),
     //Speficic unsigned integers found from type declarations.
     UInt(IntUnsigned),
-    //Inferred float type.
-    Float(f32),
     //Specified float types
     Float32(f32),
     Float64(f64),
@@ -184,6 +180,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
 
     for tok in tokens.into_iter(){
         match tok{
+            //Boolean lexing cases.
             ref t if t == "True" || t == "true" => {
                 lexed.push(Token::V(
                     Value::Boolean(true))
@@ -194,17 +191,42 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                     Value::Boolean(false))
                 );
             },
-            //SLICING HERE MIGHT BE A BIT IFFY
+            //String case.
             ref t if t.starts_with("\"") && t.ends_with("\"") => {
                 lexed.push(Token::V(Value::String(tok[1..(tok.len() - 1)].to_string())));
             }, 
+            //Char case.
             ref t if t.starts_with("\'") && t.ends_with("\'") => {
                 lexed.push(Token::V(Value::Char(
                     tok[1..].chars().next().unwrap()))
                 );
             },
+            //List case.
             ref t if t == "[]" => lexed.push(Token::V(Value::List(Vec::new()))),
+            //Object case.
             ref t if t == "{}" => lexed.push(Token::V(Value::Object(HashMap::new()))),
+            //Float cases.
+            ref t if t.ends_with("f32") => {
+                match tok[0..(tok.len() - 3)].parse::<f32>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed))),
+                    Err(_) => panic!("Parse error! Incorrectly constructed f32! Tried: {}", tok),
+                }
+            },
+            ref t if t.ends_with("f64") => {
+                match tok[0..(tok.len() - 3)].parse::<f64>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Float64(parsed))),
+                    Err(_) => panic!("Parse error! Incorrectly constructed f64! Tried: {}", tok),
+                }
+            },
+            //Integer cases.
+            ref t if t.ends_with("u8") => {
+                match tok[0..(tok.len() - 2)].parse::<u8>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt8(parsed)))),
+                    Err(_) => panic!("Parse error! Incorrectly constructed u8! Tried: {}", tok),
+                }
+            },
+
+            //General catch-all case mostly meant for operators.
             _ => lexed.push(Token::Word(tok)),
         }
     }
