@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.8
+//Version: 0.1.9
 
 use std::collections::HashMap;
 use std::env;
@@ -223,6 +223,24 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                 match tok[0..(tok.len() - 2)].parse::<u8>(){
                     Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt8(parsed)))),
                     Err(_) => panic!("Parse error! Incorrectly constructed u8! Tried: {}", tok),
+                }
+            },
+            ref t if t.ends_with("i8") => {
+                match tok[0..(tok.len() - 2)].parse::<i8>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int8(parsed)))),
+                    Err(_) => panic!("Parse error! Incorrectly constructed u8! Tried: {}", tok),
+                }
+            },
+            ref t if t.ends_with("u16") => {
+                match tok[0..(tok.len() - 3)].parse::<u16>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt16(parsed)))),
+                    Err(_) => panic!("Parse error! Incorrectly constructed u16! Tried: {}", tok),
+                }
+            },
+            ref t if t.ends_with("i16") => {
+                match tok[0..(tok.len() - 3)].parse::<i16>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int16(parsed)))),
+                    Err(_) => panic!("Parse error! Incorrectly constructed i16! Tried: {}", tok),
                 }
             },
 
