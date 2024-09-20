@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.13
+//Version: 0.1.14
 
 use std::collections::HashMap;
 use std::env;
@@ -82,7 +82,7 @@ impl fmt::Display for Value{
             Value::UInt(uint) => write!(f, "{}", uint),
             Value::Float32(flt32) => write!(f, "f32 {}", flt32),
             Value::Float64(flt64) => write!(f, "f64 {}", flt64),
-            Value::Char(c) => write!(f, "Char \'{}\'", c),
+            Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Boolean {}", b),
             Value::String(s) => write!(f, "String \"{}\"", s),
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
@@ -259,9 +259,20 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             }, 
             //Char case.
             ref t if t.starts_with("\'") && t.ends_with("\'") => {
-                lexed.push(Token::V(Value::Char(
-                    tok[1..].chars().next().unwrap()))
-                );
+                let mut iter = tok[1..].chars();
+                let mut captured: char = iter.nth(0).unwrap();
+                if captured == '\\'{
+                    captured = match iter.nth(0).unwrap(){
+                        'n' => '\n',
+                        't' => '\t',
+                        'r' => '\r',
+                        '0' => '\0',
+                        _ => captured,
+                    };
+                    println!("{}", captured);
+
+                }
+                lexed.push(Token::V(Value::Char(captured)));
             },
             //List case.
             ref t if t == "[]" => lexed.push(Token::V(Value::List(Vec::new()))),
