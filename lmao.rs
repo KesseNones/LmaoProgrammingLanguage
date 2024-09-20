@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.9
+//Version: 0.1.10
 
 use std::collections::HashMap;
 use std::env;
@@ -172,6 +172,10 @@ fn tokenize(chars: &Vec<char>) -> Vec<String>{
 
 }
 
+fn throw_parse_error(t: &str, attempted_token: &String){
+    panic!("Parse error! Incorrectly constructed {}! Tried: {}", t, attempted_token);
+}
+
 //Given reference to list of seperated tokens, 
 // differentiates each one as either a value or word.
 //WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
@@ -209,38 +213,86 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             ref t if t.ends_with("f32") => {
                 match tok[0..(tok.len() - 3)].parse::<f32>(){
                     Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed))),
-                    Err(_) => panic!("Parse error! Incorrectly constructed f32! Tried: {}", tok),
+                    Err(_) => throw_parse_error("f32", &tok),
                 }
             },
             ref t if t.ends_with("f64") => {
                 match tok[0..(tok.len() - 3)].parse::<f64>(){
                     Ok(parsed) => lexed.push(Token::V(Value::Float64(parsed))),
-                    Err(_) => panic!("Parse error! Incorrectly constructed f64! Tried: {}", tok),
+                    Err(_) => throw_parse_error("f64", &tok), 
                 }
             },
             //Integer cases.
             ref t if t.ends_with("u8") => {
                 match tok[0..(tok.len() - 2)].parse::<u8>(){
                     Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt8(parsed)))),
-                    Err(_) => panic!("Parse error! Incorrectly constructed u8! Tried: {}", tok),
+                    Err(_) => throw_parse_error("u8", &tok), 
                 }
             },
             ref t if t.ends_with("i8") => {
                 match tok[0..(tok.len() - 2)].parse::<i8>(){
                     Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int8(parsed)))),
-                    Err(_) => panic!("Parse error! Incorrectly constructed u8! Tried: {}", tok),
+                    Err(_) => throw_parse_error("i8", &tok), 
                 }
             },
             ref t if t.ends_with("u16") => {
                 match tok[0..(tok.len() - 3)].parse::<u16>(){
                     Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt16(parsed)))),
-                    Err(_) => panic!("Parse error! Incorrectly constructed u16! Tried: {}", tok),
+                    Err(_) => throw_parse_error("u16", &tok),
                 }
             },
             ref t if t.ends_with("i16") => {
                 match tok[0..(tok.len() - 3)].parse::<i16>(){
                     Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int16(parsed)))),
-                    Err(_) => panic!("Parse error! Incorrectly constructed i16! Tried: {}", tok),
+                    Err(_) => throw_parse_error("i16", &tok), 
+                }
+            },
+            ref t if t.ends_with("u32") => {
+                match tok[0..(tok.len() - 3)].parse::<u32>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt32(parsed)))),
+                    Err(_) => throw_parse_error("u32", &tok), 
+                }
+            },
+            ref t if t.ends_with("i32") => {
+                match tok[0..(tok.len() - 3)].parse::<i32>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int32(parsed)))),
+                    Err(_) => throw_parse_error("i32", &tok), 
+                }
+            },
+            ref t if t.ends_with("u64") => {
+                match tok[0..(tok.len() - 3)].parse::<u64>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt64(parsed)))),
+                    Err(_) => throw_parse_error("u64", &tok), 
+                }
+            },
+            ref t if t.ends_with("i64") => {
+                match tok[0..(tok.len() - 3)].parse::<i64>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int64(parsed)))),
+                    Err(_) => throw_parse_error("i64", &tok), 
+                }
+            },
+            ref t if t.ends_with("u128") => {
+                match tok[0..(tok.len() - 4)].parse::<u128>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt128(parsed)))),
+                    Err(_) => throw_parse_error("u128", &tok), 
+                }
+            },
+            ref t if t.ends_with("i128") => {
+                match tok[0..(tok.len() - 4)].parse::<i128>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int128(parsed)))),
+                    Err(_) => throw_parse_error("i128", &tok), 
+                }
+            },
+            ref t if t.ends_with("usize") => {
+                match tok[0..(tok.len() - 5)].parse::<usize>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UIntSize(parsed)))),
+                    Err(_) => throw_parse_error("usize", &tok), 
+                }
+            },
+            ref t if t.ends_with("isize") => {
+                match tok[0..(tok.len() - 5)].parse::<isize>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::IntSize(parsed)))),
+                    Err(_) => throw_parse_error("isize", &tok), 
                 }
             },
 
