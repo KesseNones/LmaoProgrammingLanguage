@@ -1,12 +1,13 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.11
+//Version: 0.1.12
 
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use std::fs::File;
 use std::io::Read;
+use std::fmt;
 
 enum IntSigned{
     Int8(i8),
@@ -17,6 +18,19 @@ enum IntSigned{
     IntSize(isize)
 }
 
+impl fmt::Display for IntSigned{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            IntSigned::Int8(n) => write!(f, "i8 {}", n),
+            IntSigned::Int16(n) => write!(f, "i16 {}", n),
+            IntSigned::Int32(n) => write!(f, "i32 {}", n),
+            IntSigned::Int64(n) => write!(f, "i64 {}", n),
+            IntSigned::Int128(n) => write!(f, "i128 {}", n),
+            IntSigned::IntSize(n) => write!(f, "isize {}", n),
+        }
+    }
+}
+
 enum IntUnsigned{
     UInt8(u8),
     UInt16(u16),
@@ -24,6 +38,19 @@ enum IntUnsigned{
     UInt64(u64),
     UInt128(u128),
     UIntSize(usize)
+}
+
+impl fmt::Display for IntUnsigned{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            IntUnsigned::UInt8(n) => write!(f, "u8 {}", n),
+            IntUnsigned::UInt16(n) => write!(f, "u16 {}", n),
+            IntUnsigned::UInt32(n) => write!(f, "u32 {}", n),
+            IntUnsigned::UInt64(n) => write!(f, "u64 {}", n),
+            IntUnsigned::UInt128(n) => write!(f, "u128 {}", n),
+            IntUnsigned::UIntSize(n) => write!(f, "usize {}", n),
+        }
+    }
 }
 
 //This enum is used to contain all the possible data types of Lmao.
@@ -44,7 +71,29 @@ enum Value{
     ListBox(usize),
     Object(HashMap<String, Value>),
     ObjectBox(usize),
-    MiscBox(usize)
+    MiscBox(usize),
+    NULLBox,
+}
+
+impl fmt::Display for Value{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            Value::Int(int) => write!(f, "{}", int),
+            Value::UInt(uint) => write!(f, "{}", uint),
+            Value::Float32(flt32) => write!(f, "f32 {}", flt32),
+            Value::Float64(flt64) => write!(f, "f64 {}", flt64),
+            Value::Char(c) => write!(f, "Char {}", c),
+            Value::Boolean(b) => write!(f, "Boolean {}", b),
+            Value::String(s) => write!(f, "String {}", s),
+            Value::StringBox(sb) => write!(f, "StringBox {}", sb),
+            Value::List(l) => write!(f, "LIST [INSERT_CONTENTS_HERE]"),
+            Value::ListBox(lb) => write!(f, "ListBox {}", lb),
+            Value::Object(obj) => write!(f, "Object OBJ"),
+            Value::ObjectBox(ob) => write!(f, "ObjectBox {}", ob),
+            Value::MiscBox(bn) => write!(f, "MiscBox {}", bn),
+            Value::NULLBox => write!(f, "Box NULL"),
+        }
+    }
 }
 
 //Can either be a value to push to the stack or 
@@ -52,6 +101,15 @@ enum Value{
 enum Token{
     V(Value),
     Word(String)
+}
+
+impl fmt::Display for Token{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            Token::V(val) => write!(f, "{}", val),
+            Token::Word(w) => write!(f, "Word {}", w),
+        }
+    }
 }
 
 //The various types of nodes that are part of the Abstract Syntax Tree
@@ -353,13 +411,13 @@ fn main(){
     for tok in tokens.iter(){
         print!("{} | ", tok);
     }
-    println!("");
+    println!("\n\n\n\n\n");
 
     let lexed = lex_tokens(tokens);
 
-    // for lxt in lexed.iter(){
-    //     print!("{} | ", lxt);
-    // }
-    // println!("");
+    for lxt in lexed.iter(){
+        print!("{} | ", lxt);
+    }
+    println!("");
 
 }
