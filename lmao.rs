@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.10
+//Version: 0.1.11
 
 use std::collections::HashMap;
 use std::env;
@@ -222,7 +222,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                     Err(_) => throw_parse_error("f64", &tok), 
                 }
             },
-            //Integer cases.
+            //Explicit integer cases for both signed and unsigned.
             ref t if t.ends_with("u8") => {
                 match tok[0..(tok.len() - 2)].parse::<u8>(){
                     Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt8(parsed)))),
@@ -295,6 +295,27 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                     Err(_) => throw_parse_error("isize", &tok), 
                 }
             },
+            //Type inference for float.
+            ref t if t.contains(".") 
+                    && t.chars().next().unwrap() == '-' 
+                    || (t.chars().next().unwrap() >= '0' 
+                        && t.chars().next().unwrap() <= '9') 
+                    => {
+                match tok.parse::<f32>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed))),
+                    Err(_) => throw_parse_error("f32", &tok),
+                }
+            },
+            //Type inference for integer.
+            ref t if t.chars().next().unwrap() == '-' 
+                    || (t.chars().next().unwrap() >= '0' 
+                        && t.chars().next().unwrap() <= '9') 
+                    => {
+                match tok.parse::<isize>(){
+                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::IntSize(parsed)))),
+                    Err(_) => throw_parse_error("isize", &tok),
+                }
+            },
 
             //General catch-all case mostly meant for operators.
             _ => lexed.push(Token::Word(tok)),
@@ -330,10 +351,15 @@ fn main(){
     let tokens = tokenize(&file_chars);
 
     for tok in tokens.iter(){
-        print!("{} ", tok);
+        print!("{} | ", tok);
     }
     println!("");
 
     let lexed = lex_tokens(tokens);
+
+    // for lxt in lexed.iter(){
+    //     print!("{} | ", lxt);
+    // }
+    // println!("");
 
 }
