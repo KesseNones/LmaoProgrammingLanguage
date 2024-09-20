@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.12
+//Version: 0.1.13
 
 use std::collections::HashMap;
 use std::env;
@@ -82,9 +82,9 @@ impl fmt::Display for Value{
             Value::UInt(uint) => write!(f, "{}", uint),
             Value::Float32(flt32) => write!(f, "f32 {}", flt32),
             Value::Float64(flt64) => write!(f, "f64 {}", flt64),
-            Value::Char(c) => write!(f, "Char {}", c),
+            Value::Char(c) => write!(f, "Char \'{}\'", c),
             Value::Boolean(b) => write!(f, "Boolean {}", b),
-            Value::String(s) => write!(f, "String {}", s),
+            Value::String(s) => write!(f, "String \"{}\"", s),
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
             Value::List(l) => write!(f, "LIST [INSERT_CONTENTS_HERE]"),
             Value::ListBox(lb) => write!(f, "ListBox {}", lb),
@@ -355,9 +355,9 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             },
             //Type inference for float.
             ref t if t.contains(".") 
-                    && t.chars().next().unwrap() == '-' 
+                    && (t.chars().next().unwrap() == '-' 
                     || (t.chars().next().unwrap() >= '0' 
-                        && t.chars().next().unwrap() <= '9') 
+                        && t.chars().next().unwrap() <= '9')) 
                     => {
                 match tok.parse::<f32>(){
                     Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed))),
@@ -416,8 +416,7 @@ fn main(){
     let lexed = lex_tokens(tokens);
 
     for lxt in lexed.iter(){
-        print!("{} | ", lxt);
+        println!("{}", lxt);
     }
-    println!("");
 
 }
