@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.14
+//Version: 0.1.15
 
 use std::collections::HashMap;
 use std::env;
@@ -9,6 +9,7 @@ use std::fs::File;
 use std::io::Read;
 use std::fmt;
 
+#[derive(PartialEq, Eq)]
 enum IntSigned{
     Int8(i8),
     Int16(i16),
@@ -31,6 +32,7 @@ impl fmt::Display for IntSigned{
     }
 }
 
+#[derive(PartialEq, Eq)]
 enum IntUnsigned{
     UInt8(u8),
     UInt16(u16),
@@ -75,6 +77,30 @@ enum Value{
     NULLBox,
 }
 
+impl PartialEq for Value{
+    fn eq(&self, other: &Self) -> bool{
+        match(self, other){
+            (Value::Int(a), Value::Int(b)) => a == b,
+            (Value::UInt(a), Value::UInt(b)) => a == b,
+            (Value::Float32(a), Value::Float32(b)) => a == b,
+            (Value::Float64(a), Value::Float64(b)) => a == b,
+            (Value::Char(a), Value::Char(b)) => a == b,
+            (Value::Boolean(a), Value::Boolean(b)) => a == b,
+            (Value::String(a), Value::String(b)) => a == b,
+            (Value::StringBox(a), Value::StringBox(b)) => a == b,
+            (Value::List(a), Value::List(b)) => a == b,
+            (Value::ListBox(a), Value::ListBox(b)) => a == b,
+            (Value::Object(a), Value::Object(b)) => a == b,
+            (Value::ObjectBox(a), Value::ObjectBox(b)) => a == b,
+            (Value::MiscBox(a), Value::MiscBox(b)) => a == b,
+            (Value::NULLBox, Value::NULLBox) => true,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Value {}
+
 impl fmt::Display for Value{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
         match self {
@@ -98,9 +124,16 @@ impl fmt::Display for Value{
 
 //Can either be a value to push to the stack or 
 // a command to run an operator or something like that.
+#[derive(PartialEq, Eq)]
 enum Token{
     V(Value),
     Word(String)
+}
+
+impl Default for Token{
+    fn default() -> Self{
+        Token::V(Value::Int(IntSigned::Int8(0)))
+    }
 }
 
 impl fmt::Display for Token{
@@ -392,6 +425,44 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
     }
 
     lexed
+}
+
+//This function does the heavy-lifting of recursively building the AST.
+fn make_ast_prime(
+    already_parsed: Vec<ASTNode>, 
+    tokens: Vec<Token>, 
+    token_index: usize, 
+    terminators: Vec<Token>
+) -> (Vec<ASTNode>, usize, Option<usize>){
+    if token_index >= tokens.len(){
+        if terminators.len() == 0{
+            return (already_parsed, token_index, None)
+        }else{
+            let mut terms = String::new();
+            for t in terminators.iter(){
+                terms.push_str(&format!("{} ", t));
+            }
+            panic!("Ended expression without finding one of: {}", terms);
+        }
+
+    }else{
+        match tokens[token_index]{
+            ref tok if terminators.contains(tok) => (already_parsed, token_index + 1, Some(token_index)),
+            _ => {
+                let mut parsed = already_parsed;
+                let mut toks = tokens;
+                parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
+                make_ast_prime(parsed, toks, token_index + 1, terminators)
+            },
+        }
+    }
+
+}
+
+//Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
+// returning it for the program to then run.
+fn make_ast(tokens: Vec<Token>) -> ASTNode{
+    ASTNode::Expression(Vec::new())
 }
 
 fn main(){
