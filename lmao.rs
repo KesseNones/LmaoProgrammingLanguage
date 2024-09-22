@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.17
+//Version: 0.1.18
 
 use std::collections::HashMap;
 use std::env;
@@ -454,14 +454,39 @@ fn make_ast_prime(
             Token::Word(ref cmd) if cmd == "if" => {
                 let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1);
                 already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators) 
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators) 
             },
             //While loop parsing case.
             Token::Word(ref cmd) if cmd == "while" => {
                 let (loop_body, tokens_prime, token_index_prime, _) = 
                     make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
                 already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+            },
+            //Function case.
+            Token::Word(ref cmd) if cmd == "func" => {
+                //Makes sure there's enough stuff to look to parse the function.
+                if token_index + 2 > tokens.len(){
+                    panic!("Insufficient tokens left for function to be parsed!");
+                }
+
+                let mut toks = tokens;
+                let command = std::mem::take(&mut toks[token_index + 1]);
+                let name = std::mem::take(&mut toks[token_index + 2]);
+                let (command_str, name_str) = match (command, name){
+                    (Token::Word(c), Token::Word(n)) => (c, n),
+                    (_, _) => panic!("SHOULD NEVER GET HERE!!!"),
+                };
+
+                let (fbod, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(Vec::new(), toks, token_index + 3, vec![Token::Word(";".to_string())]);
+
+                let fbod_ast = Box::new(ASTNode::Expression(fbod));
+
+                already_parsed.push(
+                    ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+
             },
             _ => {
                 let mut toks = tokens;
