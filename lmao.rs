@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.18
+//Version: 0.1.19
 
 use std::collections::HashMap;
 use std::env;
@@ -511,6 +511,25 @@ fn make_ast_prime(
                 }else{
                     panic!("Malformed variable command Error! \
                         Insufficient parameters given for variable command!");
+                }
+            },
+            //Loc command parsing case.
+            Token::Word(ref cmd) if cmd == "loc" => {
+                let (mut var_data, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                if var_data.len() >= 2{
+                    let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
+                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c, n),
+                        (_, _) => {panic!("Malformed local variable command Error! \
+                            Insufficient parameters given for local variable command!")},
+                    };
+
+                    already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd});
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+
+                }else{
+                    panic!("Malformed local variable command Error! \
+                        Insufficient parameters given for local variable command!");
                 }
             },
             _ => {
