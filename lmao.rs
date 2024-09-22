@@ -132,7 +132,7 @@ enum Token{
 
 impl Default for Token{
     fn default() -> Self{
-        Token::V(Value::Int(IntSigned::Int8(0)))
+        Token::V(Value::NULLBox)
     }
 }
 
@@ -155,6 +155,12 @@ enum ASTNode{
     Variable{var_name: String, var_cmd: String},
     LocVar{name: String, cmd: String},
     BoxOp(String)
+}
+
+impl Default for ASTNode{
+    fn default() -> Self{
+        ASTNode::Terminal(Token::V(Value::NULLBox))
+    }
 }
 
 //Main mutable state
@@ -488,6 +494,25 @@ fn make_ast_prime(
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
 
             },
+            //Var command parsing case.
+            Token::Word(ref cmd) if cmd == "var" => {
+                let (mut var_data, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                if var_data.len() >= 2{
+                    let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
+                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c, n),
+                        (_, _) => {panic!("Malformed variable command Error! \
+                            Insufficient parameters given for variable command!")},
+                    };
+
+                    already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd});
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+
+                }else{
+                    panic!("Malformed variable command Error! \
+                        Insufficient parameters given for variable command!");
+                }
+            },
             _ => {
                 let mut toks = tokens;
                 already_parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
@@ -508,7 +533,7 @@ fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<To
         );
     match terminator_index{
         Some(i) => {
-            match (tokens_prime[i]){
+            match tokens_prime[i]{
                 Token::Word(ref cmd) if cmd == "else" => {
                     let (false_branch, tokens_prime_prime, token_index_prime_prime) = 
                         parse_else(tokens_prime, token_index_prime);
