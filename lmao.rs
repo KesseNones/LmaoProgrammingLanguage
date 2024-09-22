@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.15
+//Version: 0.1.16
 
 use std::collections::HashMap;
 use std::env;
@@ -429,14 +429,14 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
 
 //This function does the heavy-lifting of recursively building the AST.
 fn make_ast_prime(
-    already_parsed: Vec<ASTNode>, 
+    mut already_parsed: Vec<ASTNode>, 
     tokens: Vec<Token>, 
     token_index: usize, 
     terminators: Vec<Token>
-) -> (Vec<ASTNode>, usize, Option<usize>){
+) -> (Vec<ASTNode>, Vec<Token>, usize, Option<usize>){
     if token_index >= tokens.len(){
         if terminators.len() == 0{
-            return (already_parsed, token_index, None)
+            return (already_parsed, tokens, token_index, None)
         }else{
             let mut terms = String::new();
             for t in terminators.iter(){
@@ -447,16 +447,55 @@ fn make_ast_prime(
 
     }else{
         match tokens[token_index]{
-            ref tok if terminators.contains(tok) => (already_parsed, token_index + 1, Some(token_index)),
+            ref tok if terminators.contains(tok) => (already_parsed, tokens, token_index + 1, Some(token_index)),
+            Token::Word(ref cmd) if cmd == "if" => {
+                let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1);
+                already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators) 
+            },
             _ => {
-                let mut parsed = already_parsed;
                 let mut toks = tokens;
-                parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
-                make_ast_prime(parsed, toks, token_index + 1, terminators)
+                already_parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
+                make_ast_prime(already_parsed, toks, token_index + 1, terminators)
             },
         }
     }
 
+}
+
+fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<Token>, usize){
+    let (true_branch, tokens_prime, token_index_prime, terminator_index) = 
+        make_ast_prime(
+            Vec::new(), 
+            tokens, 
+            token_index, 
+            vec![Token::Word("else".to_string()), Token::Word("if".to_string())]
+        );
+    match terminator_index{
+        Some(i) => {
+            match (tokens_prime[i]){
+                Token::Word(ref cmd) if cmd == "else" => {
+                    let (false_branch, tokens_prime_prime, token_index_prime_prime) = 
+                        parse_else(tokens_prime, token_index_prime);
+                    (ASTNode::Expression(true_branch), false_branch, 
+                        tokens_prime_prime, token_index_prime_prime)
+                },
+                _ => (ASTNode::Expression(true_branch), ASTNode::Expression(vec![]), tokens_prime, token_index_prime),  
+            }
+        },
+        _ => panic!("SHOULD NEVER GET HERE"),
+    }
+}
+
+fn parse_else(tokens: Vec<Token>, token_index: usize) -> (ASTNode, Vec<Token>, usize){
+    let (if_false, tokens_prime, token_index_prime, _) = 
+        make_ast_prime(
+            Vec::new(),
+            tokens, 
+            token_index,
+            vec![Token::Word(";".to_string())]
+        );
+    (ASTNode::Expression(if_false), tokens_prime, token_index_prime)
 }
 
 //Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
