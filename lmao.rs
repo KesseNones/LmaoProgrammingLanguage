@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.19
+//Version: 0.1.20
 
 use std::collections::HashMap;
 use std::env;
@@ -112,9 +112,9 @@ impl fmt::Display for Value{
             Value::Boolean(b) => write!(f, "Boolean {}", b),
             Value::String(s) => write!(f, "String \"{}\"", s),
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
-            Value::List(l) => write!(f, "LIST [INSERT_CONTENTS_HERE]"),
+            Value::List(_) => write!(f, "LIST [INSERT_CONTENTS_HERE]"), //Do some kind of actual printing here later!
             Value::ListBox(lb) => write!(f, "ListBox {}", lb),
-            Value::Object(obj) => write!(f, "Object OBJ"),
+            Value::Object(_) => write!(f, "Object OBJ"), //Do some kind of actual printing here later!
             Value::ObjectBox(ob) => write!(f, "ObjectBox {}", ob),
             Value::MiscBox(bn) => write!(f, "MiscBox {}", bn),
             Value::NULLBox => write!(f, "Box NULL"),
@@ -524,12 +524,28 @@ fn make_ast_prime(
                             Insufficient parameters given for local variable command!")},
                     };
 
-                    already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd});
+                    already_parsed.push(ASTNode::LocVar{name: name, cmd: cmd});
                     make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
 
                 }else{
                     panic!("Malformed local variable command Error! \
                         Insufficient parameters given for local variable command!");
+                }
+            },
+            //Box command case.
+            Token::Word(ref cmd) if cmd == "box" => {
+                let (mut box_data, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                if box_data.len() >= 1{
+                    let box_cmd = match std::mem::take(&mut box_data[0]){
+                        ASTNode::Terminal(Token::Word(c)) => c,
+                        _ => panic!("Malformed box command!"),
+                    };
+
+                    already_parsed.push(ASTNode::BoxOp(box_cmd));
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+                }else{
+                    panic!("Malformed box command! No box command token given!")
                 }
             },
             _ => {
