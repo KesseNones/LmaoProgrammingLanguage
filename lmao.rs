@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.16
+//Version: 0.1.17
 
 use std::collections::HashMap;
 use std::env;
@@ -434,6 +434,7 @@ fn make_ast_prime(
     token_index: usize, 
     terminators: Vec<Token>
 ) -> (Vec<ASTNode>, Vec<Token>, usize, Option<usize>){
+    //If out of tokens to parse, end or throw error if there were terminators to look for.
     if token_index >= tokens.len(){
         if terminators.len() == 0{
             return (already_parsed, tokens, token_index, None)
@@ -444,14 +445,23 @@ fn make_ast_prime(
             }
             panic!("Ended expression without finding one of: {}", terms);
         }
-
+    //If still tokens to parse, converts the tokens into an ASTNode.
     }else{
         match tokens[token_index]{
+            //Stop on terminator case.
             ref tok if terminators.contains(tok) => (already_parsed, tokens, token_index + 1, Some(token_index)),
+            //Parse if statement case.
             Token::Word(ref cmd) if cmd == "if" => {
                 let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1);
                 already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators) 
+            },
+            //While loop parsing case.
+            Token::Word(ref cmd) if cmd == "while" => {
+                let (loop_body, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
             },
             _ => {
                 let mut toks = tokens;
@@ -483,7 +493,7 @@ fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<To
                 _ => (ASTNode::Expression(true_branch), ASTNode::Expression(vec![]), tokens_prime, token_index_prime),  
             }
         },
-        _ => panic!("SHOULD NEVER GET HERE"),
+        _ => panic!("SHOULD NEVER GET HERE!!!"),
     }
 }
 
@@ -501,7 +511,7 @@ fn parse_else(tokens: Vec<Token>, token_index: usize) -> (ASTNode, Vec<Token>, u
 //Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
 // returning it for the program to then run.
 fn make_ast(tokens: Vec<Token>) -> ASTNode{
-    ASTNode::Expression(Vec::new())
+    ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, Vec::new()).0)
 }
 
 fn main(){
