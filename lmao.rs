@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.21
+//Version: 0.1.22
 
 use std::collections::HashMap;
 use std::env;
@@ -468,7 +468,7 @@ fn make_ast_prime(
         }else{
             let mut terms = String::new();
             for t in terminators.iter(){
-                terms.push_str(&format!("{} ", t));
+                terms.push_str(&format!("{}, ", t));
             }
             panic!("Ended expression without finding one of: {}", terms);
         }
@@ -585,7 +585,7 @@ fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<To
             Vec::new(), 
             tokens, 
             token_index, 
-            vec![Token::Word("else".to_string()), Token::Word("if".to_string())]
+            vec![Token::Word("else".to_string()), Token::Word(";".to_string())]
         );
     match terminator_index{
         Some(i) => {
