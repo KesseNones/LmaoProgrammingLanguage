@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.24
+//Version: 0.2.0
 
 use std::collections::HashMap;
 use std::env;
@@ -166,8 +166,7 @@ impl Default for ASTNode{
 impl fmt::Display for ASTNode{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
         match self{
-            ASTNode::Terminal(Token::V(v)) => write!(f, "{}", v),
-            ASTNode::Terminal(Token::Word(w)) => write!(f, "{}", w),
+            ASTNode::Terminal(t) => write!(f, "{}", t),
             ASTNode::If{if_true, if_false} => write!(f, "If [true_branch: {}, false_branch: {}]", if_true, if_false),
             ASTNode::While(body) => write!(f, "While [{}]", body),
             ASTNode::Expression(vec) => {
@@ -488,7 +487,7 @@ fn make_ast_prime(
                 let (loop_body, tokens_prime, token_index_prime, _) = 
                     make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
                 already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
             },
             //Function case.
             Token::Word(ref cmd) if cmd == "func" => {
@@ -512,7 +511,7 @@ fn make_ast_prime(
 
                 already_parsed.push(
                     ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 
             },
             //Var command parsing case.
