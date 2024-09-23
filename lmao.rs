@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.23
+//Version: 0.1.24
 
 use std::collections::HashMap;
 use std::env;
@@ -481,7 +481,7 @@ fn make_ast_prime(
             Token::Word(ref cmd) if cmd == "if" => {
                 let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1);
                 already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators) 
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators) 
             },
             //While loop parsing case.
             Token::Word(ref cmd) if cmd == "while" => {
@@ -527,7 +527,7 @@ fn make_ast_prime(
                     };
 
                     already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd});
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 
                 }else{
                     panic!("Malformed variable command Error! \
@@ -546,7 +546,7 @@ fn make_ast_prime(
                     };
 
                     already_parsed.push(ASTNode::LocVar{name: name, cmd: cmd});
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 
                 }else{
                     panic!("Malformed local variable command Error! \
