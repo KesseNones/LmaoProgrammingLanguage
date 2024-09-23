@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.20
+//Version: 0.1.21
 
 use std::collections::HashMap;
 use std::env;
@@ -160,6 +160,27 @@ enum ASTNode{
 impl Default for ASTNode{
     fn default() -> Self{
         ASTNode::Terminal(Token::V(Value::NULLBox))
+    }
+}
+
+impl fmt::Display for ASTNode{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self{
+            ASTNode::Terminal(Token::V(v)) => write!(f, "{}", v),
+            ASTNode::Terminal(Token::Word(w)) => write!(f, "{}", w),
+            ASTNode::If{if_true, if_false} => write!(f, "If [true_branch: {}, false_branch: {}]", if_true, if_false),
+            ASTNode::While(body) => write!(f, "While [{}]", body),
+            ASTNode::Expression(vec) => {
+                let strs: Vec<String> = vec.iter().map(|n| format!("{}", n)).collect();
+                write!(f, "Expression [{}]", strs.join(", "))
+            },
+            ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: body} => {
+                write!(f, "Function [cmd: {}, name: {}, body: {}]", cmd, name, body)
+            },
+            ASTNode::Variable{var_name: name, var_cmd: cmd} => write!(f, "Variable [name: {}, cmd: {}]", name, cmd),
+            ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
+            ASTNode::BoxOp(op) => write!(f, "BoxCommand {}", op),
+        }
     }
 }
 
@@ -634,5 +655,10 @@ fn main(){
     for lxt in lexed.iter(){
         println!("{}", lxt);
     }
+    println!("\n\n\n\n\n");
+
+    let ast: ASTNode = make_ast(lexed);
+
+    println!("{}", ast);
 
 }
