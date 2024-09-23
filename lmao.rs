@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.1.22
+//Version: 0.1.23
 
 use std::collections::HashMap;
 use std::env;
@@ -179,7 +179,7 @@ impl fmt::Display for ASTNode{
             },
             ASTNode::Variable{var_name: name, var_cmd: cmd} => write!(f, "Variable [name: {}, cmd: {}]", name, cmd),
             ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
-            ASTNode::BoxOp(op) => write!(f, "BoxCommand {}", op),
+            ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
         }
     }
 }
@@ -564,7 +564,7 @@ fn make_ast_prime(
                     };
 
                     already_parsed.push(ASTNode::BoxOp(box_cmd));
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime + 1, terminators)
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
                 }else{
                     panic!("Malformed box command! No box command token given!")
                 }
