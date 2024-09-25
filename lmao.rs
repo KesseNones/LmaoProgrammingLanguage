@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.0
+//Version: 0.2.1
 
 use std::collections::HashMap;
 use std::env;
@@ -191,6 +191,19 @@ struct State{
     frames: Vec<HashMap<String, Value>>,
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>
+}
+
+impl State{
+    fn new() -> Self{
+        State {
+            stack: Vec::new(),
+            fns: HashMap::new(),
+            vars: HashMap::new(),
+            frames: vec![HashMap::new()],
+            heap: Vec::new(),
+            free_list: Vec::new() 
+        }
+    }
 }
 
 //Tokenizes list of chars into list of strings.
@@ -659,5 +672,7 @@ fn main(){
     let ast: ASTNode = make_ast(lexed);
 
     println!("{}", ast);
+
+    let state = State::new();
 
 }
