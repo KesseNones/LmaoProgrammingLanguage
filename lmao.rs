@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.1
+//Version: 0.2.2
 
 use std::collections::HashMap;
 use std::env;
@@ -194,6 +194,7 @@ struct State{
 }
 
 impl State{
+    //Creates a new state.
     fn new() -> Self{
         State {
             stack: Vec::new(),
@@ -204,7 +205,64 @@ impl State{
             free_list: Vec::new() 
         }
     }
+
+    //Inserts an item into the heap, 
+    // returning an index to where it was inserted in the heap.
+    fn insert_to_heap(&mut self, ins_val: Value) -> usize{
+        if self.free_list.len() > 0{
+            let free_cell_num = self.free_list.pop().unwrap();
+            self.heap[free_cell_num] = (ins_val, true);
+            return free_cell_num;
+        }else{
+            self.heap.push((ins_val, true));
+            return self.heap.len() - 1;
+        }
+    }
+
+    //Pushes a value to the stack and accounts for if the value 
+    // is a non-primitive type, allocating it on the heap if necessary.
+    fn push(&mut self, ins_val: Value){
+        match ins_val{
+            Value::String(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::StringBox(box_num));
+            },
+            Value::List(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::ListBox(box_num));
+            },
+            Value::Object(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::ObjectBox(box_num));
+            },
+            anything => self.stack.push(anything),
+        }
+    }
+
 }
+
+//DELETE THIS LATER
+// //This enum is used to contain all the possible data types of Lmao.
+// enum Value{
+//     //Specific signed integers found from type declarations. (coming soonTM)
+//     Int(IntSigned),
+//     //Speficic unsigned integers found from type declarations.
+//     UInt(IntUnsigned),
+//     //Specified float types
+//     Float32(f32),
+//     Float64(f64),
+//     Char(char),
+//     Boolean(bool),
+//     //String and its equivalent box to live on the stack.
+//     String(String),
+//     StringBox(usize),
+//     List(Vec<Value>),
+//     ListBox(usize),
+//     Object(HashMap<String, Value>),
+//     ObjectBox(usize),
+//     MiscBox(usize),
+//     NULLBox,
+// }
 
 //Tokenizes list of chars into list of strings.
 fn tokenize(chars: &Vec<char>) -> Vec<String>{
@@ -673,6 +731,39 @@ fn main(){
 
     println!("{}", ast);
 
-    let state = State::new();
+//DELETE THIS LATER
+// //This enum is used to contain all the possible data types of Lmao.
+// enum Value{
+//     //Specific signed integers found from type declarations. (coming soonTM)
+//     Int(IntSigned),
+//     //Speficic unsigned integers found from type declarations.
+//     UInt(IntUnsigned),
+//     //Specified float types
+//     Float32(f32),
+//     Float64(f64),
+//     Char(char),
+//     Boolean(bool),
+//     //String and its equivalent box to live on the stack.
+//     String(String),
+//     StringBox(usize),
+//     List(Vec<Value>),
+//     ListBox(usize),
+//     Object(HashMap<String, Value>),
+//     ObjectBox(usize),
+//     MiscBox(usize),
+//     NULLBox,
+// }
+
+    let mut state = State::new();
+    state.push(Value::Int(IntSigned::Int16(999)));
+    state.push(Value::String("Your mum gay lmao".to_string()));
+    state.push(Value::Object(HashMap::new()));
+    state.push(Value::List(Vec::new()));
+
+    println!("STACK START");
+    for el in state.stack.iter(){
+        println!("{}", el);
+    }
+    println!("STACK END");
 
 }
