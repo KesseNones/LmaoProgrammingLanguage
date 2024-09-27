@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.2
+//Version: 0.2.3
 
 use std::collections::HashMap;
 use std::env;
@@ -32,6 +32,14 @@ impl fmt::Display for IntSigned{
     }
 }
 
+impl Copy for IntSigned {}
+
+impl Clone for IntSigned{
+    fn clone(&self) -> IntSigned{
+        *self
+    }
+}
+
 #[derive(PartialEq, Eq)]
 enum IntUnsigned{
     UInt8(u8),
@@ -55,6 +63,14 @@ impl fmt::Display for IntUnsigned{
     }
 }
 
+impl Copy for IntUnsigned {}
+
+impl Clone for IntUnsigned{
+    fn clone(&self) -> IntUnsigned{
+        *self
+    }
+}
+
 //This enum is used to contain all the possible data types of Lmao.
 enum Value{
     //Specific signed integers found from type declarations. (coming soonTM)
@@ -75,6 +91,27 @@ enum Value{
     ObjectBox(usize),
     MiscBox(usize),
     NULLBox,
+}
+
+impl Clone for Value{
+    fn clone(&self) -> Value{
+        match self{
+            Value::Int(i) => Value::Int(*i),
+            Value::UInt(i) => Value::UInt(*i),
+            Value::Float32(f) => Value::Float32(*f),
+            Value::Float64(f) => Value::Float64(*f),
+            Value::Char(c) => Value::Char(*c),
+            Value::Boolean(b) => Value::Boolean(*b),
+            Value::String(st) => Value::String((st).clone()),
+            Value::StringBox(sb) => Value::StringBox(*sb),
+            Value::List(l) => Value::List((l).clone()),
+            Value::ListBox(bn) => Value::ListBox(*bn),
+            Value::Object(o) => Value::Object(o.clone()),
+            Value::ObjectBox(bn) => Value::ObjectBox(*bn),
+            Value::MiscBox(bn) => Value::MiscBox(*bn),
+            Value::NULLBox => Value::NULLBox,
+        }
+    }
 }
 
 impl PartialEq for Value{
@@ -690,6 +727,23 @@ fn make_ast(tokens: Vec<Token>) -> ASTNode{
     ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, Vec::new()).0)
 }
 
+//Iterates recursively through the AST and effectively runs the program doing so.
+fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
+    match ast{
+        ASTNode::Expression(nodes) => {
+            for node in nodes.iter(){
+                match node{
+                    ASTNode::Terminal(Token::V(v)) => state.push((*v).clone()),
+                    _ => {},
+                }
+            }
+        },
+        _ => {return Err("Should never get to this point!".to_string());},
+    }
+
+    Ok(())
+}
+
 fn main(){
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
@@ -729,7 +783,7 @@ fn main(){
 
     let ast: ASTNode = make_ast(lexed);
 
-    println!("{}", ast);
+    println!("{}\n\n\n\n", ast);
 
 //DELETE THIS LATER
 // //This enum is used to contain all the possible data types of Lmao.
@@ -755,11 +809,15 @@ fn main(){
 // }
 
     let mut state = State::new();
-    state.push(Value::Int(IntSigned::Int16(999)));
-    state.push(Value::String("Your mum gay lmao".to_string()));
-    state.push(Value::Object(HashMap::new()));
-    state.push(Value::List(Vec::new()));
 
+    let result = run_program(&ast, &mut state);
+
+    match result{
+        Ok(_) => println!("The program completed successfully!"),
+        Err(e) => println!("The program failed with error {}!", e),
+    }
+
+    //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
     println!("STACK START");
     for el in state.stack.iter(){
         println!("{}", el);
