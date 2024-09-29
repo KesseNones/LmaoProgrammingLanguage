@@ -1,6 +1,8 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.3
+//Version: 0.2.4
+
+//FIX PROBLEM WITH - OPERATOR BEING MISTAKEN AS AN ATTEMPT TO CREATE AN ISIZE
 
 use std::collections::HashMap;
 use std::env;
@@ -220,6 +222,8 @@ impl fmt::Display for ASTNode{
     }
 }
 
+type OpFunc = fn(&mut State) -> Result<(), String>;
+
 //Main mutable state
 struct State{
     stack: Vec<Value>,
@@ -227,19 +231,29 @@ struct State{
     vars: HashMap<String, Value>,
     frames: Vec<HashMap<String, Value>>,
     heap: Vec<(Value, bool)>,
-    free_list: Vec<usize>
+    free_list: Vec<usize>,
+    ops: HashMap<String, OpFunc>
+}
+
+fn add(s: &mut State) -> Result<(), String>{
+    Ok(())
 }
 
 impl State{
     //Creates a new state.
     fn new() -> Self{
+        //Creates lookup table for operator functions.
+        let mut ops_map: HashMap<String, OpFunc> = HashMap::new();
+        ops_map.insert("+".to_string(), add);
+
         State {
             stack: Vec::new(),
             fns: HashMap::new(),
             vars: HashMap::new(),
             frames: vec![HashMap::new()],
             heap: Vec::new(),
-            free_list: Vec::new() 
+            free_list: Vec::new(),
+            ops: ops_map 
         }
     }
 
@@ -277,29 +291,6 @@ impl State{
     }
 
 }
-
-//DELETE THIS LATER
-// //This enum is used to contain all the possible data types of Lmao.
-// enum Value{
-//     //Specific signed integers found from type declarations. (coming soonTM)
-//     Int(IntSigned),
-//     //Speficic unsigned integers found from type declarations.
-//     UInt(IntUnsigned),
-//     //Specified float types
-//     Float32(f32),
-//     Float64(f64),
-//     Char(char),
-//     Boolean(bool),
-//     //String and its equivalent box to live on the stack.
-//     String(String),
-//     StringBox(usize),
-//     List(Vec<Value>),
-//     ListBox(usize),
-//     Object(HashMap<String, Value>),
-//     ObjectBox(usize),
-//     MiscBox(usize),
-//     NULLBox,
-// }
 
 //Tokenizes list of chars into list of strings.
 fn tokenize(chars: &Vec<char>) -> Vec<String>{
@@ -727,6 +718,19 @@ fn make_ast(tokens: Vec<Token>) -> ASTNode{
     ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, Vec::new()).0)
 }
 
+//DELETE LATER
+// //The various types of nodes that are part of the Abstract Syntax Tree
+// enum ASTNode{
+//     Terminal(Token),
+//     If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
+//     While(Box<ASTNode>),
+//     Expression(Vec<ASTNode>),
+//     Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
+//     Variable{var_name: String, var_cmd: String},
+//     LocVar{name: String, cmd: String},
+//     BoxOp(String)
+// }
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
     match ast{
@@ -734,6 +738,19 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
             for node in nodes.iter(){
                 match node{
                     ASTNode::Terminal(Token::V(v)) => state.push((*v).clone()),
+                    ASTNode::Terminal(Token::Word(ref op)) => {
+                        match state.ops.get(op){
+                            Some(func) => {
+                                match func(state){
+                                    Ok(_) => {},
+                                    Err(e) => return Err(e),
+                                }
+                            },
+                            None => {
+                                return Err(format!("Unrecognized Operator: {}", op));
+                            },
+                        } 
+                    },
                     _ => {},
                 }
             }
