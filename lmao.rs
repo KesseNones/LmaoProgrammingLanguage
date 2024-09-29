@@ -1,8 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.4
-
-//FIX PROBLEM WITH - OPERATOR BEING MISTAKEN AS AN ATTEMPT TO CREATE AN ISIZE
+//Version: 0.2.5
 
 use std::collections::HashMap;
 use std::env;
@@ -534,7 +532,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                 }
             },
             //Type inference for integer.
-            ref t if t.chars().next().unwrap() == '-' 
+            ref t if (t.chars().next().unwrap() == '-' && t.len() > 1) 
                     || (t.chars().next().unwrap() >= '0' 
                         && t.chars().next().unwrap() <= '9') 
                     => {
@@ -831,7 +829,7 @@ fn main(){
 
     match result{
         Ok(_) => println!("The program completed successfully!"),
-        Err(e) => println!("The program failed with error {}!", e),
+        Err(e) => println!("The program failed with error: {}", e),
     }
 
     //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
