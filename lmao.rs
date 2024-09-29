@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.5
+//Version: 0.2.6
 
 use std::collections::HashMap;
 use std::env;
@@ -233,8 +233,111 @@ struct State{
     ops: HashMap<String, OpFunc>
 }
 
+fn type_to_string(v: &Value) -> String{
+    let type_str: &str = match v{
+        Value::Int(IntSigned::Int8(_)) => "i8",
+        Value::Int(IntSigned::Int16(_)) => "i16",
+        Value::Int(IntSigned::Int32(_)) => "i32",
+        Value::Int(IntSigned::Int64(_)) => "i64",
+        Value::Int(IntSigned::Int128(_)) => "i128",
+        Value::Int(IntSigned::IntSize(_)) => "isize",
+        
+        Value::UInt(IntUnsigned::UInt8(_)) => "u8",
+        Value::UInt(IntUnsigned::UInt16(_)) => "u16",
+        Value::UInt(IntUnsigned::UInt32(_)) => "u32",
+        Value::UInt(IntUnsigned::UInt64(_)) => "u64",
+        Value::UInt(IntUnsigned::UInt128(_)) => "u128",
+        Value::UInt(IntUnsigned::UIntSize(_)) => "usize",
+
+        Value::Float32(_) => "f32",
+        Value::Float64(_) => "f64",
+
+        Value::Char(_) => "Char",
+        Value::Boolean(_) => "Boolean",
+        Value::String(_) => "String",
+        Value::StringBox(_) => "StringBox",
+        Value::List(_) => "List",
+        Value::ListBox(_) => "List",
+        Value::Object(_) => "Object",
+        Value::ObjectBox(_) => "ObjectBox",
+        Value::MiscBox(_) => "MiscBox",
+        Value::NULLBox => "NULLBox",
+    };
+
+    type_str.to_string()
+}
+
+//FIGURE OUT HOW TO HANDLE OVERFLOWS!
+//Adds two values of matching numerical types together, pusing the result to the stack.
 fn add(s: &mut State) -> Result<(), String>{
+    match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            s.push(Value::Int(IntSigned::IntSize(a + b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UIntSize(a + b)))
+        },
+
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            s.push(Value::Int(IntSigned::Int8(a + b)))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            s.push(Value::Int(IntSigned::Int16(a + b)))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            s.push(Value::Int(IntSigned::Int32(a + b)))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            s.push(Value::Int(IntSigned::Int64(a + b)))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            s.push(Value::Int(IntSigned::Int128(a + b)))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt8(a + b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt16(a + b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt32(a + b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt64(a + b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt128(a + b)))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            s.push(Value::Float32(a + b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            s.push(Value::Float64(a + b))
+        },
+
+        (Some(a), Some(b)) => {
+            let a_type = type_to_string(&a);
+            let b_type = type_to_string(&b);
+            return Err(format!("Operator (+) error! Operand types must match and be numeric types! Attempted types: {} and {}", a_type, b_type));
+        },
+
+        (None, Some(b)) => {
+            return Err("Operator (+) error! Two operands required on stack; only one provided!".to_string());
+        },
+
+        (None, None) => {
+            return Err("Operator (+) error! Two operands required on stack; none provided!".to_string());
+        },
+
+        _ => return Err("Should never get here for add function!".to_string()),
+
+    }
+
     Ok(())
+    
 }
 
 impl State{
@@ -286,6 +389,23 @@ impl State{
             },
             anything => self.stack.push(anything),
         }
+    }
+
+    fn pop(&mut self) -> Option<Value>{
+        self.stack.pop()
+    }
+
+    fn pop2(&mut self) -> (Option<Value>, Option<Value>){
+        let top = self.pop();
+        let second_to_top = self.pop();
+        (second_to_top, top)
+    }
+
+    fn pop3(&mut self) -> (Option<Value>, Option<Value>, Option<Value>){
+        let top = self.pop();
+        let second_to_top = self.pop();
+        let third_to_top = self.pop();
+        (third_to_top, second_to_top, top)
     }
 
 }
