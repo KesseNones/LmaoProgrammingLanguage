@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.6
+//Version: 0.2.7
 
 use std::collections::HashMap;
 use std::env;
@@ -143,8 +143,15 @@ impl fmt::Display for Value{
         match self {
             Value::Int(int) => write!(f, "{}", int),
             Value::UInt(uint) => write!(f, "{}", uint),
-            Value::Float32(flt32) => write!(f, "f32 {}", flt32),
-            Value::Float64(flt64) => write!(f, "f64 {}", flt64),
+            Value::Float32(flt32) => {
+                let exp = flt32.log10() as isize;
+                if exp.abs() > 15{
+                    write!(f, "f32 {:e}", flt32)
+                }else{
+                    write!(f, "f32 {}", flt32)
+                }
+            },
+            Value::Float64(flt64) => write!(f, "f64 {:e}", flt64),
             Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Boolean {}", b),
             Value::String(s) => write!(f, "String \"{}\"", s),
@@ -272,43 +279,43 @@ fn type_to_string(v: &Value) -> String{
 fn add(s: &mut State) -> Result<(), String>{
     match s.pop2(){
         (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            s.push(Value::Int(IntSigned::IntSize(a + b)))
+            s.push(Value::Int(IntSigned::IntSize(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UIntSize(a + b)))
+            s.push(Value::UInt(IntUnsigned::UIntSize(a.wrapping_add(b))))
         },
 
 
         (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            s.push(Value::Int(IntSigned::Int8(a + b)))
+            s.push(Value::Int(IntSigned::Int8(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            s.push(Value::Int(IntSigned::Int16(a + b)))
+            s.push(Value::Int(IntSigned::Int16(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            s.push(Value::Int(IntSigned::Int32(a + b)))
+            s.push(Value::Int(IntSigned::Int32(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            s.push(Value::Int(IntSigned::Int64(a + b)))
+            s.push(Value::Int(IntSigned::Int64(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            s.push(Value::Int(IntSigned::Int128(a + b)))
+            s.push(Value::Int(IntSigned::Int128(a.wrapping_add(b))))
         },
 
         (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt8(a + b)))
+            s.push(Value::UInt(IntUnsigned::UInt8(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt16(a + b)))
+            s.push(Value::UInt(IntUnsigned::UInt16(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt32(a + b)))
+            s.push(Value::UInt(IntUnsigned::UInt32(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt64(a + b)))
+            s.push(Value::UInt(IntUnsigned::UInt64(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt128(a + b)))
+            s.push(Value::UInt(IntUnsigned::UInt128(a.wrapping_add(b))))
         },
 
         (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
