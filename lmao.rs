@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.7
+//Version: 0.3.0
 
 use std::collections::HashMap;
 use std::env;
