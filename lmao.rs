@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.2.0
+//Version: 0.3.0
 
 use std::collections::HashMap;
 use std::env;
@@ -32,6 +32,14 @@ impl fmt::Display for IntSigned{
     }
 }
 
+impl Copy for IntSigned {}
+
+impl Clone for IntSigned{
+    fn clone(&self) -> IntSigned{
+        *self
+    }
+}
+
 #[derive(PartialEq, Eq)]
 enum IntUnsigned{
     UInt8(u8),
@@ -55,6 +63,14 @@ impl fmt::Display for IntUnsigned{
     }
 }
 
+impl Copy for IntUnsigned {}
+
+impl Clone for IntUnsigned{
+    fn clone(&self) -> IntUnsigned{
+        *self
+    }
+}
+
 //This enum is used to contain all the possible data types of Lmao.
 enum Value{
     //Specific signed integers found from type declarations. (coming soonTM)
@@ -75,6 +91,27 @@ enum Value{
     ObjectBox(usize),
     MiscBox(usize),
     NULLBox,
+}
+
+impl Clone for Value{
+    fn clone(&self) -> Value{
+        match self{
+            Value::Int(i) => Value::Int(*i),
+            Value::UInt(i) => Value::UInt(*i),
+            Value::Float32(f) => Value::Float32(*f),
+            Value::Float64(f) => Value::Float64(*f),
+            Value::Char(c) => Value::Char(*c),
+            Value::Boolean(b) => Value::Boolean(*b),
+            Value::String(st) => Value::String((st).clone()),
+            Value::StringBox(sb) => Value::StringBox(*sb),
+            Value::List(l) => Value::List((l).clone()),
+            Value::ListBox(bn) => Value::ListBox(*bn),
+            Value::Object(o) => Value::Object(o.clone()),
+            Value::ObjectBox(bn) => Value::ObjectBox(*bn),
+            Value::MiscBox(bn) => Value::MiscBox(*bn),
+            Value::NULLBox => Value::NULLBox,
+        }
+    }
 }
 
 impl PartialEq for Value{
@@ -106,8 +143,15 @@ impl fmt::Display for Value{
         match self {
             Value::Int(int) => write!(f, "{}", int),
             Value::UInt(uint) => write!(f, "{}", uint),
-            Value::Float32(flt32) => write!(f, "f32 {}", flt32),
-            Value::Float64(flt64) => write!(f, "f64 {}", flt64),
+            Value::Float32(flt32) => {
+                let exp = flt32.log10() as isize;
+                if exp.abs() > 15{
+                    write!(f, "f32 {:e}", flt32)
+                }else{
+                    write!(f, "f32 {}", flt32)
+                }
+            },
+            Value::Float64(flt64) => write!(f, "f64 {:e}", flt64),
             Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Boolean {}", b),
             Value::String(s) => write!(f, "String \"{}\"", s),
@@ -183,6 +227,8 @@ impl fmt::Display for ASTNode{
     }
 }
 
+type OpFunc = fn(&mut State) -> Result<(), String>;
+
 //Main mutable state
 struct State{
     stack: Vec<Value>,
@@ -190,7 +236,185 @@ struct State{
     vars: HashMap<String, Value>,
     frames: Vec<HashMap<String, Value>>,
     heap: Vec<(Value, bool)>,
-    free_list: Vec<usize>
+    free_list: Vec<usize>,
+    ops: HashMap<String, OpFunc>
+}
+
+fn type_to_string(v: &Value) -> String{
+    let type_str: &str = match v{
+        Value::Int(IntSigned::Int8(_)) => "i8",
+        Value::Int(IntSigned::Int16(_)) => "i16",
+        Value::Int(IntSigned::Int32(_)) => "i32",
+        Value::Int(IntSigned::Int64(_)) => "i64",
+        Value::Int(IntSigned::Int128(_)) => "i128",
+        Value::Int(IntSigned::IntSize(_)) => "isize",
+        
+        Value::UInt(IntUnsigned::UInt8(_)) => "u8",
+        Value::UInt(IntUnsigned::UInt16(_)) => "u16",
+        Value::UInt(IntUnsigned::UInt32(_)) => "u32",
+        Value::UInt(IntUnsigned::UInt64(_)) => "u64",
+        Value::UInt(IntUnsigned::UInt128(_)) => "u128",
+        Value::UInt(IntUnsigned::UIntSize(_)) => "usize",
+
+        Value::Float32(_) => "f32",
+        Value::Float64(_) => "f64",
+
+        Value::Char(_) => "Char",
+        Value::Boolean(_) => "Boolean",
+        Value::String(_) => "String",
+        Value::StringBox(_) => "StringBox",
+        Value::List(_) => "List",
+        Value::ListBox(_) => "List",
+        Value::Object(_) => "Object",
+        Value::ObjectBox(_) => "ObjectBox",
+        Value::MiscBox(_) => "MiscBox",
+        Value::NULLBox => "NULLBox",
+    };
+
+    type_str.to_string()
+}
+
+//FIGURE OUT HOW TO HANDLE OVERFLOWS!
+//Adds two values of matching numerical types together, pusing the result to the stack.
+fn add(s: &mut State) -> Result<(), String>{
+    match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            s.push(Value::Int(IntSigned::IntSize(a.wrapping_add(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UIntSize(a.wrapping_add(b))))
+        },
+
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            s.push(Value::Int(IntSigned::Int8(a.wrapping_add(b))))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            s.push(Value::Int(IntSigned::Int16(a.wrapping_add(b))))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            s.push(Value::Int(IntSigned::Int32(a.wrapping_add(b))))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            s.push(Value::Int(IntSigned::Int64(a.wrapping_add(b))))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            s.push(Value::Int(IntSigned::Int128(a.wrapping_add(b))))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt8(a.wrapping_add(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt16(a.wrapping_add(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt32(a.wrapping_add(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt64(a.wrapping_add(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt128(a.wrapping_add(b))))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            s.push(Value::Float32(a + b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            s.push(Value::Float64(a + b))
+        },
+
+        (Some(a), Some(b)) => {
+            let a_type = type_to_string(&a);
+            let b_type = type_to_string(&b);
+            return Err(format!("Operator (+) error! Operand types must match and be numeric types! Attempted types: {} and {}", a_type, b_type));
+        },
+
+        (None, Some(b)) => {
+            return Err("Operator (+) error! Two operands required on stack; only one provided!".to_string());
+        },
+
+        (None, None) => {
+            return Err("Operator (+) error! Two operands required on stack; none provided!".to_string());
+        },
+
+        _ => return Err("Should never get here for add function!".to_string()),
+
+    }
+
+    Ok(())
+    
+}
+
+impl State{
+    //Creates a new state.
+    fn new() -> Self{
+        //Creates lookup table for operator functions.
+        let mut ops_map: HashMap<String, OpFunc> = HashMap::new();
+        ops_map.insert("+".to_string(), add);
+
+        State {
+            stack: Vec::new(),
+            fns: HashMap::new(),
+            vars: HashMap::new(),
+            frames: vec![HashMap::new()],
+            heap: Vec::new(),
+            free_list: Vec::new(),
+            ops: ops_map 
+        }
+    }
+
+    //Inserts an item into the heap, 
+    // returning an index to where it was inserted in the heap.
+    fn insert_to_heap(&mut self, ins_val: Value) -> usize{
+        if self.free_list.len() > 0{
+            let free_cell_num = self.free_list.pop().unwrap();
+            self.heap[free_cell_num] = (ins_val, true);
+            return free_cell_num;
+        }else{
+            self.heap.push((ins_val, true));
+            return self.heap.len() - 1;
+        }
+    }
+
+    //Pushes a value to the stack and accounts for if the value 
+    // is a non-primitive type, allocating it on the heap if necessary.
+    fn push(&mut self, ins_val: Value){
+        match ins_val{
+            Value::String(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::StringBox(box_num));
+            },
+            Value::List(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::ListBox(box_num));
+            },
+            Value::Object(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::ObjectBox(box_num));
+            },
+            anything => self.stack.push(anything),
+        }
+    }
+
+    fn pop(&mut self) -> Option<Value>{
+        self.stack.pop()
+    }
+
+    fn pop2(&mut self) -> (Option<Value>, Option<Value>){
+        let top = self.pop();
+        let second_to_top = self.pop();
+        (second_to_top, top)
+    }
+
+    fn pop3(&mut self) -> (Option<Value>, Option<Value>, Option<Value>){
+        let top = self.pop();
+        let second_to_top = self.pop();
+        let third_to_top = self.pop();
+        (third_to_top, second_to_top, top)
+    }
+
 }
 
 //Tokenizes list of chars into list of strings.
@@ -435,7 +659,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                 }
             },
             //Type inference for integer.
-            ref t if t.chars().next().unwrap() == '-' 
+            ref t if (t.chars().next().unwrap() == '-' && t.len() > 1) 
                     || (t.chars().next().unwrap() >= '0' 
                         && t.chars().next().unwrap() <= '9') 
                     => {
@@ -619,6 +843,49 @@ fn make_ast(tokens: Vec<Token>) -> ASTNode{
     ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, Vec::new()).0)
 }
 
+//DELETE LATER
+// //The various types of nodes that are part of the Abstract Syntax Tree
+// enum ASTNode{
+//     Terminal(Token),
+//     If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
+//     While(Box<ASTNode>),
+//     Expression(Vec<ASTNode>),
+//     Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
+//     Variable{var_name: String, var_cmd: String},
+//     LocVar{name: String, cmd: String},
+//     BoxOp(String)
+// }
+
+//Iterates recursively through the AST and effectively runs the program doing so.
+fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
+    match ast{
+        ASTNode::Expression(nodes) => {
+            for node in nodes.iter(){
+                match node{
+                    ASTNode::Terminal(Token::V(v)) => state.push((*v).clone()),
+                    ASTNode::Terminal(Token::Word(ref op)) => {
+                        match state.ops.get(op){
+                            Some(func) => {
+                                match func(state){
+                                    Ok(_) => {},
+                                    Err(e) => return Err(e),
+                                }
+                            },
+                            None => {
+                                return Err(format!("Unrecognized Operator: {}", op));
+                            },
+                        } 
+                    },
+                    _ => {},
+                }
+            }
+        },
+        _ => {return Err("Should never get to this point!".to_string());},
+    }
+
+    Ok(())
+}
+
 fn main(){
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
@@ -658,6 +925,45 @@ fn main(){
 
     let ast: ASTNode = make_ast(lexed);
 
-    println!("{}", ast);
+    println!("{}\n\n\n\n", ast);
+
+//DELETE THIS LATER
+// //This enum is used to contain all the possible data types of Lmao.
+// enum Value{
+//     //Specific signed integers found from type declarations. (coming soonTM)
+//     Int(IntSigned),
+//     //Speficic unsigned integers found from type declarations.
+//     UInt(IntUnsigned),
+//     //Specified float types
+//     Float32(f32),
+//     Float64(f64),
+//     Char(char),
+//     Boolean(bool),
+//     //String and its equivalent box to live on the stack.
+//     String(String),
+//     StringBox(usize),
+//     List(Vec<Value>),
+//     ListBox(usize),
+//     Object(HashMap<String, Value>),
+//     ObjectBox(usize),
+//     MiscBox(usize),
+//     NULLBox,
+// }
+
+    let mut state = State::new();
+
+    let result = run_program(&ast, &mut state);
+
+    match result{
+        Ok(_) => println!("The program completed successfully!"),
+        Err(e) => println!("The program failed with error: {}", e),
+    }
+
+    //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
+    println!("STACK START");
+    for el in state.stack.iter(){
+        println!("{}", el);
+    }
+    println!("STACK END");
 
 }
