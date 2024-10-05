@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.2
+//Version: 0.3.3
 
 use std::collections::HashMap;
 use std::env;
@@ -296,142 +296,152 @@ fn should_never_get_here_for_func(func: &str) -> String{
 
 //Adds two values of matching numerical types together, pusing the result to the stack.
 fn add(s: &mut State) -> Result<(), String>{
-    match s.pop2(){
+    let res: Result<Value, String> = match s.pop2(){
         (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            s.push(Value::Int(IntSigned::IntSize(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::IntSize(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UIntSize(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UIntSize(a.wrapping_add(b))))
         },
 
         (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            s.push(Value::Int(IntSigned::Int8(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int8(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            s.push(Value::Int(IntSigned::Int16(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int16(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            s.push(Value::Int(IntSigned::Int32(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int32(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            s.push(Value::Int(IntSigned::Int64(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int64(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            s.push(Value::Int(IntSigned::Int128(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int128(a.wrapping_add(b))))
         },
 
         (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt8(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt8(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt16(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt16(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt32(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt32(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt64(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt64(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt128(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt128(a.wrapping_add(b))))
         },
 
         (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
-            s.push(Value::Float32(a + b))
+            Ok(Value::Float32(a + b))
         },
         (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
-            s.push(Value::Float64(a + b))
+            Ok(Value::Float64(a + b))
         },
 
         (Some(a), Some(b)) => {
-            return Err(numerical_type_error_string("+", &a, &b));
+            Err(numerical_type_error_string("+", &a, &b))
         },
 
         (None, Some(b)) => {
-            return Err(needs_n_args_only_n_provided("+", "Two", "only one"));
+            Err(needs_n_args_only_n_provided("+", "Two", "only one"))
         },
 
         (None, None) => {
-            return Err(needs_n_args_only_n_provided("+", "Two", "none"));
+            Err(needs_n_args_only_n_provided("+", "Two", "none"))
         },
 
-        _ => return Err(should_never_get_here_for_func("add")),
+        _ => Err(should_never_get_here_for_func("add")),
+    };
 
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
     }
-
-    Ok(())
     
 }
 
 //Subtracts two values of matching numerical types, pusing the result to the stack.
 fn sub(s: &mut State) -> Result<(), String>{
-    match s.pop2(){
+    let res: Result<Value, String> = match s.pop2(){
         (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            s.push(Value::Int(IntSigned::IntSize(a.wrapping_sub(b))))
+            Ok(Value::Int(IntSigned::IntSize(a.wrapping_sub(b))))
         },
         (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UIntSize(a.wrapping_sub(b))))
+            Ok(Value::UInt(IntUnsigned::UIntSize(a.wrapping_sub(b))))
         },
 
         (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            s.push(Value::Int(IntSigned::Int8(a.wrapping_sub(b))))
+            Ok(Value::Int(IntSigned::Int8(a.wrapping_sub(b))))
         },
         (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            s.push(Value::Int(IntSigned::Int16(a.wrapping_sub(b))))
+            Ok(Value::Int(IntSigned::Int16(a.wrapping_sub(b))))
         },
         (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            s.push(Value::Int(IntSigned::Int32(a.wrapping_sub(b))))
+            Ok(Value::Int(IntSigned::Int32(a.wrapping_sub(b))))
         },
         (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            s.push(Value::Int(IntSigned::Int64(a.wrapping_sub(b))))
+            Ok(Value::Int(IntSigned::Int64(a.wrapping_sub(b))))
         },
         (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            s.push(Value::Int(IntSigned::Int128(a.wrapping_sub(b))))
+            Ok(Value::Int(IntSigned::Int128(a.wrapping_sub(b))))
         },
 
         (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt8(a.wrapping_sub(b))))
+            Ok(Value::UInt(IntUnsigned::UInt8(a.wrapping_sub(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt16(a.wrapping_sub(b))))
+            Ok(Value::UInt(IntUnsigned::UInt16(a.wrapping_sub(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt32(a.wrapping_sub(b))))
+            Ok(Value::UInt(IntUnsigned::UInt32(a.wrapping_sub(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt64(a.wrapping_sub(b))))
+            Ok(Value::UInt(IntUnsigned::UInt64(a.wrapping_sub(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt128(a.wrapping_sub(b))))
+            Ok(Value::UInt(IntUnsigned::UInt128(a.wrapping_sub(b))))
         },
 
         (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
-            s.push(Value::Float32(a - b))
+            Ok(Value::Float32(a - b))
         },
         (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
-            s.push(Value::Float64(a - b))
+            Ok(Value::Float64(a - b))
         },
 
         (Some(a), Some(b)) => {
-            return Err(numerical_type_error_string("-", &a, &b));
+            Err(numerical_type_error_string("-", &a, &b))
         },
 
         (None, Some(b)) => {
-            return Err(needs_n_args_only_n_provided("-", "Two", "only one"));
+            Err(needs_n_args_only_n_provided("-", "Two", "only one"))
         },
 
         (None, None) => {
-            return Err(needs_n_args_only_n_provided("-", "Two", "none"));
+            Err(needs_n_args_only_n_provided("-", "Two", "none"))
         },
 
-        _ => return Err(should_never_get_here_for_func("sub")),
+        _ => Err(should_never_get_here_for_func("sub")),
 
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
     }
-
-    Ok(())
     
 }
-
 
 impl State{
     //Creates a new state.
