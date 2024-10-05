@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.1
+//Version: 0.3.2
 
 use std::collections::HashMap;
 use std::env;
@@ -269,7 +269,7 @@ fn type_to_string(v: &Value) -> String{
         Value::String(_) => "String",
         Value::StringBox(_) => "StringBox",
         Value::List(_) => "List",
-        Value::ListBox(_) => "List",
+        Value::ListBox(_) => "ListBox",
         Value::Object(_) => "Object",
         Value::ObjectBox(_) => "ObjectBox",
         Value::MiscBox(_) => "MiscBox",
@@ -277,6 +277,21 @@ fn type_to_string(v: &Value) -> String{
     };
 
     type_str.to_string()
+}
+
+//Used for numerical operators like +, -, *, etc.
+fn numerical_type_error_string(op_type: &str, v1: &Value, v2: &Value) -> String{
+    let v1_type = type_to_string(v1);
+    let v2_type = type_to_string(v2);
+    format!("Operator ({}) error! Operand types must match and be numeric types! Attempted types: {} and {}", op_type, v1_type, v2_type)
+}
+
+fn needs_n_args_only_n_provided(op_type: &str, args_needed: &str, args_provided: &str) -> String{
+    format!("Operator ({}) error! {} operands required on stack; {} provided!", op_type, args_needed, args_provided)
+}
+
+fn should_never_get_here_for_func(func: &str) -> String{
+    format!("Should never get here for {} function!", func)
 }
 
 //Adds two values of matching numerical types together, pusing the result to the stack.
@@ -329,20 +344,18 @@ fn add(s: &mut State) -> Result<(), String>{
         },
 
         (Some(a), Some(b)) => {
-            let a_type = type_to_string(&a);
-            let b_type = type_to_string(&b);
-            return Err(format!("Operator (+) error! Operand types must match and be numeric types! Attempted types: {} and {}", a_type, b_type));
+            return Err(numerical_type_error_string("+", &a, &b));
         },
 
         (None, Some(b)) => {
-            return Err("Operator (+) error! Two operands required on stack; only one provided!".to_string());
+            return Err(needs_n_args_only_n_provided("+", "Two", "only one"));
         },
 
         (None, None) => {
-            return Err("Operator (+) error! Two operands required on stack; none provided!".to_string());
+            return Err(needs_n_args_only_n_provided("+", "Two", "none"));
         },
 
-        _ => return Err("Should never get here for add function!".to_string()),
+        _ => return Err(should_never_get_here_for_func("add")),
 
     }
 
@@ -400,20 +413,18 @@ fn sub(s: &mut State) -> Result<(), String>{
         },
 
         (Some(a), Some(b)) => {
-            let a_type = type_to_string(&a);
-            let b_type = type_to_string(&b);
-            return Err(format!("Operator (-) error! Operand types must match and be numeric types! Attempted types: {} and {}", a_type, b_type));
+            return Err(numerical_type_error_string("-", &a, &b));
         },
 
         (None, Some(b)) => {
-            return Err("Operator (-) error! Two operands required on stack; only one provided!".to_string());
+            return Err(needs_n_args_only_n_provided("-", "Two", "only one"));
         },
 
         (None, None) => {
-            return Err("Operator (-) error! Two operands required on stack; none provided!".to_string());
+            return Err(needs_n_args_only_n_provided("-", "Two", "none"));
         },
 
-        _ => return Err("Should never get here for add function!".to_string()),
+        _ => return Err(should_never_get_here_for_func("sub")),
 
     }
 
