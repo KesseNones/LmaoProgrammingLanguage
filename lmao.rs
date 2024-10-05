@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.0
+//Version: 0.3.1
 
 use std::collections::HashMap;
 use std::env;
@@ -144,14 +144,19 @@ impl fmt::Display for Value{
             Value::Int(int) => write!(f, "{}", int),
             Value::UInt(uint) => write!(f, "{}", uint),
             Value::Float32(flt32) => {
-                let exp = flt32.log10() as isize;
-                if exp.abs() > 15{
+                if flt32.abs() > 9999999999999999.0{
                     write!(f, "f32 {:e}", flt32)
                 }else{
                     write!(f, "f32 {}", flt32)
                 }
             },
-            Value::Float64(flt64) => write!(f, "f64 {:e}", flt64),
+            Value::Float64(flt64) => {
+                if flt64.abs() > 9999999999999999.0{
+                    write!(f, "f64 {:e}", flt64)
+                }else{
+                    write!(f, "f64 {}", flt64)
+                }
+            },
             Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Boolean {}", b),
             Value::String(s) => write!(f, "String \"{}\"", s),
@@ -274,7 +279,6 @@ fn type_to_string(v: &Value) -> String{
     type_str.to_string()
 }
 
-//FIGURE OUT HOW TO HANDLE OVERFLOWS!
 //Adds two values of matching numerical types together, pusing the result to the stack.
 fn add(s: &mut State) -> Result<(), String>{
     match s.pop2(){
@@ -284,7 +288,6 @@ fn add(s: &mut State) -> Result<(), String>{
         (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
             s.push(Value::UInt(IntUnsigned::UIntSize(a.wrapping_add(b))))
         },
-
 
         (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
             s.push(Value::Int(IntSigned::Int8(a.wrapping_add(b))))
@@ -347,12 +350,85 @@ fn add(s: &mut State) -> Result<(), String>{
     
 }
 
+//Subtracts two values of matching numerical types, pusing the result to the stack.
+fn sub(s: &mut State) -> Result<(), String>{
+    match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            s.push(Value::Int(IntSigned::IntSize(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UIntSize(a.wrapping_sub(b))))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            s.push(Value::Int(IntSigned::Int8(a.wrapping_sub(b))))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            s.push(Value::Int(IntSigned::Int16(a.wrapping_sub(b))))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            s.push(Value::Int(IntSigned::Int32(a.wrapping_sub(b))))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            s.push(Value::Int(IntSigned::Int64(a.wrapping_sub(b))))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            s.push(Value::Int(IntSigned::Int128(a.wrapping_sub(b))))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt8(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt16(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt32(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt64(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            s.push(Value::UInt(IntUnsigned::UInt128(a.wrapping_sub(b))))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            s.push(Value::Float32(a - b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            s.push(Value::Float64(a - b))
+        },
+
+        (Some(a), Some(b)) => {
+            let a_type = type_to_string(&a);
+            let b_type = type_to_string(&b);
+            return Err(format!("Operator (-) error! Operand types must match and be numeric types! Attempted types: {} and {}", a_type, b_type));
+        },
+
+        (None, Some(b)) => {
+            return Err("Operator (-) error! Two operands required on stack; only one provided!".to_string());
+        },
+
+        (None, None) => {
+            return Err("Operator (-) error! Two operands required on stack; none provided!".to_string());
+        },
+
+        _ => return Err("Should never get here for add function!".to_string()),
+
+    }
+
+    Ok(())
+    
+}
+
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
         //Creates lookup table for operator functions.
         let mut ops_map: HashMap<String, OpFunc> = HashMap::new();
         ops_map.insert("+".to_string(), add);
+        ops_map.insert("-".to_string(), sub);
 
         State {
             stack: Vec::new(),
