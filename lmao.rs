@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.4
+//Version: 0.3.5
 
 use std::collections::HashMap;
 use std::env;
@@ -518,6 +518,141 @@ fn mult(s: &mut State) -> Result<(), String>{
     
 }
 
+fn division_by_zero_error(t: &str) -> String{
+    format!("Operator (/) error! Division by zero occuring between two operands of type {}!", t)
+}
+
+//Pops two items from top of stack and divides them, pushing result to stack.
+// Throws errors for non-matching types and insufficient operands, as well as division by zero.
+fn div(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::IntSize(a / b)))
+            }else{
+                Err(division_by_zero_error("isize"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UIntSize(a / b)))
+            }else{
+                Err(division_by_zero_error("usize"))
+            }
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int8(a / b)))
+            }else{
+                Err(division_by_zero_error("i8"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int16(a / b)))
+            }else{
+                Err(division_by_zero_error("i16"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int32(a / b)))
+            }else{
+                Err(division_by_zero_error("i32"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int64(a / b)))
+            }else{
+                Err(division_by_zero_error("i64"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int128(a / b)))
+            }else{
+                Err(division_by_zero_error("i128"))
+            }
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt8(a / b)))
+            }else{
+                Err(division_by_zero_error("u8"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt16(a / b)))
+            }else{
+                Err(division_by_zero_error("u16"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt32(a / b)))
+            }else{
+                Err(division_by_zero_error("u32"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt64(a / b)))
+            }else{
+                Err(division_by_zero_error("u64"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt128(a / b)))
+            }else{
+                Err(division_by_zero_error("u128"))
+            }
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            if b != 0.0{
+                Ok(Value::Float32(a / b))
+            }else{
+                Err(division_by_zero_error("f32"))
+            }
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            if b != 0.0{
+                Ok(Value::Float64(a / b))
+            }else{
+                Err(division_by_zero_error("f64"))
+            }
+        },
+
+        (Some(a), Some(b)) => {
+            Err(numerical_type_error_string("/", &a, &b))
+        },
+
+        (None, Some(b)) => {
+            Err(needs_n_args_only_n_provided("/", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("/", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("div")),
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+    
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -526,6 +661,7 @@ impl State{
         ops_map.insert("+".to_string(), add);
         ops_map.insert("-".to_string(), sub);
         ops_map.insert("*".to_string(), mult);
+        ops_map.insert("/".to_string(), div);
 
         State {
             stack: Vec::new(),
