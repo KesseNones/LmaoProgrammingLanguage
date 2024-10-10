@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.6
+//Version: 0.3.7
 
 use std::collections::HashMap;
 use std::env;
@@ -281,9 +281,7 @@ fn type_to_string(v: &Value) -> String{
 
 //Used for numerical operators like +, -, *, etc.
 fn numerical_type_error_string(op_type: &str, v1: &Value, v2: &Value) -> String{
-    let v1_type = type_to_string(v1);
-    let v2_type = type_to_string(v2);
-    format!("Operator ({}) error! Operand types must match and be numeric types! Attempted types: {} and {}", op_type, v1_type, v2_type)
+    format!("Operator ({}) error! Operand types must match and be numeric types! Attempted values: {} and {}", op_type, v1, v2)
 }
 
 fn needs_n_args_only_n_provided(op_type: &str, args_needed: &str, args_provided: &str) -> String{
@@ -750,10 +748,8 @@ fn modulo(s: &mut State) -> Result<(), String>{
         },
 
         (Some(a), Some(b)) => {
-            let a_type = type_to_string(&a);
-            let b_type = type_to_string(&b);
             Err(format!("Operator (%) error! Modulo operation requires two operands with \
-                a singular matching type that is an integer type! Attempted types: {} and {}", a_type, b_type))
+                a singular matching type that is an integer type! Attempted values: {} and {}", a, b))
         },
 
         (None, Some(b)) => {
