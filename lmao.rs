@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.5
+//Version: 0.3.6
 
 use std::collections::HashMap;
 use std::env;
@@ -653,6 +653,130 @@ fn div(s: &mut State) -> Result<(), String>{
     
 }
 
+//Creates string for error return in modulo function.
+fn modulo_by_zero_error(t: &str) -> String{
+    format!("Operator (%) error! Modulo by zero occuring between two operands of type {}!", t)
+}
+
+//Pops two items from top of stack and modulos them, pushing result to stack.
+// Throws errors for non-matching types and insufficient operands, as well as modulo by zero.
+fn modulo(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::IntSize(a % b)))
+            }else{
+                Err(modulo_by_zero_error("isize"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UIntSize(a % b)))
+            }else{
+                Err(modulo_by_zero_error("usize"))
+            }
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int8(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i8"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int16(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i16"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int32(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i32"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int64(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i64"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int128(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i128"))
+            }
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt8(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u8"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt16(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u16"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt32(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u32"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt64(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u64"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt128(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u128"))
+            }
+        },
+
+        (Some(a), Some(b)) => {
+            let a_type = type_to_string(&a);
+            let b_type = type_to_string(&b);
+            Err(format!("Operator (%) error! Modulo operation requires two operands with \
+                a singular matching type that is an integer type! Attempted types: {} and {}", a_type, b_type))
+        },
+
+        (None, Some(b)) => {
+            Err(needs_n_args_only_n_provided("%", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("%", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("modulo")),
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+    
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -662,6 +786,7 @@ impl State{
         ops_map.insert("-".to_string(), sub);
         ops_map.insert("*".to_string(), mult);
         ops_map.insert("/".to_string(), div);
+        ops_map.insert("%".to_string(), modulo);
 
         State {
             stack: Vec::new(),
