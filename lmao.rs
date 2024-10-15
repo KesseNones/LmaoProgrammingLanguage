@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.7
+//Version: 0.3.8
 
 use std::collections::HashMap;
 use std::env;
@@ -773,6 +773,42 @@ fn modulo(s: &mut State) -> Result<(), String>{
     
 }
 
+//Adds two values of matching numerical types together, pusing the result to the stack.
+fn power(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Float32(a.powf(b)))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Float64(a.powf(b)))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (pow) error. Exponential operation requires two operands with a singular \
+                matching type that is either f32 or f64! Attempted values: {} and {}", a, b))
+        },
+
+        (None, Some(b)) => {
+            Err(needs_n_args_only_n_provided("pow", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("pow", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("power")),
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+    
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -783,6 +819,7 @@ impl State{
         ops_map.insert("*".to_string(), mult);
         ops_map.insert("/".to_string(), div);
         ops_map.insert("%".to_string(), modulo);
+        ops_map.insert("pow".to_string(), power);
 
         State {
             stack: Vec::new(),
