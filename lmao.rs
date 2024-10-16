@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.10
+//Version: 0.3.11
 
 use std::collections::HashMap;
 use std::env;
@@ -838,6 +838,13 @@ fn drop(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Clears existing stack to be empty. 
+// This can be useful if you want a clean stack without doing a ton of drops.
+fn drop_stack(s: &mut State) -> Result<(), String>{
+    s.stack.clear();
+    Ok(())
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -854,6 +861,7 @@ impl State{
         //Stack operators.
         ops_map.insert("swap".to_string(), swap);
         ops_map.insert("drop".to_string(), drop);
+        ops_map.insert("dropStack".to_string(), drop_stack);
 
         State {
             stack: Vec::new(),
