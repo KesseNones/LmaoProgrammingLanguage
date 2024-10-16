@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.11
+//Version: 0.3.12
 
 use std::collections::HashMap;
 use std::env;
@@ -845,6 +845,24 @@ fn drop_stack(s: &mut State) -> Result<(), String>{
     Ok(())
 }
 
+//Rotates top three items on stack, 
+// putting the top item below the previous two.
+fn rot(s: &mut State) -> Result<(), String>{
+    match s.pop3(){
+        (Some(a), Some(b), Some(c)) => {
+            s.push(c);
+            s.push(a);
+            s.push(b);
+
+            Ok(())
+        },
+        (None, Some(_), Some(_)) => Err(needs_n_args_only_n_provided("rot", "Three", "only two")),
+        (None, None, Some(_)) => Err(needs_n_args_only_n_provided("rot", "Three", "only one")),
+        (None, None, None) => Err(needs_n_args_only_n_provided("rot", "Three", "none")),
+        _ => Err(should_never_get_here_for_func("rot")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -862,6 +880,7 @@ impl State{
         ops_map.insert("swap".to_string(), swap);
         ops_map.insert("drop".to_string(), drop);
         ops_map.insert("dropStack".to_string(), drop_stack);
+        ops_map.insert("rot".to_string(), rot);
 
         State {
             stack: Vec::new(),
