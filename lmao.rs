@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.9
+//Version: 0.3.10
 
 use std::collections::HashMap;
 use std::env;
@@ -285,7 +285,13 @@ fn numerical_type_error_string(op_type: &str, v1: &Value, v2: &Value) -> String{
 }
 
 fn needs_n_args_only_n_provided(op_type: &str, args_needed: &str, args_provided: &str) -> String{
-    format!("Operator ({}) error! {} operands required on stack; {} provided!", op_type, args_needed, args_provided)
+    let plural_s: &str;
+    if args_needed == "One"{
+        plural_s = "";
+    }else{
+        plural_s = "s";
+    }
+    format!("Operator ({}) error! {} operand{} required on stack; {} provided!", op_type, args_needed, plural_s, args_provided)
 }
 
 fn should_never_get_here_for_func(func: &str) -> String{
@@ -823,6 +829,15 @@ fn swap(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Removes the top item from the stack 
+// or errors out if stack is empty.
+fn drop(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(_) => Ok(()),
+        None => Err(needs_n_args_only_n_provided("drop", "One", "none")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -838,6 +853,7 @@ impl State{
 
         //Stack operators.
         ops_map.insert("swap".to_string(), swap);
+        ops_map.insert("drop".to_string(), drop);
 
         State {
             stack: Vec::new(),
