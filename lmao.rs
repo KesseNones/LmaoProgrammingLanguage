@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.8
+//Version: 0.3.9
 
 use std::collections::HashMap;
 use std::env;
@@ -345,7 +345,7 @@ fn add(s: &mut State) -> Result<(), String>{
             Err(numerical_type_error_string("+", &a, &b))
         },
 
-        (None, Some(b)) => {
+        (None, Some(_)) => {
             Err(needs_n_args_only_n_provided("+", "Two", "only one"))
         },
 
@@ -419,7 +419,7 @@ fn sub(s: &mut State) -> Result<(), String>{
             Err(numerical_type_error_string("-", &a, &b))
         },
 
-        (None, Some(b)) => {
+        (None, Some(_)) => {
             Err(needs_n_args_only_n_provided("-", "Two", "only one"))
         },
 
@@ -495,7 +495,7 @@ fn mult(s: &mut State) -> Result<(), String>{
             Err(numerical_type_error_string("*", &a, &b))
         },
 
-        (None, Some(b)) => {
+        (None, Some(_)) => {
             Err(needs_n_args_only_n_provided("*", "Two", "only one"))
         },
 
@@ -630,7 +630,7 @@ fn div(s: &mut State) -> Result<(), String>{
             Err(numerical_type_error_string("/", &a, &b))
         },
 
-        (None, Some(b)) => {
+        (None, Some(_)) => {
             Err(needs_n_args_only_n_provided("/", "Two", "only one"))
         },
 
@@ -752,7 +752,7 @@ fn modulo(s: &mut State) -> Result<(), String>{
                 a singular matching type that is an integer type! Attempted values: {} and {}", a, b))
         },
 
-        (None, Some(b)) => {
+        (None, Some(_)) => {
             Err(needs_n_args_only_n_provided("%", "Two", "only one"))
         },
 
@@ -788,7 +788,7 @@ fn power(s: &mut State) -> Result<(), String>{
                 matching type that is either f32 or f64! Attempted values: {} and {}", a, b))
         },
 
-        (None, Some(b)) => {
+        (None, Some(_)) => {
             Err(needs_n_args_only_n_provided("pow", "Two", "only one"))
         },
 
@@ -809,17 +809,35 @@ fn power(s: &mut State) -> Result<(), String>{
     
 }
 
+//Swaps the top two items on the stack, errors out of inusfficient items exist.
+fn swap(s: &mut State) -> Result<(), String>{
+    match s.pop2(){
+        (Some(a), Some(b)) => {
+            s.push(b);
+            s.push(a);
+            Ok(())
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("swap", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("swap", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("swap")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
         //Creates lookup table for operator functions.
         let mut ops_map: HashMap<String, OpFunc> = HashMap::new();
+        //Basic math operators.
         ops_map.insert("+".to_string(), add);
         ops_map.insert("-".to_string(), sub);
         ops_map.insert("*".to_string(), mult);
         ops_map.insert("/".to_string(), div);
         ops_map.insert("%".to_string(), modulo);
         ops_map.insert("pow".to_string(), power);
+
+        //Stack operators.
+        ops_map.insert("swap".to_string(), swap);
 
         State {
             stack: Vec::new(),
