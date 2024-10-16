@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.12
+//Version: 0.3.13
 
 use std::collections::HashMap;
 use std::env;
@@ -863,6 +863,19 @@ fn rot(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Very literally just copies the top element of the stack and pushes it. 
+// If it's a box, the box itself is copied, not the data it contains.
+fn dup(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(v) => {
+            s.push(v.clone());
+            s.push(v.clone());
+            Ok(())
+        },
+        None => Err(needs_n_args_only_n_provided("dup", "One", "none")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -881,6 +894,7 @@ impl State{
         ops_map.insert("drop".to_string(), drop);
         ops_map.insert("dropStack".to_string(), drop_stack);
         ops_map.insert("rot".to_string(), rot);
+        ops_map.insert("dup".to_string(), dup);
 
         State {
             stack: Vec::new(),
