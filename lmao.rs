@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.13
+//Version: 0.3.14
 
 use std::collections::HashMap;
 use std::env;
@@ -876,6 +876,69 @@ fn dup(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Creates an error string used in the deep_dup function to avoid some code duplication.
+fn error_for_deep_dup_due_to_bad_box(box_type: &str, disp_value: Value) -> String{
+    format!("Operator (deepDup) error. Deep duplication of {} failed \
+        because it's an invalid {} number due to being been free'd!", disp_value, box_type)
+}
+
+//Works like dup but duplicates the data held by box types 
+// and creates a new box to hold the duplicated data.
+fn deep_dup(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                let dupped_string = s.heap[bn].0.clone();
+                let new_bn = s.insert_to_heap(dupped_string);
+                s.push(Value::StringBox(bn));
+                s.push(Value::StringBox(new_bn));
+                Ok(())
+            }else{
+                Err(error_for_deep_dup_due_to_bad_box("StringBox", Value::StringBox(bn)))
+            }
+        },
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                let dupped_list = s.heap[bn].0.clone();
+                let new_bn = s.insert_to_heap(dupped_list);
+                s.push(Value::ListBox(bn));
+                s.push(Value::ListBox(new_bn));
+                Ok(())
+            }else{
+                Err(error_for_deep_dup_due_to_bad_box("ListBox", Value::ListBox(bn)))
+            }
+        },
+        Some(Value::ObjectBox(bn)) => {
+            if s.validate_box(bn){
+                let dupped_obj = s.heap[bn].0.clone();
+                let new_bn = s.insert_to_heap(dupped_obj);
+                s.push(Value::ObjectBox(bn));
+                s.push(Value::ObjectBox(new_bn));
+                Ok(())
+            }else{
+                Err(error_for_deep_dup_due_to_bad_box("ObjectBox", Value::ObjectBox(bn)))
+            }
+        },
+        Some(Value::MiscBox(bn)) => {
+            if s.validate_box(bn){
+                let dupped_data = s.heap[bn].0.clone();
+                let new_bn = s.insert_to_heap(dupped_data);
+                s.push(Value::MiscBox(bn));
+                s.push(Value::MiscBox(new_bn));
+                Ok(())
+            }else{
+                Err(error_for_deep_dup_due_to_bad_box("MiscBox", Value::MiscBox(bn)))
+            }
+        },
+        Some(v) => {
+            s.push(v.clone());
+            s.push(v.clone());
+            Ok(())
+        },
+        None => Err(needs_n_args_only_n_provided("dup", "One", "none")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -895,6 +958,7 @@ impl State{
         ops_map.insert("dropStack".to_string(), drop_stack);
         ops_map.insert("rot".to_string(), rot);
         ops_map.insert("dup".to_string(), dup);
+        ops_map.insert("deepDup".to_string(), deep_dup);
 
         State {
             stack: Vec::new(),
@@ -918,6 +982,11 @@ impl State{
             self.heap.push((ins_val, true));
             return self.heap.len() - 1;
         }
+    }
+
+    //Returns a boolean based on whether or not the desired box number is valid.
+    fn validate_box(&self, box_num: usize) -> bool{
+        box_num >= 0 && box_num < self.heap.len() && self.heap[box_num].1
     }
 
     //Pushes a value to the stack and accounts for if the value 
