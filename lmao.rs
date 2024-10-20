@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.15
+//Version: 0.3.16
 
 use std::collections::HashMap;
 use std::env;
@@ -1078,6 +1078,116 @@ fn is_equal(s: &mut State) -> Result<(), String>{
     
 }
 
+//Checks for inequality between two data types. For boxes it checks to see 
+// if the box numbers are equal and for NULL box it checks for self-inequality.
+//Consumes both items from stack and pushes resulting boolean based on their comparison.
+fn is_not_equal(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::Char(a)), Some(Value::Char(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::StringBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::StringBox(_))) => Ok(Value::Boolean(true)),
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::ListBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::ListBox(_))) => Ok(Value::Boolean(true)),
+
+        (Some(Value::ObjectBox(a)), Some(Value::ObjectBox(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::ObjectBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::ObjectBox(_))) => Ok(Value::Boolean(true)),
+
+        (Some(Value::MiscBox(a)), Some(Value::MiscBox(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::MiscBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::MiscBox(_))) => Ok(Value::Boolean(true)),
+
+        (Some(Value::NULLBox), Some(Value::NULLBox)) => Ok(Value::Boolean(false)),
+
+        (Some(a), Some(b)) => {
+            Err(equality_error("!=", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("!=", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("!=", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("is_not_equal")),
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+    
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1101,6 +1211,7 @@ impl State{
 
         //Comparison operators.
         ops_map.insert("==".to_string(), is_equal);
+        ops_map.insert("!=".to_string(), is_not_equal);
 
         State {
             stack: Vec::new(),
