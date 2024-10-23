@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.19
+//Version: 0.3.20
 
 use std::collections::HashMap;
 use std::env;
@@ -1291,7 +1291,7 @@ fn is_greater_than(s: &mut State) -> Result<(), String>{
     
 }
 
-//Compares two values on stack to see if the second to top is greater than the top.
+//Compares two values on stack to see if the second to top is less than the top.
 fn is_less_than(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
         (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
@@ -1389,7 +1389,7 @@ fn is_less_than(s: &mut State) -> Result<(), String>{
     
 }
 
-//Compares two values on stack to see if the second to top is greater than the top.
+//Compares two values on stack to see if the second to top is greater than or equal to the top.
 fn is_greater_than_equal_to(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
         (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
@@ -1487,6 +1487,104 @@ fn is_greater_than_equal_to(s: &mut State) -> Result<(), String>{
     
 }
 
+//Compares two values on stack to see if the second to top is less than or equal to the top.
+fn is_less_than_equal_to(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::Char(a)), Some(Value::Char(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::ObjectBox(a)), Some(Value::ObjectBox(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::MiscBox(a)), Some(Value::MiscBox(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(comparison_error("<=", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("<=", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("<=", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("is_less_than_equal_to")),
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+    
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1514,6 +1612,7 @@ impl State{
         ops_map.insert(">".to_string(), is_greater_than);
         ops_map.insert("<".to_string(), is_less_than);
         ops_map.insert(">=".to_string(), is_greater_than_equal_to);
+        ops_map.insert("<=".to_string(), is_less_than_equal_to);
 
         State {
             stack: Vec::new(),
