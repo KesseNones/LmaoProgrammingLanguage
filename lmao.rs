@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.23
+//Version: 0.3.24
 
 use std::collections::HashMap;
 use std::env;
@@ -177,6 +177,12 @@ impl fmt::Display for Value{
             Value::MiscBox(bn) => write!(f, "MiscBox {}", bn),
             Value::NULLBox => write!(f, "Box NULL"),
         }
+    }
+}
+
+impl Default for Value{
+    fn default() -> Self{
+        Value::NULLBox
     }
 }
 
@@ -1594,6 +1600,118 @@ fn is_less_than_equal_to(s: &mut State) -> Result<(), String>{
     
 }
 
+//Creates error string for when a box involved is invalid.
+fn bad_box_error(box_type: &str, bn: usize, bn2: usize, is_two_boxes: bool) -> String{
+    if !is_two_boxes{
+        format!("Operator (++) error! Box {} of type {} is invalid \
+            because it's either out of range of heap or free'd!", bn, box_type)
+    }else{
+        format!("Operator (++) error! Box {} and Box {} of type {} are invalid \
+            because they're either out of range of heap or free'd!", bn, bn2, box_type)
+    }
+}
+
+
+
+//Concatenates two strings or two lists together.
+fn concat(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            //Only concatenates the strings if both boxes are valid and different!
+            if a != b{
+                match (s.validate_box(a), s.validate_box(b)){
+                    (true, true) => {
+                        //Concatenates string from Box B to string 
+                        // in Box A and frees memory cell of Box B's string.
+                        //THIS IS CRINGE, TRY TO MAYBE FIGURE OUT A BETTER WAY LATER
+                        let mut a_str: Value = std::mem::take(&mut s.heap[a].0);
+                        if let (Value::String(ref mut s1), Value::String(ref s2)) = (&mut a_str, &s.heap[b].0){
+                            s1.push_str(s2);
+                            s.free_heap_cell(b);
+                            s.heap[a].0 = a_str;
+                            Ok(Value::StringBox(a))
+                        }else{
+                            Err(should_never_get_here_for_func("concat"))
+                        }
+                    },
+                    (true, false) => {
+                        Err(bad_box_error("StringBox", b, usize::MAX, false))
+                    },
+                    (false, true) => {
+                        Err(bad_box_error("StringBox", a, usize::MAX, false))
+                    },
+                    (false, false) => {
+                        Err(bad_box_error("StringBox", a, b, true))
+                    },
+                }
+            }else{
+                Err(format!("Operator (++) error! Concatenation needs two DIFFERENT \
+                    string boxes to work! Attempted values: StringBox {} and StringBox {}", a, b))
+            }
+        },
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            //Only concatenates the lists if both boxes are valid and different!
+            if a != b{
+                match (s.validate_box(a), s.validate_box(b)){
+                    (true, true) => {
+                        //Concatenates list from Box B to list 
+                        // in Box A and frees memory cell of Box B's list.
+                        //THIS IS CRINGE, TRY TO MAYBE FIGURE OUT A BETTER WAY LATER
+                        let mut list_a: Value = std::mem::take(&mut s.heap[a].0);
+                        if let (Value::List(ref mut ls1), Value::List(ref ls2)) = (&mut list_a, &s.heap[b].0){
+                            //NEEDS TESTING LATER TO MAKE SURE IT WORKS!!!
+                            for el in ls2.iter(){
+                                ls1.push(el.clone());
+                            }
+                            s.free_heap_cell(b);
+                            s.heap[a].0 = list_a;
+                            Ok(Value::ListBox(a))
+                        }else{
+                            Err(should_never_get_here_for_func("concat"))
+                        }
+                    },
+                    (true, false) => {
+                        Err(bad_box_error("ListBox", b, usize::MAX, false))
+                    },
+                    (false, true) => {
+                        Err(bad_box_error("ListBox", a, usize::MAX, false))
+                    },
+                    (false, false) => {
+                        Err(bad_box_error("ListBox", a, b, true))
+                    },
+                }
+            }else{
+                Err(format!("Operator (++) error! Concatenation needs two DIFFERENT \
+                    string boxes to work! Attempted values: StringBox {} and StringBox {}", a, b))
+            }
+        },
+
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (++) error! Concatenation needs top two operands to \
+                be matching types of type StringBox or ListBox! Attempted values: {} and {}", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("++", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("++", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("concat")),
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1622,6 +1740,9 @@ impl State{
         ops_map.insert("<".to_string(), is_less_than);
         ops_map.insert(">=".to_string(), is_greater_than_equal_to);
         ops_map.insert("<=".to_string(), is_less_than_equal_to);
+
+        //String concatenation operator.
+        ops_map.insert("++".to_string(), concat);
 
         State {
             stack: Vec::new(),
@@ -2226,6 +2347,11 @@ fn main(){
         println!("BOX NUM {} -> ({}, {})", box_num, el.0, el.1);
         box_num += 1;
     }
+    print!("[");
+    for el in state.free_list.iter(){
+        print!("{} ", el);
+    }
+    print!("]\n");
     println!("HEAP END\n\n\n\n");
 
     //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
