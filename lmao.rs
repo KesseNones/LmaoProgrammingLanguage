@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.21
+//Version: 0.3.22
 
 use std::collections::HashMap;
 use std::env;
@@ -163,10 +163,16 @@ impl fmt::Display for Value{
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
             Value::List(ls) => {
                 let ls_strs: Vec<String> = ls.iter().map(|el| format!("{}", el)).collect();
-                write!(f, "[{}]", ls_strs.join(", "))
+                write!(f, "List [{}]", ls_strs.join(", "))
             },
             Value::ListBox(lb) => write!(f, "ListBox {}", lb),
-            Value::Object(_) => write!(f, "Object OBJ"), //Do some kind of actual printing here later!
+            Value::Object(o) => {
+                let mut obj_strs: Vec<String> = Vec::new();
+                for (key, value) in o.iter(){
+                    obj_strs.push(format!("{}: {}", key, value));
+                }
+                write!(f, "Object {}{}{}", "{", obj_strs.join(", "), "}")
+            },
             Value::ObjectBox(ob) => write!(f, "ObjectBox {}", ob),
             Value::MiscBox(bn) => write!(f, "MiscBox {}", bn),
             Value::NULLBox => write!(f, "Box NULL"),
@@ -2212,7 +2218,7 @@ fn main(){
         println!("BOX NUM {} -> ({}, {})", box_num, el.0, el.1);
         box_num += 1;
     }
-    println!("HEAP END");
+    println!("HEAP END\n\n\n\n");
 
     //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
     println!("STACK START");
