@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.20
+//Version: 0.3.21
 
 use std::collections::HashMap;
 use std::env;
@@ -161,7 +161,10 @@ impl fmt::Display for Value{
             Value::Boolean(b) => write!(f, "Boolean {}", b),
             Value::String(s) => write!(f, "String \"{}\"", s),
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
-            Value::List(_) => write!(f, "LIST [INSERT_CONTENTS_HERE]"), //Do some kind of actual printing here later!
+            Value::List(ls) => {
+                let ls_strs: Vec<String> = ls.iter().map(|el| format!("{}", el)).collect();
+                write!(f, "[{}]", ls_strs.join(", "))
+            },
             Value::ListBox(lb) => write!(f, "ListBox {}", lb),
             Value::Object(_) => write!(f, "Object OBJ"), //Do some kind of actual printing here later!
             Value::ObjectBox(ob) => write!(f, "ObjectBox {}", ob),
@@ -2196,10 +2199,20 @@ fn main(){
 
     let result = run_program(&ast, &mut state);
 
+    //TEMPORARY STATUS MESSAGE FOR DEBUGGING
     match result{
         Ok(_) => println!("The program completed successfully!"),
         Err(e) => println!("The program failed with error: {}", e),
     }
+
+    //TEMPORARY HEAP PRINT FOR DEBUGGING
+    println!("HEAP START");
+    let mut box_num = 0;
+    for el in state.heap.iter(){
+        println!("BOX NUM {} -> ({}, {})", box_num, el.0, el.1);
+        box_num += 1;
+    }
+    println!("HEAP END");
 
     //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
     println!("STACK START");
