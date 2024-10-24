@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.22
+//Version: 0.3.23
 
 use std::collections::HashMap;
 use std::env;
@@ -1650,6 +1650,14 @@ impl State{
     //Returns a boolean based on whether or not the desired box number is valid.
     fn validate_box(&self, box_num: usize) -> bool{
         box_num >= 0 && box_num < self.heap.len() && self.heap[box_num].1
+    }
+
+    //Frees a cell in a heap or does nothing if it's invalid already.
+    fn free_heap_cell(&mut self, box_num: usize){
+        if self.validate_box(box_num){
+            self.heap[box_num].1 = false;
+            self.free_list.push(box_num);
+        }
     }
 
     //Pushes a value to the stack and accounts for if the value 
