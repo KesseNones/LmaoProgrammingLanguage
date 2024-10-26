@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.31
+//Version: 0.3.32
 
 use std::collections::HashMap;
 use std::env;
@@ -1874,6 +1874,60 @@ fn list_push(s: &mut State) -> Result<(), String>{
 
 }
 
+//Pops from the end of a list/string and pushes the popped thing to the stack.
+fn list_pop(s: &mut State) -> Result<(), String>{
+    let res: Result<(Value, Value), String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    match ls.pop(){
+                        Some(v) => Ok((Value::ListBox(bn), v)),
+                        None => Err(format!("Operator (pop/po) error! List needs \
+                            to be greater than length 0 for pop operation \
+                            to actually pop something!")),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("list_pop"))
+                }
+            }else{
+                Err(bad_box_error("pop/po", "ListBox", bn, usize::MAX, false))
+            }
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    match st.pop(){
+                        Some(v) => Ok((Value::StringBox(bn), Value::Char(v))),
+                        None => Err(format!("Operator (pop/po) error! String needs \
+                            to be greater than length 0 for pop operation \
+                            to actually pop something!")),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("list_pop"))
+                }
+            }else{
+                Err(bad_box_error("pop/po", "StringBox", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => {
+            Err(format!("Operator (pop/po) error! Top of stack needs \
+                to be of type StringBox or ListBox! Attempted value: {}", v))
+        },
+        None => {
+            Err(needs_n_args_only_n_provided("pop/po", "One", "none"))
+        },
+    };  
+
+    match res{
+        Ok((v1, v2)) => {
+            s.push(v1);
+            s.push(v2);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1919,6 +1973,8 @@ impl State{
         //List/String operations.
         ops_map.insert("push".to_string(), list_push);
         ops_map.insert("p".to_string(), list_push);
+        ops_map.insert("pop".to_string(), list_pop);
+        ops_map.insert("po".to_string(), list_pop);
 
         State {
             stack: Vec::new(),
