@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.26
+//Version: 0.3.27
 
 use std::collections::HashMap;
 use std::env;
@@ -1708,6 +1708,41 @@ fn concat(s: &mut State) -> Result<(), String>{
     }
 }
 
+fn logical_operator_type_error(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Logical operation requires two operands \
+        of matching type Boolean! Attempted values: {} and {}", op_type, v1, v2)
+}
+
+//Performs logical AND on two operands.
+fn and(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a && b))
+        },
+        (Some(a), Some(b)) => {
+            Err(logical_operator_type_error("and/&&", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("and/&&", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("and/&&", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("and")),
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1740,6 +1775,10 @@ impl State{
 
         //String concatenation operator.
         ops_map.insert("++".to_string(), concat);
+
+        //Basic logical operators.
+        ops_map.insert("and".to_string(), and);
+        ops_map.insert("&&".to_string(), and);
 
         State {
             stack: Vec::new(),
