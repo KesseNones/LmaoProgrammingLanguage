@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.25
+//Version: 0.3.26
 
 use std::collections::HashMap;
 use std::env;
@@ -769,16 +769,16 @@ fn modulo(s: &mut State) -> Result<(), String>{
         },
 
         (Some(a), Some(b)) => {
-            Err(format!("Operator (%) error! Modulo operation requires two operands with \
+            Err(format!("Operator (% [aka mod]) error! Modulo operation requires two operands with \
                 a singular matching type that is an integer type! Attempted values: {} and {}", a, b))
         },
 
         (None, Some(_)) => {
-            Err(needs_n_args_only_n_provided("%", "Two", "only one"))
+            Err(needs_n_args_only_n_provided("% [aka mod]", "Two", "only one"))
         },
 
         (None, None) => {
-            Err(needs_n_args_only_n_provided("%", "Two", "none"))
+            Err(needs_n_args_only_n_provided("% [aka mod]", "Two", "none"))
         },
 
         _ => Err(should_never_get_here_for_func("modulo")),
@@ -1719,6 +1719,7 @@ impl State{
         ops_map.insert("*".to_string(), mult);
         ops_map.insert("/".to_string(), div);
         ops_map.insert("%".to_string(), modulo);
+        ops_map.insert("mod".to_string(), modulo);
         ops_map.insert("pow".to_string(), power);
 
         //Stack operators.
