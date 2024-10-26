@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.24
+//Version: 0.3.25
 
 use std::collections::HashMap;
 use std::env;
@@ -1614,6 +1614,7 @@ fn bad_box_error(box_type: &str, bn: usize, bn2: usize, is_two_boxes: bool) -> S
 
 
 //Concatenates two strings or two lists together.
+//DECIDED THAT TOP STRING BOX ISN'T FREED SINCE IT DOESN'T NEED TO BE
 fn concat(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
         (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
@@ -1621,13 +1622,10 @@ fn concat(s: &mut State) -> Result<(), String>{
             if a != b{
                 match (s.validate_box(a), s.validate_box(b)){
                     (true, true) => {
-                        //Concatenates string from Box B to string 
-                        // in Box A and frees memory cell of Box B's string.
-                        //THIS IS CRINGE, TRY TO MAYBE FIGURE OUT A BETTER WAY LATER
+                        //Concatenates string from Box B to string in Box A.
                         let mut a_str: Value = std::mem::take(&mut s.heap[a].0);
                         if let (Value::String(ref mut s1), Value::String(ref s2)) = (&mut a_str, &s.heap[b].0){
                             s1.push_str(s2);
-                            s.free_heap_cell(b);
                             s.heap[a].0 = a_str;
                             Ok(Value::StringBox(a))
                         }else{
@@ -1655,8 +1653,7 @@ fn concat(s: &mut State) -> Result<(), String>{
             if a != b{
                 match (s.validate_box(a), s.validate_box(b)){
                     (true, true) => {
-                        //Concatenates list from Box B to list 
-                        // in Box A and frees memory cell of Box B's list.
+                        //Concatenates list from Box B to list in Box A.
                         //THIS IS CRINGE, TRY TO MAYBE FIGURE OUT A BETTER WAY LATER
                         let mut list_a: Value = std::mem::take(&mut s.heap[a].0);
                         if let (Value::List(ref mut ls1), Value::List(ref ls2)) = (&mut list_a, &s.heap[b].0){
@@ -1664,7 +1661,6 @@ fn concat(s: &mut State) -> Result<(), String>{
                             for el in ls2.iter(){
                                 ls1.push(el.clone());
                             }
-                            s.free_heap_cell(b);
                             s.heap[a].0 = list_a;
                             Ok(Value::ListBox(a))
                         }else{
