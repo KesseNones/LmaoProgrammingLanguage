@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.27
+//Version: 0.3.28
 
 use std::collections::HashMap;
 use std::env;
@@ -1743,6 +1743,36 @@ fn and(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Performs logical OR on two operands.
+fn or(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a || b))
+        },
+        (Some(a), Some(b)) => {
+            Err(logical_operator_type_error("or/||", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("or/||", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("or/||", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("or")),
+    };
+
+    match res {
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1779,6 +1809,8 @@ impl State{
         //Basic logical operators.
         ops_map.insert("and".to_string(), and);
         ops_map.insert("&&".to_string(), and);
+        ops_map.insert("or".to_string(), or);
+        ops_map.insert("||".to_string(), or);
 
         State {
             stack: Vec::new(),
