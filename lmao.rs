@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.30
+//Version: 0.3.31
 
 use std::collections::HashMap;
 use std::env;
@@ -1601,13 +1601,13 @@ fn is_less_than_equal_to(s: &mut State) -> Result<(), String>{
 }
 
 //Creates error string for when a box involved is invalid.
-fn bad_box_error(box_type: &str, bn: usize, bn2: usize, is_two_boxes: bool) -> String{
+fn bad_box_error(op_type: &str, box_type: &str, bn: usize, bn2: usize, is_two_boxes: bool) -> String{
     if !is_two_boxes{
-        format!("Operator (++) error! Box {} of type {} is invalid \
-            because it's either out of range of heap or free'd!", bn, box_type)
+        format!("Operator ({}) error! Box {} of type {} is invalid \
+            because it's either out of range of heap or free'd!", op_type, bn, box_type)
     }else{
-        format!("Operator (++) error! Box {} and Box {} of type {} are invalid \
-            because they're either out of range of heap or free'd!", bn, bn2, box_type)
+        format!("Operator ({}) error! Box {} and Box {} of type {} are invalid \
+            because they're either out of range of heap or free'd!", op_type, bn, bn2, box_type)
     }
 }
 
@@ -1633,13 +1633,13 @@ fn concat(s: &mut State) -> Result<(), String>{
                         }
                     },
                     (true, false) => {
-                        Err(bad_box_error("StringBox", b, usize::MAX, false))
+                        Err(bad_box_error("++", "StringBox", b, usize::MAX, false))
                     },
                     (false, true) => {
-                        Err(bad_box_error("StringBox", a, usize::MAX, false))
+                        Err(bad_box_error("++", "StringBox", a, usize::MAX, false))
                     },
                     (false, false) => {
-                        Err(bad_box_error("StringBox", a, b, true))
+                        Err(bad_box_error("++", "StringBox", a, b, true))
                     },
                 }
             }else{
@@ -1668,13 +1668,13 @@ fn concat(s: &mut State) -> Result<(), String>{
                         }
                     },
                     (true, false) => {
-                        Err(bad_box_error("ListBox", b, usize::MAX, false))
+                        Err(bad_box_error("++", "ListBox", b, usize::MAX, false))
                     },
                     (false, true) => {
-                        Err(bad_box_error("ListBox", a, usize::MAX, false))
+                        Err(bad_box_error("++", "ListBox", a, usize::MAX, false))
                     },
                     (false, false) => {
-                        Err(bad_box_error("ListBox", a, b, true))
+                        Err(bad_box_error("++", "ListBox", a, b, true))
                     },
                 }
             }else{
@@ -1823,6 +1823,57 @@ fn not(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Pushes a value to a list or a character to a string.
+fn list_push(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::ListBox(bn)), Some(v)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    ls.push(v);
+                    Ok(Value::ListBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_push"))
+                }
+            }else{
+                Err(bad_box_error("push/p", "ListBox", bn, usize::MAX, false))
+            }
+        },
+        (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    st.push(c);
+                    Ok(Value::StringBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_push"))
+                }
+            }else{
+                Err(bad_box_error("push/p", "StringBox", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (list/p) error! Push operator requires \
+                a ListBox/StringBox second to top on the stack \
+                and a Value/Char on top of the stack! Attempted values: {} and {}", a, b))
+        },
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("push/p", "Two", "only one"))
+        },
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("push/p", "Two", "none"))
+        },
+        _ => Err(should_never_get_here_for_func("list_push")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1864,6 +1915,10 @@ impl State{
         ops_map.insert("xor".to_string(), xor);
         ops_map.insert("not".to_string(), not);
         ops_map.insert("!".to_string(), not);
+
+        //List/String operations.
+        ops_map.insert("push".to_string(), list_push);
+        ops_map.insert("p".to_string(), list_push);
 
         State {
             stack: Vec::new(),
