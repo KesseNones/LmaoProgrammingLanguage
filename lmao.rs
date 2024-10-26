@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.29
+//Version: 0.3.30
 
 use std::collections::HashMap;
 use std::env;
@@ -1803,6 +1803,26 @@ fn xor(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Performs logical NOT on top of stack if boolean.
+fn not(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop(){
+        Some(Value::Boolean(x)) => Ok(Value::Boolean(!x)),
+        Some(x) => {
+            Err(format!("Operator (not/!) error! Logical NOT requires \
+                one Boolean type on the stack. Attempted value: {}", x))
+        },
+        None => Err(needs_n_args_only_n_provided("not/!", "One", "none")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1842,6 +1862,8 @@ impl State{
         ops_map.insert("or".to_string(), or);
         ops_map.insert("||".to_string(), or);
         ops_map.insert("xor".to_string(), xor);
+        ops_map.insert("not".to_string(), not);
+        ops_map.insert("!".to_string(), not);
 
         State {
             stack: Vec::new(),
