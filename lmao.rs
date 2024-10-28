@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.32
+//Version: 0.3.33
 
 use std::collections::HashMap;
 use std::env;
@@ -1851,7 +1851,7 @@ fn list_push(s: &mut State) -> Result<(), String>{
             }
         },
         (Some(a), Some(b)) => {
-            Err(format!("Operator (list/p) error! Push operator requires \
+            Err(format!("Operator (push/p) error! Push operator requires \
                 a ListBox/StringBox second to top on the stack \
                 and a Value/Char on top of the stack! Attempted values: {} and {}", a, b))
         },
@@ -1928,6 +1928,57 @@ fn list_pop(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Pushes a value to the front of a list or a character to the front of a string.
+fn list_front_push(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::ListBox(bn)), Some(v)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    ls.insert(0, v);
+                    Ok(Value::ListBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_front_push"))
+                }
+            }else{
+                Err(bad_box_error("fpush/fp", "ListBox", bn, usize::MAX, false))
+            }
+        },
+        (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    st.insert(0, c);
+                    Ok(Value::StringBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_front_push"))
+                }
+            }else{
+                Err(bad_box_error("fpush/fp", "StringBox", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (fpush/fp) error! Front push operator requires \
+                a ListBox/StringBox second to top on the stack \
+                and a Value/Char on top of the stack! Attempted values: {} and {}", a, b))
+        },
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("fpush/fp", "Two", "only one"))
+        },
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("fpush/fp", "Two", "none"))
+        },
+        _ => Err(should_never_get_here_for_func("list_front_push")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -1975,6 +2026,8 @@ impl State{
         ops_map.insert("p".to_string(), list_push);
         ops_map.insert("pop".to_string(), list_pop);
         ops_map.insert("po".to_string(), list_pop);
+        ops_map.insert("fpush".to_string(), list_front_push);
+        ops_map.insert("fp".to_string(), list_front_push);
 
         State {
             stack: Vec::new(),
