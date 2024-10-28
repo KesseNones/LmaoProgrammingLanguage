@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.35
+//Version: 0.3.36
 
 use std::collections::HashMap;
 use std::env;
@@ -2090,6 +2090,47 @@ fn index(s: &mut State) -> Result<(), String>{
 
 }
 
+//Determines length of string or list and pushes it to stack.
+fn length(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref ls) = s.heap[bn].0{
+                    Ok(Value::UInt(IntUnsigned::UIntSize(ls.len())))
+                }else{
+                    Err(should_never_get_here_for_func("length"))
+                }
+            }else{
+                Err(bad_box_error("length/len", "ListBox", bn, usize::MAX, false))
+            }            
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = s.heap[bn].0{
+                    Ok(Value::UInt(IntUnsigned::UIntSize(st.len())))
+                }else{
+                    Err(should_never_get_here_for_func("length"))
+                }
+            }else{
+                Err(bad_box_error("length/len", "StringBox", bn, usize::MAX, false))
+            }            
+        },
+        Some(v) => {
+            Err(format!("Operator (length/len) error! Top of stack must \
+                be of type ListBox or StringBox! Attempted value: {}", v))
+        },
+        None => Err(needs_n_args_only_n_provided("length/len", "One", "none")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2142,6 +2183,8 @@ impl State{
         ops_map.insert("fpop".to_string(), list_front_pop);
         ops_map.insert("fpo".to_string(), list_front_pop);
         ops_map.insert("index".to_string(), index);
+        ops_map.insert("length".to_string(), length);
+        ops_map.insert("len".to_string(), length);
 
         State {
             stack: Vec::new(),
