@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.34
+//Version: 0.3.35
 
 use std::collections::HashMap;
 use std::env;
@@ -2033,6 +2033,63 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Indexes into a list or string, 
+// pushing the indexed item to the stack.
+fn index(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::ListBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
+            if s.validate_box(bn){
+                if let Value::List(ref ls) = s.heap[bn].0{
+                    if i < ls.len(){
+                        Ok(ls[i].clone())
+                    }else{
+                        Err(format!("Operator (index) error! \
+                            Index {} is out of range of List of size {}", i, ls.len()))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("index"))
+                }
+            }else{
+                Err(bad_box_error("index", "ListBox", bn, usize::MAX, false))
+            }
+        },
+        (Some(Value::StringBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = s.heap[bn].0{
+                    if i < st.len(){
+                        Ok(Value::Char(st.chars().nth(i).unwrap()))
+                    }else{
+                        Err(format!("Operator (index) error! \
+                            Index {} is out of range of String of size {}", i, st.len()))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("index"))
+                }
+            }else{
+                Err(bad_box_error("index", "ListBox", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (index) error! Index operator requires second \
+                to top of stack to be either a ListBox or a StringBox, \
+                and requires the top of the stack to be of type usize! \
+                Attempted values: {} and {}", a, b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("index", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("index", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("index")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2084,6 +2141,7 @@ impl State{
         ops_map.insert("fp".to_string(), list_front_push);
         ops_map.insert("fpop".to_string(), list_front_pop);
         ops_map.insert("fpo".to_string(), list_front_pop);
+        ops_map.insert("index".to_string(), index);
 
         State {
             stack: Vec::new(),
