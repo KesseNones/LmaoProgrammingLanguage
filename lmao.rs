@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.33
+//Version: 0.3.34
 
 use std::collections::HashMap;
 use std::env;
@@ -1874,6 +1874,12 @@ fn list_push(s: &mut State) -> Result<(), String>{
 
 }
 
+//Generates error string for 0 length errors for pop and fpop error.
+fn pop_error(op_type: &str, collection_type: &str, op_detail: &str) -> String{
+    format!("Operator ({}) error! {} needs to be greater \
+        than length 0 for {} operation to actually pop something!", op_type, collection_type, op_detail)
+}
+
 //Pops from the end of a list/string and pushes the popped thing to the stack.
 fn list_pop(s: &mut State) -> Result<(), String>{
     let res: Result<(Value, Value), String> = match s.pop(){
@@ -1882,9 +1888,7 @@ fn list_pop(s: &mut State) -> Result<(), String>{
                 if let Value::List(ref mut ls) = &mut s.heap[bn].0{
                     match ls.pop(){
                         Some(v) => Ok((Value::ListBox(bn), v)),
-                        None => Err(format!("Operator (pop/po) error! List needs \
-                            to be greater than length 0 for pop operation \
-                            to actually pop something!")),
+                        None => Err(pop_error("pop/po", "List", "pop")),
                     }
                 }else{
                     Err(should_never_get_here_for_func("list_pop"))
@@ -1898,9 +1902,7 @@ fn list_pop(s: &mut State) -> Result<(), String>{
                 if let Value::String(ref mut st) = &mut s.heap[bn].0{
                     match st.pop(){
                         Some(v) => Ok((Value::StringBox(bn), Value::Char(v))),
-                        None => Err(format!("Operator (pop/po) error! String needs \
-                            to be greater than length 0 for pop operation \
-                            to actually pop something!")),
+                        None => Err(pop_error("pop/po", "String", "pop")),
                     }
                 }else{
                     Err(should_never_get_here_for_func("list_pop"))
@@ -1979,6 +1981,58 @@ fn list_front_push(s: &mut State) -> Result<(), String>{
 
 }
 
+//Pops from the front of a list/string and pushes the popped thing to the stack.
+fn list_front_pop(s: &mut State) -> Result<(), String>{
+    let res: Result<(Value, Value), String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    if ls.len() > 0{
+                        Ok((Value::ListBox(bn), ls.remove(0)))
+                    }else{
+                        Err(pop_error("fpop/fpo", "List", "front pop"))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("list_front_pop"))
+                }
+            }else{
+                Err(bad_box_error("fpop/fpo", "ListBox", bn, usize::MAX, false))
+            }
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    if st.len() > 0{
+                        Ok((Value::StringBox(bn), Value::Char(st.remove(0))))
+                    }else{
+                        Err(pop_error("fpop/fpo", "String", "front pop"))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("list_front_pop"))
+                }
+            }else{
+                Err(bad_box_error("fpop/fpo", "StringBox", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => {
+            Err(format!("Operator (fpop/fpo) error! Top of stack needs \
+                to be of type StringBox or ListBox! Attempted value: {}", v))
+        },
+        None => {
+            Err(needs_n_args_only_n_provided("fpop/fpo", "One", "none"))
+        },
+    };  
+
+    match res{
+        Ok((v1, v2)) => {
+            s.push(v1);
+            s.push(v2);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2028,6 +2082,8 @@ impl State{
         ops_map.insert("po".to_string(), list_pop);
         ops_map.insert("fpush".to_string(), list_front_push);
         ops_map.insert("fp".to_string(), list_front_push);
+        ops_map.insert("fpop".to_string(), list_front_pop);
+        ops_map.insert("fpo".to_string(), list_front_pop);
 
         State {
             stack: Vec::new(),
