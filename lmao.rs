@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.36
+//Version: 0.3.37
 
 use std::collections::HashMap;
 use std::env;
@@ -2131,6 +2131,47 @@ fn length(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Takes a string/list and pushes a boolean based on whether it's empty or not.
+fn is_empty(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref ls) = s.heap[bn].0{
+                    Ok(Value::Boolean(ls.len() == 0))
+                }else{
+                    Err(should_never_get_here_for_func("is_empty"))
+                }
+            }else{
+                Err(bad_box_error("isEmpty", "ListBox", bn, usize::MAX, false))
+            }            
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = s.heap[bn].0{
+                    Ok(Value::Boolean(st.len() == 0))
+                }else{
+                    Err(should_never_get_here_for_func("is_empty"))
+                }
+            }else{
+                Err(bad_box_error("isEmpty", "StringBox", bn, usize::MAX, false))
+            }            
+        },
+        Some(v) => {
+            Err(format!("Operator (isEmpty) error! Top of stack must \
+                be of type ListBox or StringBox! Attempted value: {}", v))
+        },
+        None => Err(needs_n_args_only_n_provided("isEmpty", "One", "none")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2185,6 +2226,7 @@ impl State{
         ops_map.insert("index".to_string(), index);
         ops_map.insert("length".to_string(), length);
         ops_map.insert("len".to_string(), length);
+        ops_map.insert("isEmpty".to_string(), is_empty);
 
         State {
             stack: Vec::new(),
