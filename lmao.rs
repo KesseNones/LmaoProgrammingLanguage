@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.37
+//Version: 0.3.38
 
 use std::collections::HashMap;
 use std::env;
@@ -2172,6 +2172,49 @@ fn is_empty(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Clears a list/string to empty.
+fn list_clear(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    ls.clear();
+                    Ok(Value::ListBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_clear"))
+                }
+            }else{
+                Err(bad_box_error("clear", "ListBox", bn, usize::MAX, false))
+            }            
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    st.clear();
+                    Ok(Value::StringBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_clear"))
+                }
+            }else{
+                Err(bad_box_error("clear", "StringBox", bn, usize::MAX, false))
+            }            
+        },
+        Some(v) => {
+            Err(format!("Operator (clear) error! Top of stack must \
+                be of type ListBox or StringBox! Attempted value: {}", v))
+        },
+        None => Err(needs_n_args_only_n_provided("clear", "One", "none")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2227,6 +2270,7 @@ impl State{
         ops_map.insert("length".to_string(), length);
         ops_map.insert("len".to_string(), length);
         ops_map.insert("isEmpty".to_string(), is_empty);
+        ops_map.insert("clear".to_string(), list_clear);
 
         State {
             stack: Vec::new(),
