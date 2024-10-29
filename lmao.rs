@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.39
+//Version: 0.3.40
 
 use std::collections::HashMap;
 use std::env;
@@ -2284,6 +2284,51 @@ fn list_contains(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Alters an item in a list at a particular index to something else.
+//MAYBE ADD ABILITY TO CHANGE CHARS IN STRING IN THE FUTURE
+fn change_item_at(s: &mut State) -> Result<(), String>{
+    let res = match s.pop3(){
+        (Some(Value::ListBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i))), Some(v)) => {
+            //Changes item in list to new value at 
+            // index i assuming list is valid and index is in range.
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    if i < ls.len(){
+                        ls[i] = v;
+                        Ok(Value::ListBox(bn))
+                    }else{
+                        Err(format!("Operator (changeItemAt) error! \
+                            Index {} is out of range of List of size {}", i, ls.len()))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("change_item_at"))
+                }
+            }else{
+                Err(bad_box_error("changeItemAt", "ListBox", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b), Some(c)) => {
+            Err(format!("Operator (changeItemAt) error! \
+                Third to top of stack must be type ListBox, \
+                second to top of stack must be type usize, \
+                and top of stack must by type Value! Attempted values: {}, {}, and {}", a, b, c))
+        },
+        (None, Some(_), Some(_)) => Err(needs_n_args_only_n_provided("changeItemAt", "Three", "only two")),
+        (None, None, Some(_)) => Err(needs_n_args_only_n_provided("changeItemAt", "Three", "only one")),
+        (None, None, None) => Err(needs_n_args_only_n_provided("changeItemAt", "Three", "none")),
+        _ => Err(should_never_get_here_for_func("change_item_at")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2341,6 +2386,7 @@ impl State{
         ops_map.insert("isEmpty".to_string(), is_empty);
         ops_map.insert("clear".to_string(), list_clear);
         ops_map.insert("contains".to_string(), list_contains);
+        ops_map.insert("changeItemAt".to_string(), change_item_at);
 
         State {
             stack: Vec::new(),
