@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.38
+//Version: 0.3.39
 
 use std::collections::HashMap;
 use std::env;
@@ -2215,6 +2215,75 @@ fn list_clear(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Consumes a list/object/string box and a value/char and 
+// pushes a boolean based on whether or not that value/value/char
+// is in that list/object/string box.
+fn list_contains(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::ListBox(bn)), Some(v)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref ls) = &s.heap[bn].0{
+                    Ok(Value::Boolean(ls.contains(&v)))
+                }else{
+                    Err(should_never_get_here_for_func("list_contains"))
+                }
+            }else{
+                Err(bad_box_error("contains", "ListBox", bn, usize::MAX, false))
+            }
+        },
+        //NEEDS TESTING!!!
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    if let (Value::Object(ref o), Value::String(ref s)) = (&s.heap[a].0, &s.heap[b].0){
+                        Ok(Value::Boolean(o.contains_key(s)))
+                    }else{
+                        Err(should_never_get_here_for_func("list_contains"))
+                    }
+                },
+                (true, false) => {
+                    Err(bad_box_error("contains", "ObjectBox", b, usize::MAX, false))
+                },
+                (false, true) => {
+                    Err(bad_box_error("contains", "ObjectBox", a, usize::MAX, false))
+                },
+                (false, false) => {
+                    Err(bad_box_error("contains", "ObjectBox", a, b, true))
+                },
+            }
+        },
+        (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = &s.heap[bn].0{
+                    Ok(Value::Boolean(st.contains(c)))
+                }else{
+                    Err(should_never_get_here_for_func("list_contains"))
+                }
+            }else{
+                Err(bad_box_error("contains", "StringBox", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (contains) error! Second to top \
+                of stack must be type ListBox/ObjectBox/StringBox and top \
+                of stack must be Value/StringBox/Char respectably! \
+                Attempted values: {} and {}", a, b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("contains", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("contains", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("list_contains")),
+    };
+
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2271,6 +2340,7 @@ impl State{
         ops_map.insert("len".to_string(), length);
         ops_map.insert("isEmpty".to_string(), is_empty);
         ops_map.insert("clear".to_string(), list_clear);
+        ops_map.insert("contains".to_string(), list_contains);
 
         State {
             stack: Vec::new(),
