@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.45
+//Version: 0.3.46
 
 use std::collections::HashMap;
 use std::env;
@@ -1539,17 +1539,15 @@ fn is_less_than_equal_to(s: &mut State) -> Result<(), String>{
 }
 
 //Creates error string for when a box involved is invalid.
-fn bad_box_error(op_type: &str, box_type: &str, bn: usize, bn2: usize, is_two_boxes: bool) -> String{
+fn bad_box_error(op_type: &str, box_type1: &str, box_type2: &str, bn1: usize, bn2: usize, is_two_boxes: bool) -> String{
     if !is_two_boxes{
         format!("Operator ({}) error! Box {} of type {} is invalid \
-            because it's either out of range of heap or free'd!", op_type, bn, box_type)
+            because it's either out of range of heap or free'd!", op_type, bn1, box_type1)
     }else{
-        format!("Operator ({}) error! Box {} and Box {} of type {} are invalid \
-            because they're either out of range of heap or free'd!", op_type, bn, bn2, box_type)
+        format!("Operator ({}) error! Box {} of type {} and Box {} of type {} are invalid \
+            because they're either out of range of heap or free'd!", op_type, bn1, box_type1, bn2, box_type2)
     }
 }
-
-
 
 //Concatenates two strings or two lists together.
 //DECIDED THAT TOP STRING BOX ISN'T FREED SINCE IT DOESN'T NEED TO BE
@@ -1571,13 +1569,13 @@ fn concat(s: &mut State) -> Result<(), String>{
                         }
                     },
                     (true, false) => {
-                        Err(bad_box_error("++", "StringBox", b, usize::MAX, false))
+                        Err(bad_box_error("++", "StringBox", "NA", b, usize::MAX, false))
                     },
                     (false, true) => {
-                        Err(bad_box_error("++", "StringBox", a, usize::MAX, false))
+                        Err(bad_box_error("++", "StringBox", "NA", a, usize::MAX, false))
                     },
                     (false, false) => {
-                        Err(bad_box_error("++", "StringBox", a, b, true))
+                        Err(bad_box_error("++", "StringBox", "StringBox", a, b, true))
                     },
                 }
             }else{
@@ -1606,13 +1604,13 @@ fn concat(s: &mut State) -> Result<(), String>{
                         }
                     },
                     (true, false) => {
-                        Err(bad_box_error("++", "ListBox", b, usize::MAX, false))
+                        Err(bad_box_error("++", "ListBox", "NA", b, usize::MAX, false))
                     },
                     (false, true) => {
-                        Err(bad_box_error("++", "ListBox", a, usize::MAX, false))
+                        Err(bad_box_error("++", "ListBox", "NA", a, usize::MAX, false))
                     },
                     (false, false) => {
-                        Err(bad_box_error("++", "ListBox", a, b, true))
+                        Err(bad_box_error("++", "ListBox", "ListBox", a, b, true))
                     },
                 }
             }else{
@@ -1743,7 +1741,7 @@ fn list_push(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_push"))
                 }
             }else{
-                Err(bad_box_error("push/p", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("push/p", "ListBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
@@ -1755,7 +1753,7 @@ fn list_push(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_push"))
                 }
             }else{
-                Err(bad_box_error("push/p", "StringBox", bn, usize::MAX, false))
+                Err(bad_box_error("push/p", "StringBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(a), Some(b)) => {
@@ -1796,7 +1794,7 @@ fn list_pop(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_pop"))
                 }
             }else{
-                Err(bad_box_error("pop/po", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("pop/po", "ListBox", "NA", bn, usize::MAX, false))
             }
         },
         Some(Value::StringBox(bn)) => {
@@ -1810,7 +1808,7 @@ fn list_pop(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_pop"))
                 }
             }else{
-                Err(bad_box_error("pop/po", "StringBox", bn, usize::MAX, false))
+                Err(bad_box_error("pop/po", "StringBox", "NA", bn, usize::MAX, false))
             }
         },
         Some(v) => {
@@ -1844,7 +1842,7 @@ fn list_front_push(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_front_push"))
                 }
             }else{
-                Err(bad_box_error("fpush/fp", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("fpush/fp", "ListBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
@@ -1856,7 +1854,7 @@ fn list_front_push(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_front_push"))
                 }
             }else{
-                Err(bad_box_error("fpush/fp", "StringBox", bn, usize::MAX, false))
+                Err(bad_box_error("fpush/fp", "StringBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(a), Some(b)) => {
@@ -1892,7 +1890,7 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_front_pop"))
                 }
             }else{
-                Err(bad_box_error("fpop/fpo", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("fpop/fpo", "ListBox", "NA", bn, usize::MAX, false))
             }
         },
         Some(Value::StringBox(bn)) => {
@@ -1907,7 +1905,7 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_front_pop"))
                 }
             }else{
-                Err(bad_box_error("fpop/fpo", "StringBox", bn, usize::MAX, false))
+                Err(bad_box_error("fpop/fpo", "StringBox", "NA", bn, usize::MAX, false))
             }
         },
         Some(v) => {
@@ -1946,7 +1944,7 @@ fn index(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("index"))
                 }
             }else{
-                Err(bad_box_error("index", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("index", "ListBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(Value::StringBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
@@ -1962,7 +1960,7 @@ fn index(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("index"))
                 }
             }else{
-                Err(bad_box_error("index", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("index", "ListBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(a), Some(b)) => {
@@ -1991,7 +1989,7 @@ fn length(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("length"))
                 }
             }else{
-                Err(bad_box_error("length/len", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("length/len", "ListBox", "NA", bn, usize::MAX, false))
             }            
         },
         Some(Value::StringBox(bn)) => {
@@ -2002,7 +2000,7 @@ fn length(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("length"))
                 }
             }else{
-                Err(bad_box_error("length/len", "StringBox", bn, usize::MAX, false))
+                Err(bad_box_error("length/len", "StringBox", "NA", bn, usize::MAX, false))
             }            
         },
         Some(v) => {
@@ -2026,7 +2024,7 @@ fn is_empty(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("is_empty"))
                 }
             }else{
-                Err(bad_box_error("isEmpty", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("isEmpty", "ListBox", "NA", bn, usize::MAX, false))
             }            
         },
         Some(Value::StringBox(bn)) => {
@@ -2037,7 +2035,7 @@ fn is_empty(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("is_empty"))
                 }
             }else{
-                Err(bad_box_error("isEmpty", "StringBox", bn, usize::MAX, false))
+                Err(bad_box_error("isEmpty", "StringBox", "NA", bn, usize::MAX, false))
             }            
         },
         Some(v) => {
@@ -2062,7 +2060,7 @@ fn list_clear(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_clear"))
                 }
             }else{
-                Err(bad_box_error("clear", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("clear", "ListBox", "NA", bn, usize::MAX, false))
             }            
         },
         Some(Value::StringBox(bn)) => {
@@ -2074,7 +2072,7 @@ fn list_clear(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_clear"))
                 }
             }else{
-                Err(bad_box_error("clear", "StringBox", bn, usize::MAX, false))
+                Err(bad_box_error("clear", "StringBox", "NA", bn, usize::MAX, false))
             }            
         },
         Some(v) => {
@@ -2100,7 +2098,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_contains"))
                 }
             }else{
-                Err(bad_box_error("contains", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("contains", "ListBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
@@ -2113,13 +2111,13 @@ fn list_contains(s: &mut State) -> Result<(), String>{
                     }
                 },
                 (true, false) => {
-                    Err(bad_box_error("contains", "StringBox", b, usize::MAX, false))
+                    Err(bad_box_error("contains", "StringBox", "NA", b, usize::MAX, false))
                 },
                 (false, true) => {
-                    Err(bad_box_error("contains", "ObjectBox", a, usize::MAX, false))
+                    Err(bad_box_error("contains", "ObjectBox", "NA", a, usize::MAX, false))
                 },
                 (false, false) => {
-                    Err(bad_box_error("contains", "ObjectBox", a, b, true))
+                    Err(bad_box_error("contains", "ObjectBox", "StringBox", a, b, true))
                 },
             }
         },
@@ -2131,7 +2129,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("list_contains"))
                 }
             }else{
-                Err(bad_box_error("contains", "StringBox", bn, usize::MAX, false))
+                Err(bad_box_error("contains", "StringBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(a), Some(b)) => {
@@ -2169,7 +2167,7 @@ fn change_item_at(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("change_item_at"))
                 }
             }else{
-                Err(bad_box_error("changeItemAt", "ListBox", bn, usize::MAX, false))
+                Err(bad_box_error("changeItemAt", "ListBox", "NA", bn, usize::MAX, false))
             }
         },
         (Some(a), Some(b), Some(c)) => {
@@ -2267,9 +2265,9 @@ fn add_field(s: &mut State) -> Result<(), String>{
                         Err(should_never_get_here_for_func("add_field"))
                     }
                 },
-                (true, false) => Err(bad_box_error("objAddField", "StringBox", b, usize::MAX, false)),
-                (false, true) => Err(bad_box_error("objAddField", "ObjectBox", a, usize::MAX, false)),
-                (false, false) => Err(bad_box_error("objAddField", "ObjectBox", a, b, true)),
+                (true, false) => Err(bad_box_error("objAddField", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objAddField", "ObjectBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objAddField", "ObjectBox", "StringBox", a, b, true)),
             }
         },
         (Some(a), Some(b), Some(c)) => {
