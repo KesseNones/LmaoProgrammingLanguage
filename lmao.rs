@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.41
+//Version: 0.3.42
 
 use std::collections::HashMap;
 use std::env;
@@ -2329,6 +2329,12 @@ fn change_item_at(s: &mut State) -> Result<(), String>{
 
 }
 
+//Creates an error string for the three char operators below.
+fn non_char_error(op_type: &str, v: &Value) -> String{
+    format!("Operator ({}) error! Top of stack must \
+        be of type Char! Attempted value: ", v)
+}
+
 //Conumes a character and pushes a boolean saying whether or not it's whitespace.
 fn whitespace_detect(s: &mut State) -> Result<(), String>{
     let res = match s.pop(){
@@ -2336,10 +2342,30 @@ fn whitespace_detect(s: &mut State) -> Result<(), String>{
             Ok(Value::Boolean(c.is_whitespace()))
         },
         Some(v) => {
-            Err(format!("Operator (isWhitespaceChar) error! Top \
-                of stack must be of type Char! Attempted value: {}", v))
+            Err(non_char_error("isWhitespaceChar", &v))
         },
         None => Err(needs_n_args_only_n_provided("isWhitespaceChar", "One", "none")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
+//Determines if top of stack is an alphabetical char.
+fn alpha_char_detect(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::Char(c)) => {
+            Ok(Value::Boolean(c.is_alphabetic()))
+        },
+        Some(v) => {
+            Err(non_char_error("isAlphaChar", &v))
+        },
+        None => Err(needs_n_args_only_n_provided("isAlphaChar", "One", "none")),
     };
 
     match res{
@@ -2412,6 +2438,7 @@ impl State{
 
         //Character operators
         ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
+        ops_map.insert("isAlphaChar".to_string(), alpha_char_detect);
 
         State {
             stack: Vec::new(),
