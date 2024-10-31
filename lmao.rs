@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.44
+//Version: 0.3.45
 
 use std::collections::HashMap;
 use std::env;
@@ -2103,7 +2103,6 @@ fn list_contains(s: &mut State) -> Result<(), String>{
                 Err(bad_box_error("contains", "ListBox", bn, usize::MAX, false))
             }
         },
-        //NEEDS TESTING!!!
         (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
@@ -2114,7 +2113,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
                     }
                 },
                 (true, false) => {
-                    Err(bad_box_error("contains", "ObjectBox", b, usize::MAX, false))
+                    Err(bad_box_error("contains", "StringBox", b, usize::MAX, false))
                 },
                 (false, true) => {
                     Err(bad_box_error("contains", "ObjectBox", a, usize::MAX, false))
@@ -2240,6 +2239,51 @@ fn num_char_detect(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+fn invalid_types_for_obj_add_or_mut(op_type: &str, v1: &Value, v2: &Value, v3: &Value) -> String{
+    format!("Operator ({}) error! Third to top of stack must be of type ObjectBox, \
+        second to top must be type StringBox, and top must be type Value! \
+        Attempted values: {}, {}, and {}", op_type, v1, v2, v3)
+}
+
+//Adds a field to the given object and pushes the mutated object back.
+fn add_field(s: &mut State) -> Result<(), String>{
+    let res = match s.pop3(){
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
+            //NEED TO FIX BAD BOX ERROR STUFF
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
+                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                        if !o.contains_key(st){
+                            o.insert(st.clone(), v);
+                            s.heap[a].0 = obj_to_mut;
+                            Ok(Value::ObjectBox(a))
+                        }else{
+                            Err(format!("Operator (objAddField) error! \
+                                ObjectBox {} already contains field {} ! \
+                                Try removing it first!", a, st))
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("add_field"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("objAddField", "StringBox", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objAddField", "ObjectBox", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objAddField", "ObjectBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b), Some(c)) => {
+            Err(invalid_types_for_obj_add_or_mut("objAddField", &a, &b, &c))
+        },
+        (None, Some(_), Some(_)) => Err(needs_n_args_only_n_provided("objAddField", "Three", "only two")),
+        (None, None, Some(_)) => Err(needs_n_args_only_n_provided("objAddField", "Three", "only one")),
+        (None, None, None) => Err(needs_n_args_only_n_provided("objAddField", "Three", "none")),
+        _ => Err(should_never_get_here_for_func("add_field")),
+    };
+
+    push_val_or_err(res, s)
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2303,6 +2347,9 @@ impl State{
         ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
         ops_map.insert("isAlphaChar".to_string(), alpha_char_detect);
         ops_map.insert("isNumChar".to_string(), num_char_detect);
+
+        //Object operators
+        ops_map.insert("objAddField".to_string(), add_field);
 
         State {
             stack: Vec::new(),
