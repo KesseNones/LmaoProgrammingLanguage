@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.40
+//Version: 0.3.41
 
 use std::collections::HashMap;
 use std::env;
@@ -2329,6 +2329,28 @@ fn change_item_at(s: &mut State) -> Result<(), String>{
 
 }
 
+//Conumes a character and pushes a boolean saying whether or not it's whitespace.
+fn whitespace_detect(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::Char(c)) => {
+            Ok(Value::Boolean(c.is_whitespace()))
+        },
+        Some(v) => {
+            Err(format!("Operator (isWhitespaceChar) error! Top \
+                of stack must be of type Char! Attempted value: {}", v))
+        },
+        None => Err(needs_n_args_only_n_provided("isWhitespaceChar", "One", "none")),
+    };
+
+    match res{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2387,6 +2409,9 @@ impl State{
         ops_map.insert("clear".to_string(), list_clear);
         ops_map.insert("contains".to_string(), list_contains);
         ops_map.insert("changeItemAt".to_string(), change_item_at);
+
+        //Character operators
+        ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
 
         State {
             stack: Vec::new(),
