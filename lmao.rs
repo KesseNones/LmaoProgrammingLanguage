@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.43
+//Version: 0.3.44
 
 use std::collections::HashMap;
 use std::env;
@@ -313,6 +313,16 @@ fn should_never_get_here_for_func(func: &str) -> String{
     format!("Should never get here for {} function!", func)
 }
 
+fn push_val_or_err(r: Result<Value, String>, s: &mut State) -> Result<(), String>{
+    match r{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 //Adds two values of matching numerical types together, pusing the result to the stack.
 fn add(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
@@ -377,13 +387,7 @@ fn add(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("add")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -452,13 +456,7 @@ fn sub(s: &mut State) -> Result<(), String>{
 
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -527,13 +525,7 @@ fn mult(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("mult")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -662,13 +654,7 @@ fn div(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("div")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -784,13 +770,7 @@ fn modulo(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("modulo")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -820,13 +800,7 @@ fn power(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("power")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -1083,13 +1057,7 @@ fn is_equal(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("is_equal")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -1193,13 +1161,7 @@ fn is_not_equal(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("is_not_equal")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -1296,13 +1258,7 @@ fn is_greater_than(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("is_greater_than")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -1394,13 +1350,7 @@ fn is_less_than(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("is_less_than")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -1492,13 +1442,7 @@ fn is_greater_than_equal_to(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("is_greater_than_equal_to")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -1590,13 +1534,7 @@ fn is_less_than_equal_to(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("is_less_than_equal_to")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
     
 }
 
@@ -1699,13 +1637,7 @@ fn concat(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("concat")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 fn logical_operator_type_error(op_type: &str, v1: &Value, v2: &Value) -> String{
@@ -1734,13 +1666,7 @@ fn and(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("and")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Performs logical OR on two operands.
@@ -1764,13 +1690,7 @@ fn or(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("or")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Performs logical XOR on two operands.
@@ -1794,13 +1714,7 @@ fn xor(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("xor")),
     };
 
-    match res {
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Performs logical NOT on top of stack if boolean.
@@ -1814,13 +1728,7 @@ fn not(s: &mut State) -> Result<(), String>{
         None => Err(needs_n_args_only_n_provided("not/!", "One", "none")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Pushes a value to a list or a character to a string.
@@ -1864,13 +1772,7 @@ fn list_push(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("list_push")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 
 }
 
@@ -1971,13 +1873,7 @@ fn list_front_push(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("list_front_push")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 
 }
 
@@ -2080,13 +1976,7 @@ fn index(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("index")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 
 }
 
@@ -2122,13 +2012,7 @@ fn length(s: &mut State) -> Result<(), String>{
         None => Err(needs_n_args_only_n_provided("length/len", "One", "none")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Takes a string/list and pushes a boolean based on whether it's empty or not.
@@ -2163,13 +2047,7 @@ fn is_empty(s: &mut State) -> Result<(), String>{
         None => Err(needs_n_args_only_n_provided("isEmpty", "One", "none")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Clears a list/string to empty.
@@ -2206,13 +2084,7 @@ fn list_clear(s: &mut State) -> Result<(), String>{
         None => Err(needs_n_args_only_n_provided("clear", "One", "none")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Consumes a list/object/string box and a value/char and 
@@ -2275,13 +2147,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
     };
 
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Alters an item in a list at a particular index to something else.
@@ -2319,13 +2185,7 @@ fn change_item_at(s: &mut State) -> Result<(), String>{
         _ => Err(should_never_get_here_for_func("change_item_at")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 
 }
 
@@ -2347,13 +2207,7 @@ fn whitespace_detect(s: &mut State) -> Result<(), String>{
         None => Err(needs_n_args_only_n_provided("isWhitespaceChar", "One", "none")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Determines if top of stack is an alphabetical char.
@@ -2368,13 +2222,7 @@ fn alpha_char_detect(s: &mut State) -> Result<(), String>{
         None => Err(needs_n_args_only_n_provided("isAlphaChar", "One", "none")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 //Determines if top of stack is a numeric char.
@@ -2389,13 +2237,7 @@ fn num_char_detect(s: &mut State) -> Result<(), String>{
         None => Err(needs_n_args_only_n_provided("isNumChar", "One", "none")),
     };
 
-    match res{
-        Ok(v) => {
-            s.push(v);
-            Ok(())
-        },
-        Err(e) => Err(e),
-    }
+    push_val_or_err(res, s)
 }
 
 impl State{
