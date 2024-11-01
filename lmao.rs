@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.46
+//Version: 0.3.47
 
 use std::collections::HashMap;
 use std::env;
@@ -2282,6 +2282,49 @@ fn add_field(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+fn invalid_types_for_get_or_rem(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Second to top of stack must \
+        be type ObjectBox and top must be type StringBox! \
+        Attempted values: {} and {}", op_type, v1, v2)
+}
+
+fn field_not_in_obj_err(op_type: &str, box_num: usize, field_name: &str) -> String{
+    format!("Operator ({}) error! Field {} doesn't exist \
+        in ObjectBox {} ! Try adding it!", op_type, field_name, box_num) 
+}
+
+//Given an object and string box, conumes the boxes 
+// and pushes the value at that key if it exists.
+fn get_field(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    if let (Value::Object(ref o), Value::String(ref st)) = (&s.heap[a].0, &s.heap[b].0){
+                        match o.get(st){
+                            Some(v) => Ok(v.clone()),
+                            None => Err(field_not_in_obj_err("objGetField", a, st))
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("get_field"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("objGetField", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objGetField", "ObjectBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objGetField", "ObjectBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(invalid_types_for_get_or_rem("objGetField", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("objGetField", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("objGetField", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("get_field")),
+    };
+
+    push_val_or_err(res, s)
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2348,6 +2391,7 @@ impl State{
 
         //Object operators
         ops_map.insert("objAddField".to_string(), add_field);
+        ops_map.insert("objGetField".to_string(), get_field);
 
         State {
             stack: Vec::new(),
