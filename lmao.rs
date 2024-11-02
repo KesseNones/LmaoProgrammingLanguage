@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.47
+//Version: 0.3.48
 
 use std::collections::HashMap;
 use std::env;
@@ -175,7 +175,7 @@ impl fmt::Display for Value{
             },
             Value::ObjectBox(ob) => write!(f, "ObjectBox {}", ob),
             Value::MiscBox(bn) => write!(f, "MiscBox {}", bn),
-            Value::NULLBox => write!(f, "Box NULL"),
+            Value::NULLBox => write!(f, "NULLBox"),
         }
     }
 }
@@ -2247,7 +2247,6 @@ fn invalid_types_for_obj_add_or_mut(op_type: &str, v1: &Value, v2: &Value, v3: &
 fn add_field(s: &mut State) -> Result<(), String>{
     let res = match s.pop3(){
         (Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
-            //NEED TO FIX BAD BOX ERROR STUFF
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
                     let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
@@ -2258,7 +2257,7 @@ fn add_field(s: &mut State) -> Result<(), String>{
                             Ok(Value::ObjectBox(a))
                         }else{
                             Err(format!("Operator (objAddField) error! \
-                                ObjectBox {} already contains field {} ! \
+                                ObjectBox {} already contains field \"{}\"! \
                                 Try removing it first!", a, st))
                         }
                     }else{
@@ -2289,7 +2288,7 @@ fn invalid_types_for_get_or_rem(op_type: &str, v1: &Value, v2: &Value) -> String
 }
 
 fn field_not_in_obj_err(op_type: &str, box_num: usize, field_name: &str) -> String{
-    format!("Operator ({}) error! Field {} doesn't exist \
+    format!("Operator ({}) error! Field \"{}\" doesn't exist \
         in ObjectBox {} ! Try adding it!", op_type, field_name, box_num) 
 }
 
@@ -2320,6 +2319,97 @@ fn get_field(s: &mut State) -> Result<(), String>{
         (None, Some(_)) => Err(needs_n_args_only_n_provided("objGetField", "Two", "only one")),
         (None, None) => Err(needs_n_args_only_n_provided("objGetField", "Two", "none")),
         _ => Err(should_never_get_here_for_func("get_field")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Determines if a translation from one value type to another is valid. 
+// Typically the types have to match unless it's nullbox to box stuff.
+fn is_valid_mutation(a: &Value, b: &Value) -> bool{
+    match (a, b) {
+        (Value::Int(IntSigned::IntSize(_)), Value::Int(IntSigned::IntSize(_))) => true,
+        (Value::UInt(IntUnsigned::UIntSize(_)), Value::UInt(IntUnsigned::UIntSize(_))) => true,
+
+        (Value::Int(IntSigned::Int8(_)), Value::Int(IntSigned::Int8(_))) => true,
+        (Value::Int(IntSigned::Int16(_)), Value::Int(IntSigned::Int16(_))) => true,
+        (Value::Int(IntSigned::Int32(_)), Value::Int(IntSigned::Int32(_))) => true,
+        (Value::Int(IntSigned::Int64(_)), Value::Int(IntSigned::Int64(_))) => true,
+        (Value::Int(IntSigned::Int128(_)), Value::Int(IntSigned::Int128(_))) => true,
+
+        (Value::UInt(IntUnsigned::UInt8(_)), Value::UInt(IntUnsigned::UInt8(_))) => true,
+        (Value::UInt(IntUnsigned::UInt16(_)), Value::UInt(IntUnsigned::UInt16(_))) => true,
+        (Value::UInt(IntUnsigned::UInt32(_)), Value::UInt(IntUnsigned::UInt32(_))) => true,
+        (Value::UInt(IntUnsigned::UInt64(_)), Value::UInt(IntUnsigned::UInt64(_))) => true,
+        (Value::UInt(IntUnsigned::UInt128(_)), Value::UInt(IntUnsigned::UInt128(_))) => true,
+
+        (Value::Float32(_), Value::Float32(_)) => true,
+        (Value::Float64(_), Value::Float64(_)) => true,
+
+        (Value::Char(_), Value::Char(_)) => true,
+        (Value::Boolean(_), Value::Boolean(_)) => true,
+
+        (Value::StringBox(_), Value::StringBox(_)) => true,
+        (Value::ListBox(_), Value::ListBox(_)) => true,
+        (Value::Object(_), Value::Object(_)) => true,
+        (Value::MiscBox(_), Value::MiscBox(_)) => true,
+
+        (Value::NULLBox, Value::StringBox(_)) => true,
+        (Value::StringBox(_), Value::NULLBox) => true,
+        (Value::NULLBox, Value::ListBox(_)) => true,
+        (Value::ListBox(_), Value::NULLBox) => true,
+        (Value::NULLBox, Value::ObjectBox(_)) => true,
+        (Value::ObjectBox(_), Value::NULLBox) => true,
+        (Value::NULLBox, Value::MiscBox(_)) => true,
+        (Value::MiscBox(_), Value::NULLBox) => true,
+        (Value::NULLBox, Value::NULLBox) => true,
+
+        _ => false,
+
+    }
+}
+
+fn invalid_mutation_error(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Invalid mutation between \
+        two values! Unable to mutate {} to {}", op_type, v1, v2)
+}
+
+//Mutates the field to a new value in an object if it exists and it's a valid mutation.
+fn mut_field(s: &mut State) -> Result<(), String>{
+    let res = match s.pop3(){
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
+                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                        match o.get_mut(st){
+                            Some(old_v) => {
+                                if is_valid_mutation(old_v, &v){
+                                    *old_v = v;
+                                    s.heap[a].0 = obj_to_mut;
+                                    Ok(Value::ObjectBox(a))
+                                }else{
+                                    Err(invalid_mutation_error("objMutField", &old_v, &v))
+                                }
+                            },
+                            None => Err(field_not_in_obj_err("objMutField", a, st)),
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("mut_field"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("objMutField", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objMutField", "ObjectBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objMutField", "ObjectBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b), Some(c)) => {
+            Err(invalid_types_for_obj_add_or_mut("objMutField", &a, &b, &c))
+        },
+        (None, Some(_), Some(_)) => Err(needs_n_args_only_n_provided("objMutField", "Three", "only two")),
+        (None, None, Some(_)) => Err(needs_n_args_only_n_provided("objMutField", "Three", "only one")),
+        (None, None, None) => Err(needs_n_args_only_n_provided("objMutField", "Three", "none")),
+        _ => Err(should_never_get_here_for_func("mut_field")),
     };
 
     push_val_or_err(res, s)
@@ -2392,6 +2482,7 @@ impl State{
         //Object operators
         ops_map.insert("objAddField".to_string(), add_field);
         ops_map.insert("objGetField".to_string(), get_field);
+        ops_map.insert("objMutField".to_string(), mut_field);
 
         State {
             stack: Vec::new(),
