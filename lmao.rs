@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.48
+//Version: 0.3.49
 
 use std::collections::HashMap;
 use std::env;
@@ -1565,6 +1565,7 @@ fn concat(s: &mut State) -> Result<(), String>{
                             s.heap[a].0 = a_str;
                             Ok(Value::StringBox(a))
                         }else{
+                            s.heap[a].0 = a_str;
                             Err(should_never_get_here_for_func("concat"))
                         }
                     },
@@ -2256,9 +2257,11 @@ fn add_field(s: &mut State) -> Result<(), String>{
                             s.heap[a].0 = obj_to_mut;
                             Ok(Value::ObjectBox(a))
                         }else{
-                            Err(format!("Operator (objAddField) error! \
+                            let ret = Err(format!("Operator (objAddField) error! \
                                 ObjectBox {} already contains field \"{}\"! \
-                                Try removing it first!", a, st))
+                                Try removing it first!", a, st));
+                            s.heap[a].0 = obj_to_mut;
+                            ret
                         }
                     }else{
                         Err(should_never_get_here_for_func("add_field"))
@@ -2389,12 +2392,19 @@ fn mut_field(s: &mut State) -> Result<(), String>{
                                     s.heap[a].0 = obj_to_mut;
                                     Ok(Value::ObjectBox(a))
                                 }else{
-                                    Err(invalid_mutation_error("objMutField", &old_v, &v))
+                                    let ret = Err(invalid_mutation_error("objMutField", &old_v, &v));
+                                    s.heap[a].0 = obj_to_mut;
+                                    ret
                                 }
                             },
-                            None => Err(field_not_in_obj_err("objMutField", a, st)),
+                            None => {
+                                let ret = Err(field_not_in_obj_err("objMutField", a, st));
+                                s.heap[a].0 = obj_to_mut; 
+                                ret
+                            },
                         }
                     }else{
+                        s.heap[a].0 = obj_to_mut;
                         Err(should_never_get_here_for_func("mut_field"))
                     }
                 },
@@ -2414,6 +2424,8 @@ fn mut_field(s: &mut State) -> Result<(), String>{
 
     push_val_or_err(res, s)
 }
+
+//NEXT: ADD REMOVAL OPERATOR FOR OBJECT FIELDS
 
 impl State{
     //Creates a new state.
