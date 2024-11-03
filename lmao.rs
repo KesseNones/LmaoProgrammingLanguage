@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.50
+//Version: 0.3.51
 
 use std::collections::HashMap;
 use std::env;
@@ -8,6 +8,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::Read;
 use std::fmt;
+use std::cmp::Ordering;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -2465,6 +2466,45 @@ fn remove_field(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+//Acts like C's strcmp, eating two string boxes and pushing 
+// an integer to indicate the result of the comparison between their contents.
+// If the second to top is less than the top, a negative one is pushed
+// If the second to top is equal to the top, a zero is pushed
+// If the second to top is greater than the top, a one is pushed
+fn string_compare(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    if let (Value::String(ref str_a), Value::String(ref str_b)) = (&s.heap[a].0, &s.heap[b].0){
+                        let comp_res: isize = match str_a.cmp(str_b){
+                            Ordering::Less => -1,
+                            Ordering::Equal => 0,
+                            Ordering::Greater => 1,
+                        };
+                        Ok(Value::Int(IntSigned::IntSize(comp_res)))
+                    }else{
+                        Err(should_never_get_here_for_func("string_compare"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("stringCompare", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("stringCompare", "StringBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("stringCompare", "StringBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (stringCompare) error! String comparison \
+                requires two items of type StringBox on the stack! \
+                Attempted values: {} and {}", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("stringCompare", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("stringCompare", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("string_compare")),
+    };
+
+    push_val_or_err(res, s)
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2494,6 +2534,7 @@ impl State{
         ops_map.insert("<".to_string(), is_less_than);
         ops_map.insert(">=".to_string(), is_greater_than_equal_to);
         ops_map.insert("<=".to_string(), is_less_than_equal_to);
+        ops_map.insert("stringCompare".to_string(), string_compare);
 
         //String concatenation operator.
         ops_map.insert("++".to_string(), concat);
