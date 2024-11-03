@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.49
+//Version: 0.3.50
 
 use std::collections::HashMap;
 use std::env;
@@ -2425,7 +2425,45 @@ fn mut_field(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
-//NEXT: ADD REMOVAL OPERATOR FOR OBJECT FIELDS
+//Removes a field from an object at the desired key held in the string box.
+fn remove_field(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
+                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                        match o.remove(st){
+                            Some(_) => {
+                                s.heap[a].0 = obj_to_mut;
+                                Ok(Value::ObjectBox(a))
+                            },
+                            None => {
+                                let ret = Err(field_not_in_obj_err("objRemField", a, st));
+                                s.heap[a].0 = obj_to_mut;
+                                ret
+                            },
+                        }
+                    }else{
+                        s.heap[a].0 = obj_to_mut;
+                        Err(should_never_get_here_for_func("remove_field"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("objRemField", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objRemField", "ObjectBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objRemField", "ObjectBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(invalid_types_for_get_or_rem("objRemField", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("objRemField", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("objRemField", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("remove_field")),
+    };
+
+    push_val_or_err(res, s)
+}
 
 impl State{
     //Creates a new state.
@@ -2495,6 +2533,7 @@ impl State{
         ops_map.insert("objAddField".to_string(), add_field);
         ops_map.insert("objGetField".to_string(), get_field);
         ops_map.insert("objMutField".to_string(), mut_field);
+        ops_map.insert("objRemField".to_string(), remove_field);
 
         State {
             stack: Vec::new(),
