@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.53
+//Version: 0.3.54
 
 use std::collections::HashMap;
 use std::env;
@@ -2625,6 +2625,65 @@ fn bit_and(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+//Performs bitwise XOR between two matching integer types.
+fn bit_xor(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Int(IntSigned::IntSize(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UIntSize(a ^ b)))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Int(IntSigned::Int8(a ^ b)))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Int(IntSigned::Int16(a ^ b)))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Int(IntSigned::Int32(a ^ b)))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Int(IntSigned::Int64(a ^ b)))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Int(IntSigned::Int128(a ^ b)))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt8(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt16(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt32(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt64(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt128(a ^ b)))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(numerical_type_error_string("bitXor/^", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("bitXor/^", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("bitXor/^", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("bit_xor")),
+    };
+
+    push_val_or_err(res, s)
+}
 
 impl State{
     //Creates a new state.
@@ -2702,6 +2761,8 @@ impl State{
         ops_map.insert("|".to_string(), bit_or);
         ops_map.insert("bitAnd".to_string(), bit_and);
         ops_map.insert("&".to_string(), bit_and);
+        ops_map.insert("bitXor".to_string(), bit_xor);
+        ops_map.insert("^".to_string(), bit_xor);
 
         State {
             stack: Vec::new(),
