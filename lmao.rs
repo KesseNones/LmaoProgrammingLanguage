@@ -1,6 +1,8 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.55
+//Version: 0.3.56
+
+//LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
 use std::collections::HashMap;
 use std::env;
@@ -2715,6 +2717,86 @@ fn bit_not(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+//Performs a bitshift on stuff.
+//OVERFLOW NEEDS TO BE HANDLED LESS JANKILY IN THE FUTURE MOST LIKELY!!!
+fn shift<T: std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> + Default>(n: T, shift_n: isize) -> T{
+    let t_bit_count = std::mem::size_of::<T>() * 8;
+    let shift_n_abs = shift_n.abs() as usize;
+
+    if shift_n >= 0{
+        if shift_n_abs < t_bit_count{
+            n << shift_n_abs
+        }else{
+            T::default()
+        }
+    }else{
+        if shift_n_abs < t_bit_count{
+            n >> shift_n_abs
+        }else{
+            T::default()
+        }
+    }
+}
+
+//Performs a left or right bitshift by n bits on an integer.
+fn bit_shift(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::IntSize(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UIntSize(shift(n, shift_n))))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int8(shift(n, shift_n))))
+        },
+        (Some(Value::Int(IntSigned::Int16(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int16(shift(n, shift_n))))
+        },
+        (Some(Value::Int(IntSigned::Int32(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int32(shift(n, shift_n))))
+        },
+        (Some(Value::Int(IntSigned::Int64(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int64(shift(n, shift_n))))
+        },
+        (Some(Value::Int(IntSigned::Int128(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int128(shift(n, shift_n))))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt8(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt16(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt32(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt64(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt128(shift(n, shift_n))))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (bitShift) error! Second to top must \
+                be numeric integer type and top must be type isize! \
+                Attempted values: {} and {}", &a, &b))
+        },
+
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("bitShift", "Two", "only one")),
+
+        (None, None) => Err(needs_n_args_only_n_provided("bitShift", "Two", "none")),
+
+        _ => Err(should_never_get_here_for_func("bit_shift")),
+    };
+
+    push_val_or_err(res, s)
+
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2794,6 +2876,7 @@ impl State{
         ops_map.insert("bitXor".to_string(), bit_xor);
         ops_map.insert("^".to_string(), bit_xor);
         ops_map.insert("bitNot".to_string(), bit_not);
+        ops_map.insert("bitShift".to_string(), bit_shift);
 
         State {
             stack: Vec::new(),
