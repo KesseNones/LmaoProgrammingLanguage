@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.54
+//Version: 0.3.55
 
 use std::collections::HashMap;
 use std::env;
@@ -2685,6 +2685,36 @@ fn bit_xor(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+//Performs a bitwise not on an integer on the stack.
+fn bit_not(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::Int(IntSigned::IntSize(n))) => Ok(Value::Int(IntSigned::IntSize(!n))),
+        Some(Value::UInt(IntUnsigned::UIntSize(n))) => Ok(Value::UInt(IntUnsigned::UIntSize(!n))),
+
+        Some(Value::Int(IntSigned::Int8(n))) => Ok(Value::Int(IntSigned::Int8(!n))),
+        Some(Value::Int(IntSigned::Int16(n))) => Ok(Value::Int(IntSigned::Int16(!n))),
+        Some(Value::Int(IntSigned::Int32(n))) => Ok(Value::Int(IntSigned::Int32(!n))),
+        Some(Value::Int(IntSigned::Int64(n))) => Ok(Value::Int(IntSigned::Int64(!n))),
+        Some(Value::Int(IntSigned::Int128(n))) => Ok(Value::Int(IntSigned::Int128(!n))),
+
+        Some(Value::UInt(IntUnsigned::UInt8(n))) => Ok(Value::UInt(IntUnsigned::UInt8(!n))),
+        Some(Value::UInt(IntUnsigned::UInt16(n))) => Ok(Value::UInt(IntUnsigned::UInt16(!n))),
+        Some(Value::UInt(IntUnsigned::UInt32(n))) => Ok(Value::UInt(IntUnsigned::UInt32(!n))),
+        Some(Value::UInt(IntUnsigned::UInt64(n))) => Ok(Value::UInt(IntUnsigned::UInt64(!n))),
+        Some(Value::UInt(IntUnsigned::UInt128(n))) => Ok(Value::UInt(IntUnsigned::UInt128(!n))),
+
+        Some(v) => {
+            Err(format!("Operator (bitNot) error! Bitwise not requires \
+                top of stack to be an integer numeric type! \
+                Attempted value: {}", &v))
+        },
+        None => Err(needs_n_args_only_n_provided("bitNot", "One", "none")),
+
+    };
+
+    push_val_or_err(res, s)
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2763,6 +2793,7 @@ impl State{
         ops_map.insert("&".to_string(), bit_and);
         ops_map.insert("bitXor".to_string(), bit_xor);
         ops_map.insert("^".to_string(), bit_xor);
+        ops_map.insert("bitNot".to_string(), bit_not);
 
         State {
             stack: Vec::new(),
