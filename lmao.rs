@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.61
+//Version: 0.3.62
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2946,6 +2946,82 @@ impl ToFloat32 for f64{
     }
 }
 
+trait ToFloat64 {
+    fn into_float64(self) -> f64;
+}
+
+impl ToFloat64 for isize{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for usize{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for i8{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for i16{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for i32{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for i64{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for i128{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for u8{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for u16{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for u32{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for u64{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for u128{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for f32{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+impl ToFloat64 for f64{
+    fn into_float64(self) -> f64{
+        self as f64
+    }
+}
+
+
 fn numeric_error_cast_string(v: &Value, t: &str, r: &str) -> String{
     format!("Operator (cast) error! Failed to cast {} to type {} because: {}", v, t, r)
 }
@@ -2967,6 +3043,7 @@ where
         TryInto<u64> +
         TryInto<u128> +
         ToFloat32 + 
+        ToFloat64 +
         Display,
     <T as TryInto<isize>>::Error: std::fmt::Display,
     <T as TryInto<usize>>::Error: std::fmt::Display,
@@ -3057,6 +3134,10 @@ where
 
         "f32" => {
             Ok(Value::Float32(v.into_float32()))
+        },
+
+        "f64" => {
+            Ok(Value::Float64(v.into_float64()))
         },
 
         "String" => {
