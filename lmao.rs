@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.60
+//Version: 0.3.61
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2871,6 +2871,81 @@ fn max_u128(s: &mut State) -> Result<(), String>{
     Ok(())
 }
 
+trait ToFloat32 {
+    fn into_float32(self) -> f32;
+}
+
+impl ToFloat32 for isize{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for usize{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for i8{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for i16{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for i32{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for i64{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for i128{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for u8{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for u16{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for u32{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for u64{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for u128{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+impl ToFloat32 for f32{
+    fn into_float32(self) -> f32{
+        self
+    }
+}
+impl ToFloat32 for f64{
+    fn into_float32(self) -> f32{
+        self as f32
+    }
+}
+
 fn numeric_error_cast_string(v: &Value, t: &str, r: &str) -> String{
     format!("Operator (cast) error! Failed to cast {} to type {} because: {}", v, t, r)
 }
@@ -2890,7 +2965,8 @@ where
         TryInto<u16> +
         TryInto<u32> +
         TryInto<u64> +
-        TryInto<u128> + 
+        TryInto<u128> +
+        ToFloat32 + 
         Display,
     <T as TryInto<isize>>::Error: std::fmt::Display,
     <T as TryInto<usize>>::Error: std::fmt::Display,
@@ -2978,7 +3054,11 @@ where
                 Err(reason) => Err(reason.to_string()),
             }
         },
-        //NEED TO FIGURE OUT HOW TO CONVERT V TO F32 AND F64!!!
+
+        "f32" => {
+            Ok(Value::Float32(v.into_float32()))
+        },
+
         "String" => {
             Ok(Value::String(v.to_string()))
         },
