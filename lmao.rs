@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.57
+//Version: 0.3.58
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2809,6 +2809,36 @@ fn max_usize(s: &mut State) -> Result<(), String>{
     Ok(())
 }
 
+//Pushes maximum value for i8 datatype to stack.
+fn max_i8(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int8(i8::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i16 datatype to stack.
+fn max_i16(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int16(i16::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i32 datatype to stack.
+fn max_i32(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int32(i32::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i64 datatype to stack.
+fn max_i64(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int64(i64::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i128 datatype to stack.
+fn max_i128(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int128(i128::MAX)));
+    Ok(())
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2826,6 +2856,12 @@ impl State{
         //Maximum values for each integer data type operators.
         ops_map.insert("isizeMax".to_string(), max_isize);
         ops_map.insert("usizeMax".to_string(), max_usize);
+        
+        ops_map.insert("i8Max".to_string(), max_i8);
+        ops_map.insert("i16Max".to_string(), max_i16);
+        ops_map.insert("i32Max".to_string(), max_i32);
+        ops_map.insert("i64Max".to_string(), max_i64);
+        ops_map.insert("i128Max".to_string(), max_i128);
 
         //Stack operators.
         ops_map.insert("swap".to_string(), swap);
