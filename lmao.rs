@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.56
+//Version: 0.3.57
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2797,6 +2797,18 @@ fn bit_shift(s: &mut State) -> Result<(), String>{
 
 }
 
+//Pushes maximum value for isize datatype to stack.
+fn max_isize(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::IntSize(isize::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for usize datatype to stack.
+fn max_usize(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UIntSize(usize::MAX)));
+    Ok(())
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2810,6 +2822,10 @@ impl State{
         ops_map.insert("%".to_string(), modulo);
         ops_map.insert("mod".to_string(), modulo);
         ops_map.insert("pow".to_string(), power);
+
+        //Maximum values for each integer data type operators.
+        ops_map.insert("isizeMax".to_string(), max_isize);
+        ops_map.insert("usizeMax".to_string(), max_usize);
 
         //Stack operators.
         ops_map.insert("swap".to_string(), swap);
