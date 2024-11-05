@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.58
+//Version: 0.3.59
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2839,6 +2839,36 @@ fn max_i128(s: &mut State) -> Result<(), String>{
     Ok(())
 }
 
+//Pushes maximum value for u8 datatype to stack.
+fn max_u8(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt8(u8::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u16 datatype to stack.
+fn max_u16(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt16(u16::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u32 datatype to stack.
+fn max_u32(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt32(u32::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u64 datatype to stack.
+fn max_u64(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt64(u64::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u128 datatype to stack.
+fn max_u128(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt128(u128::MAX)));
+    Ok(())
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2856,12 +2886,16 @@ impl State{
         //Maximum values for each integer data type operators.
         ops_map.insert("isizeMax".to_string(), max_isize);
         ops_map.insert("usizeMax".to_string(), max_usize);
-        
         ops_map.insert("i8Max".to_string(), max_i8);
         ops_map.insert("i16Max".to_string(), max_i16);
         ops_map.insert("i32Max".to_string(), max_i32);
         ops_map.insert("i64Max".to_string(), max_i64);
         ops_map.insert("i128Max".to_string(), max_i128);
+        ops_map.insert("u8Max".to_string(), max_u8);
+        ops_map.insert("u16Max".to_string(), max_u16);
+        ops_map.insert("u32Max".to_string(), max_u32);
+        ops_map.insert("u64Max".to_string(), max_u64);
+        ops_map.insert("u128Max".to_string(), max_u128);
 
         //Stack operators.
         ops_map.insert("swap".to_string(), swap);
