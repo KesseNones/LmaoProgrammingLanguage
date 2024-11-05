@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.59
+//Version: 0.3.60
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -11,6 +11,8 @@ use std::fs::File;
 use std::io::Read;
 use std::fmt;
 use std::cmp::Ordering;
+use std::convert::TryInto;
+use fmt::Display;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -2869,6 +2871,174 @@ fn max_u128(s: &mut State) -> Result<(), String>{
     Ok(())
 }
 
+fn numeric_error_cast_string(v: &Value, t: &str, r: &str) -> String{
+    format!("Operator (cast) error! Failed to cast {} to type {} because: {}", v, t, r)
+}
+
+//Tries to cast a numeric type to all the other types it could be.
+fn cast_num_to_others<T>(t: &str, v: T) -> Result<Value, String>
+where 
+    T: 
+        TryInto<isize> + 
+        TryInto<usize> +
+        TryInto<i8> +
+        TryInto<i16> +
+        TryInto<i32> +
+        TryInto<i64> +
+        TryInto<i128> +
+        TryInto<u8> +
+        TryInto<u16> +
+        TryInto<u32> +
+        TryInto<u64> +
+        TryInto<u128> + 
+        Display,
+    <T as TryInto<isize>>::Error: std::fmt::Display,
+    <T as TryInto<usize>>::Error: std::fmt::Display,
+    <T as TryInto<i8>>::Error: std::fmt::Display,
+    <T as TryInto<i16>>::Error: std::fmt::Display,
+    <T as TryInto<i32>>::Error: std::fmt::Display,
+    <T as TryInto<i64>>::Error: std::fmt::Display,
+    <T as TryInto<i128>>::Error: std::fmt::Display,
+    <T as TryInto<u8>>::Error: std::fmt::Display,
+    <T as TryInto<u16>>::Error: std::fmt::Display,
+    <T as TryInto<u32>>::Error: std::fmt::Display,
+    <T as TryInto<u64>>::Error: std::fmt::Display,
+    <T as TryInto<u128>>::Error: std::fmt::Display,
+{
+    match t{
+        "isize" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::IntSize(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        }, 
+        "usize" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UIntSize(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        }, 
+        "i8" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int8(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "i16" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int16(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "i32" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int32(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "i64" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int64(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "i128" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int128(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u8" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt8(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u16" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt16(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u32" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt32(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u64" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt64(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u128" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt128(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        //NEED TO FIGURE OUT HOW TO CONVERT V TO F32 AND F64!!!
+        "String" => {
+            Ok(Value::String(v.to_string()))
+        },
+        t => Err(format!("{} is not a valid type to cast \
+            this data type to or is an invalid type", t)), 
+    }
+
+}
+
+//Performs all valid casts in existence wherein the top 
+// of the stack tries to be casted to another data type.
+fn cast_stuff(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(n))), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    match cast_num_to_others(t, n){
+                        Ok(Value::String(st)) => {
+                            let box_num = s.insert_to_heap(Value::String(st));
+                            Ok(Value::StringBox(box_num))
+                        },
+                        Ok(v) => Ok(v),
+                        Err(reason) => Err(
+                            numeric_error_cast_string(&Value::Int(IntSigned::IntSize(n)), t, &reason)
+                        ),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_box_error("cast", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(n))), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    match cast_num_to_others(t, n){
+                        Ok(Value::String(st)) => {
+                            let box_num = s.insert_to_heap(Value::String(st));
+                            Ok(Value::StringBox(box_num))
+                        },
+                        Ok(v) => Ok(v),
+                        Err(reason) => Err(
+                            numeric_error_cast_string(&Value::UInt(IntUnsigned::UIntSize(n)), t, &reason)
+                        ),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_box_error("cast", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        //ADD ALL ERROR CASES HERE LATER!
+        _ => Err(should_never_get_here_for_func("cast_stuff")),
+    };
+
+    push_val_or_err(res, s)
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -2963,6 +3133,9 @@ impl State{
         ops_map.insert("^".to_string(), bit_xor);
         ops_map.insert("bitNot".to_string(), bit_not);
         ops_map.insert("bitShift".to_string(), bit_shift);
+
+        //Type operators
+        ops_map.insert("cast".to_string(), cast_stuff);
 
         State {
             stack: Vec::new(),
