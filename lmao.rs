@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.65
+//Version: 0.3.66
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3022,7 +3022,7 @@ impl ToFloat64 for f64{
 }
 
 
-fn numeric_error_cast_string(v: &Value, t: &str, r: &str) -> String{
+fn numeric_error_cast_string(v: Value, t: &str, r: &str) -> String{
     format!("Operator (cast) error! Failed to cast {} to type {} because: {}", v, t, r)
 }
 
@@ -3166,140 +3166,82 @@ fn bad_stringbox_for_casting_error(box_num: usize) -> String{
     bad_box_error("cast", "StringBox", "NA", box_num, usize::MAX, false)
 }
 
+//Function with a generic that carries out the casting action 
+// for all numeric data types to make the main cast function more compact.
+fn integer_cast_action<T>(s: &mut State, v: Value, v_inside: T, bn: usize) -> Result<Value, String>
+where 
+    T: 
+        TryInto<isize> + 
+        TryInto<usize> +
+        TryInto<i8> +
+        TryInto<i16> +
+        TryInto<i32> +
+        TryInto<i64> +
+        TryInto<i128> +
+        TryInto<u8> +
+        TryInto<u16> +
+        TryInto<u32> +
+        TryInto<u64> +
+        TryInto<u128> +
+        ToFloat32 + 
+        ToFloat64 +
+        Display,
+    <T as TryInto<isize>>::Error: std::fmt::Display,
+    <T as TryInto<usize>>::Error: std::fmt::Display,
+    <T as TryInto<i8>>::Error: std::fmt::Display,
+    <T as TryInto<i16>>::Error: std::fmt::Display,
+    <T as TryInto<i32>>::Error: std::fmt::Display,
+    <T as TryInto<i64>>::Error: std::fmt::Display,
+    <T as TryInto<i128>>::Error: std::fmt::Display,
+    <T as TryInto<u8>>::Error: std::fmt::Display,
+    <T as TryInto<u16>>::Error: std::fmt::Display,
+    <T as TryInto<u32>>::Error: std::fmt::Display,
+    <T as TryInto<u64>>::Error: std::fmt::Display,
+    <T as TryInto<u128>>::Error: std::fmt::Display,
+{
+    if s.validate_box(bn){
+        if let Value::String(ref t) = &s.heap[bn].0{
+            match cast_num_to_others(t, v_inside){
+                Ok(Value::String(st)) => {
+                    let new_bn = s.insert_to_heap(Value::String(st));
+                    Ok(Value::StringBox(new_bn))
+                },
+                Ok(val) => Ok(val),
+                Err(reason) => Err(numeric_error_cast_string(v, t, &reason)), 
+            }
+        }else{
+            Err(should_never_get_here_for_func("cast_stuff"))
+        }
+    }else{
+        Err(bad_stringbox_for_casting_error(bn))
+    }
+}
+
 //Performs all valid casts in existence wherein the top 
 // of the stack tries to be casted to another data type.
 fn cast_stuff(s: &mut State) -> Result<(), String>{
     let res = match s.pop2(){
         (Some(Value::Int(IntSigned::IntSize(n))), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
-                    match cast_num_to_others(t, n){
-                        Ok(Value::String(st)) => {
-                            let box_num = s.insert_to_heap(Value::String(st));
-                            Ok(Value::StringBox(box_num))
-                        },
-                        Ok(v) => Ok(v),
-                        Err(reason) => Err(
-                            numeric_error_cast_string(&Value::Int(IntSigned::IntSize(n)), t, &reason)
-                        ),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
+            integer_cast_action(s, Value::Int(IntSigned::IntSize(n)), n, bn)
         },
         (Some(Value::UInt(IntUnsigned::UIntSize(n))), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
-                    match cast_num_to_others(t, n){
-                        Ok(Value::String(st)) => {
-                            let box_num = s.insert_to_heap(Value::String(st));
-                            Ok(Value::StringBox(box_num))
-                        },
-                        Ok(v) => Ok(v),
-                        Err(reason) => Err(
-                            numeric_error_cast_string(&Value::UInt(IntUnsigned::UIntSize(n)), t, &reason)
-                        ),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
+            integer_cast_action(s, Value::UInt(IntUnsigned::UIntSize(n)), n, bn)
         },
 
         (Some(Value::Int(IntSigned::Int8(n))), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
-                    match cast_num_to_others(t, n){
-                        Ok(Value::String(st)) => {
-                            let new_bn = s.insert_to_heap(Value::String(st));
-                            Ok(Value::StringBox(new_bn))
-                        },
-                        Ok(v) => Ok(v),
-                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int8(n)), t, &reason)),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
+            integer_cast_action(s, Value::Int(IntSigned::Int8(n)), n, bn)
         },
         (Some(Value::Int(IntSigned::Int16(n))), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
-                    match cast_num_to_others(t, n){
-                        Ok(Value::String(st)) => {
-                            let new_bn = s.insert_to_heap(Value::String(st));
-                            Ok(Value::StringBox(new_bn))
-                        },
-                        Ok(v) => Ok(v),
-                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int16(n)), t, &reason)),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
+            integer_cast_action(s, Value::Int(IntSigned::Int16(n)), n, bn)
         },
         (Some(Value::Int(IntSigned::Int32(n))), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
-                    match cast_num_to_others(t, n){
-                        Ok(Value::String(st)) => {
-                            let new_bn = s.insert_to_heap(Value::String(st));
-                            Ok(Value::StringBox(new_bn))
-                        },
-                        Ok(v) => Ok(v),
-                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int32(n)), t, &reason)),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
+            integer_cast_action(s, Value::Int(IntSigned::Int32(n)), n, bn)
         },
         (Some(Value::Int(IntSigned::Int64(n))), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
-                    match cast_num_to_others(t, n){
-                        Ok(Value::String(st)) => {
-                            let new_bn = s.insert_to_heap(Value::String(st));
-                            Ok(Value::StringBox(new_bn))
-                        },
-                        Ok(v) => Ok(v),
-                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int64(n)), t, &reason)),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
+            integer_cast_action(s, Value::Int(IntSigned::Int64(n)), n, bn)
         },
         (Some(Value::Int(IntSigned::Int128(n))), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
-                    match cast_num_to_others(t, n){
-                        Ok(Value::String(st)) => {
-                            let new_bn = s.insert_to_heap(Value::String(st));
-                            Ok(Value::StringBox(new_bn))
-                        },
-                        Ok(v) => Ok(v),
-                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int128(n)), t, &reason)),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
+            integer_cast_action(s, Value::Int(IntSigned::Int128(n)), n, bn)
         },
         
         //ADD ALL ERROR CASES HERE LATER!
