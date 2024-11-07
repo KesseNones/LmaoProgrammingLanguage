@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.62
+//Version: 0.3.63
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3149,6 +3149,10 @@ where
 
 }
 
+fn bad_stringbox_for_casting_error(box_num: usize) -> String{
+    bad_box_error("cast", "StringBox", "NA", box_num, usize::MAX, false)
+}
+
 //Performs all valid casts in existence wherein the top 
 // of the stack tries to be casted to another data type.
 fn cast_stuff(s: &mut State) -> Result<(), String>{
@@ -3170,7 +3174,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("cast_stuff"))
                 }
             }else{
-                Err(bad_box_error("cast", "StringBox", "NA", bn, usize::MAX, false))
+                Err(bad_stringbox_for_casting_error(bn))
             }
         },
         (Some(Value::UInt(IntUnsigned::UIntSize(n))), Some(Value::StringBox(bn))) => {
@@ -3190,9 +3194,29 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                     Err(should_never_get_here_for_func("cast_stuff"))
                 }
             }else{
-                Err(bad_box_error("cast", "StringBox", "NA", bn, usize::MAX, false))
+                Err(bad_stringbox_for_casting_error(bn))
             }
         },
+
+        (Some(Value::Int(IntSigned::Int8(n))), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    match cast_num_to_others(t, n){
+                        Ok(Value::String(st)) => {
+                            let new_bn = s.insert_to_heap(Value::String(st));
+                            Ok(Value::StringBox(new_bn))
+                        },
+                        Ok(v) => Ok(v),
+                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int8(n)), t, &reason)),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
+        
         //ADD ALL ERROR CASES HERE LATER!
         _ => Err(should_never_get_here_for_func("cast_stuff")),
     };
