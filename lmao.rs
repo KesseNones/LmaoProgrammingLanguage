@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.67
+//Version: 0.3.68
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3124,9 +3124,31 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
             integer_cast_action(s, Value::Int(IntSigned::Int128(n)), n, bn)
         },
         
+        (Some(Value::UInt(IntUnsigned::UInt8(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt8(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt16(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt32(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt64(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt128(n)), n, bn)
+        },
 
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (cast) error! Second to top \
+                of stack must be of type Value and a castable type, \
+                and top of stack must be of type StringBox! \
+                Attempted values: {} and {}", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("cast", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("cast", "Two", "none")),
 
-        //ADD ALL ERROR CASES HERE LATER!
         _ => Err(should_never_get_here_for_func("cast_stuff")),
     };
 
