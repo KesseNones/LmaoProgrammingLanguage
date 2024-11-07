@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.66
+//Version: 0.3.67
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2875,152 +2875,32 @@ trait ToFloat32 {
     fn into_float32(self) -> f32;
 }
 
-impl ToFloat32 for isize{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for usize{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for i8{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for i16{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for i32{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for i64{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for i128{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for u8{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for u16{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for u32{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for u64{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for u128{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-impl ToFloat32 for f32{
-    fn into_float32(self) -> f32{
-        self
-    }
-}
-impl ToFloat32 for f64{
-    fn into_float32(self) -> f32{
-        self as f32
-    }
-}
-
 trait ToFloat64 {
     fn into_float64(self) -> f64;
 }
 
-impl ToFloat64 for isize{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for usize{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for i8{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for i16{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for i32{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for i64{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for i128{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for u8{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for u16{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for u32{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for u64{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for u128{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for f32{
-    fn into_float64(self) -> f64{
-        self as f64
-    }
-}
-impl ToFloat64 for f64{
-    fn into_float64(self) -> f64{
-        self as f64
+//This eldritch bit of code essentially makes implementation blocks 
+// for every input type to implement ToFloat32 and ToFloat64 traits.
+macro_rules! impl_to_float {
+    //What this block basically says is to loop through zero 
+    // or more type arguments given and generate the two impl's below.
+    ($($t:ty), *) => {
+        $(
+            impl ToFloat32 for $t{
+                fn into_float32(self) -> f32{
+                    self as f32
+                }
+            }
+            impl ToFloat64 for $t {
+                fn into_float64(self) -> f64{
+                    self as f64
+                }
+            }
+        )*
     }
 }
 
+impl_to_float!(isize, usize, i8, i16, i32, i64, i128, u8, u16, u32, u64, u128, f32, f64);
 
 fn numeric_error_cast_string(v: Value, t: &str, r: &str) -> String{
     format!("Operator (cast) error! Failed to cast {} to type {} because: {}", v, t, r)
@@ -3244,6 +3124,8 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
             integer_cast_action(s, Value::Int(IntSigned::Int128(n)), n, bn)
         },
         
+
+
         //ADD ALL ERROR CASES HERE LATER!
         _ => Err(should_never_get_here_for_func("cast_stuff")),
     };
