@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.63
+//Version: 0.3.64
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3140,6 +3140,18 @@ where
             Ok(Value::Float64(v.into_float64()))
         },
 
+        "Char" => {
+            match v.try_into(){
+                Ok(u32_val) => {
+                    match std::char::from_u32(u32_val){
+                        Some(casted) => Ok(Value::Char(casted)),
+                        None => Err("given value is outside of valid UTF-8 Char range!".to_string()),
+                    }   
+                },
+                Err(u32_cast_fail) => Err(u32_cast_fail.to_string()),
+            }
+        },
+
         "String" => {
             Ok(Value::String(v.to_string()))
         },
@@ -3216,6 +3228,8 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                 Err(bad_stringbox_for_casting_error(bn))
             }
         },
+
+
         
         //ADD ALL ERROR CASES HERE LATER!
         _ => Err(should_never_get_here_for_func("cast_stuff")),
