@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.64
+//Version: 0.3.65
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3148,7 +3148,8 @@ where
                         None => Err("given value is outside of valid UTF-8 Char range!".to_string()),
                     }   
                 },
-                Err(u32_cast_fail) => Err(u32_cast_fail.to_string()),
+                Err(u32_cast_fail) => Err(format!("{}, which means that the given value was unable \
+                    to be converted to a u32 to then be converted to a Char!", u32_cast_fail)),
             }
         },
 
@@ -3228,8 +3229,78 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                 Err(bad_stringbox_for_casting_error(bn))
             }
         },
-
-
+        (Some(Value::Int(IntSigned::Int16(n))), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    match cast_num_to_others(t, n){
+                        Ok(Value::String(st)) => {
+                            let new_bn = s.insert_to_heap(Value::String(st));
+                            Ok(Value::StringBox(new_bn))
+                        },
+                        Ok(v) => Ok(v),
+                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int16(n)), t, &reason)),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int32(n))), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    match cast_num_to_others(t, n){
+                        Ok(Value::String(st)) => {
+                            let new_bn = s.insert_to_heap(Value::String(st));
+                            Ok(Value::StringBox(new_bn))
+                        },
+                        Ok(v) => Ok(v),
+                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int32(n)), t, &reason)),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int64(n))), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    match cast_num_to_others(t, n){
+                        Ok(Value::String(st)) => {
+                            let new_bn = s.insert_to_heap(Value::String(st));
+                            Ok(Value::StringBox(new_bn))
+                        },
+                        Ok(v) => Ok(v),
+                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int64(n)), t, &reason)),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int128(n))), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    match cast_num_to_others(t, n){
+                        Ok(Value::String(st)) => {
+                            let new_bn = s.insert_to_heap(Value::String(st));
+                            Ok(Value::StringBox(new_bn))
+                        },
+                        Ok(v) => Ok(v),
+                        Err(reason) => Err(numeric_error_cast_string(&Value::Int(IntSigned::Int128(n)), t, &reason)),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
         
         //ADD ALL ERROR CASES HERE LATER!
         _ => Err(should_never_get_here_for_func("cast_stuff")),
