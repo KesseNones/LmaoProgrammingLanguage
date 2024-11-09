@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.68
+//Version: 0.3.69
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2906,6 +2906,11 @@ fn numeric_error_cast_string(v: Value, t: &str, r: &str) -> String{
     format!("Operator (cast) error! Failed to cast {} to type {} because: {}", v, t, r)
 }
 
+fn invalid_cast_error(t: &str) -> String{
+    format!("{} is not a valid type to cast \
+        this data type to or is an invalid type", t)
+}
+
 //Tries to cast a numeric type to all the other types it could be.
 fn cast_num_to_others<T>(t: &str, v: T) -> Result<Value, String>
 where 
@@ -3036,8 +3041,7 @@ where
         "String" => {
             Ok(Value::String(v.to_string()))
         },
-        t => Err(format!("{} is not a valid type to cast \
-            this data type to or is an invalid type", t)), 
+        t => Err(invalid_cast_error(t)), 
     }
 
 }
@@ -3138,6 +3142,46 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
         },
         (Some(Value::UInt(IntUnsigned::UInt128(n))), Some(Value::StringBox(bn))) => {
             integer_cast_action(s, Value::UInt(IntUnsigned::UInt128(n)), n, bn)
+        },
+
+        (Some(Value::Float32(n)), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    let t: &str = t;
+                    match t{
+                        "isize" => Ok(Value::Int(IntSigned::IntSize(n as isize))),
+                        "usize" => Ok(Value::UInt(IntUnsigned::UIntSize(n as usize))),
+
+                        "i8" => Ok(Value::Int(IntSigned::Int8(n as i8))),
+                        "i16" => Ok(Value::Int(IntSigned::Int16(n as i16))),
+                        "i32" => Ok(Value::Int(IntSigned::Int32(n as i32))),
+                        "i64" => Ok(Value::Int(IntSigned::Int64(n as i64))),
+                        "i128" => Ok(Value::Int(IntSigned::Int128(n as i128))),
+
+                        "u8" => Ok(Value::UInt(IntUnsigned::UInt8(n as u8))),
+                        "u16" => Ok(Value::UInt(IntUnsigned::UInt16(n as u16))),
+                        "u32" => Ok(Value::UInt(IntUnsigned::UInt32(n as u32))),
+                        "u64" => Ok(Value::UInt(IntUnsigned::UInt64(n as u64))),
+                        "u128" => Ok(Value::UInt(IntUnsigned::UInt128(n as u128))),
+
+                        "f32" => Ok(Value::Float32(n)),
+                        "f64" => Ok(Value::Float64(n as f64)),
+
+                        "String" => {
+                            let f32_str = format!("{}", n);
+                            let new_bn = s.insert_to_heap(Value::String(f32_str));
+                            Ok(Value::StringBox(new_bn))
+                        },
+
+                        t => Err(numeric_error_cast_string(Value::Float32(n), t, &(invalid_cast_error(t)))),
+                    }
+
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
         },
 
         (Some(a), Some(b)) => {
