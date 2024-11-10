@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.74
+//Version: 0.3.75
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3378,6 +3378,19 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                             "u128" => {
                                 match (*st).parse(){
                                     Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt128(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+
+                            "f32" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Float32(casted)),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "f64" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Float64(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
