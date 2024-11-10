@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.76
+//Version: 0.3.77
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3302,7 +3302,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
         },
 
         (Some(Value::StringBox(string_num)), Some(Value::StringBox(bn))) => {
-            match (s.validate_box(string_num), s.validate_box(string_num)) {
+            match (s.validate_box(string_num), s.validate_box(bn)) {
                 (true, true) => {
                     if let (Value::String(ref st), Value::String(ref t)) = (&s.heap[string_num].0, &s.heap[bn].0){
                         let t: &str = t;
@@ -3429,6 +3429,31 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                 (true, false) => Err(bad_stringbox_for_casting_error(bn)),
                 (false, true) => Err(bad_stringbox_for_casting_error(string_num)),
                 (false, false) => Err(bad_box_error("cast", "StringBox", "StringBox", string_num, bn, true)),
+            }
+        },
+
+        (Some(Value::ListBox(ls_num)), Some(Value::StringBox(bn))) => {
+            match (s.validate_box(ls_num), s.validate_box(bn)) {
+                (true, true) => {
+                    if let (ref ls, Value::String(ref t)) = (&s.heap[ls_num].0, &s.heap[bn].0){
+                        let t: &str = t;
+                        match t{
+                            "List" => Ok(Value::ListBox(ls_num)),
+                            "String" => {
+                                let ls_str = format!("{}", ls);
+                                let new_bn = s.insert_to_heap(Value::String(ls_str[5..].to_string()));
+                                Ok(Value::StringBox(new_bn))
+                            },
+                            t => Err(format!("Operator (cast) error! Failed \
+                                to cast ListBox {} to {} because: {}", ls_num, t, &invalid_cast_error(t))),
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("cast_stuff"))
+                    }
+                },
+                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
+                (false, true) => Err(bad_box_error("cast", "ListBox", "NA", ls_num, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("cast", "ListBox", "StringBox", ls_num, bn, true)),
             }
         },
 
