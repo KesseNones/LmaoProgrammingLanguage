@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.73
+//Version: 0.3.74
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3101,9 +3101,9 @@ where
     }
 }
 
-fn string_cast_error(bn: usize, str_contents: &Value, t: &str, reason: &str) -> String{
+fn string_cast_error(bn: usize, str_contents: &str, t: &str, reason: &str) -> String{
     format!("Operator (cast) error! Failed to cast \
-        StringBox {} ({}) to type {} because: {}", bn, str_contents, t, reason)
+        StringBox {} (\"{}\") to type {} because: {}", bn, str_contents, t, reason)
 }
 
 //Performs all valid casts in existence wherein the top 
@@ -3310,10 +3310,79 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                             "isize" => {
                                 match (*st).parse(){
                                     Ok(casted) => Ok(Value::Int(IntSigned::IntSize(casted))),
-                                    Err(e) => Err(string_cast_error(string_num, &s.heap[string_num].0, t, &e.to_string())),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
-                            t => Err(string_cast_error(string_num, &s.heap[string_num].0, t, &invalid_cast_error(t))),
+                            "usize" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UIntSize(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            
+                            "i8" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int8(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "i16" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int16(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "i32" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int32(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "i64" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int64(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "i128" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int128(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+
+                            "u8" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt8(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "u16" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt16(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "u32" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt32(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "u64" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt64(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "u128" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt128(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+
+                            t => Err(string_cast_error(string_num, st, t, &invalid_cast_error(t))),
                         }
                     }else{
                         Err(should_never_get_here_for_func("cast_stuff"))
