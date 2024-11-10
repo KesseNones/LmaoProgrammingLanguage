@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.71
+//Version: 0.3.72
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3258,6 +3258,42 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
             }else{
                 Err(bad_stringbox_for_casting_error(bn))
             }
+        },
+
+        (Some(Value::Boolean(b)), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    let t: &str = t;
+                    match t{
+                        "isize" => Ok(Value::Int(IntSigned::IntSize(b as isize))),
+                        "usize" => Ok(Value::UInt(IntUnsigned::UIntSize(b as usize))),
+
+                        "i8" => Ok(Value::Int(IntSigned::Int8(b as i8))),
+                        "i16" => Ok(Value::Int(IntSigned::Int16(b as i16))),
+                        "i32" => Ok(Value::Int(IntSigned::Int32(b as i32))),
+                        "i64" => Ok(Value::Int(IntSigned::Int64(b as i64))),
+                        "i128" => Ok(Value::Int(IntSigned::Int128(b as i128))),
+
+                        "u8" => Ok(Value::UInt(IntUnsigned::UInt8(b as u8))),
+                        "u16" => Ok(Value::UInt(IntUnsigned::UInt16(b as u16))),
+                        "u32" => Ok(Value::UInt(IntUnsigned::UInt32(b as u32))),
+                        "u64" => Ok(Value::UInt(IntUnsigned::UInt64(b as u64))),
+                        "u128" => Ok(Value::UInt(IntUnsigned::UInt128(b as u128))),
+
+                        "String" => {
+                            let new_bn = s.insert_to_heap(Value::String(b.to_string()));
+                            Ok(Value::StringBox(new_bn))
+                        },
+
+                        t => Err(numeric_error_cast_string(Value::Boolean(b), t, &(invalid_cast_error(t)))),
+                    }
+
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }  
         },
 
         (Some(a), Some(b)) => {
