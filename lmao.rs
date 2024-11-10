@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.70
+//Version: 0.3.71
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3214,6 +3214,42 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                         },
 
                         t => Err(numeric_error_cast_string(Value::Float64(n), t, &(invalid_cast_error(t)))),
+                    }
+
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
+
+        (Some(Value::Char(c)), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    let t: &str = t;
+                    match t{
+                        "isize" => Ok(Value::Int(IntSigned::IntSize(c as isize))),
+                        "usize" => Ok(Value::UInt(IntUnsigned::UIntSize(c as usize))),
+
+                        "i8" => Ok(Value::Int(IntSigned::Int8(c as i8))),
+                        "i16" => Ok(Value::Int(IntSigned::Int16(c as i16))),
+                        "i32" => Ok(Value::Int(IntSigned::Int32(c as i32))),
+                        "i64" => Ok(Value::Int(IntSigned::Int64(c as i64))),
+                        "i128" => Ok(Value::Int(IntSigned::Int128(c as i128))),
+
+                        "u8" => Ok(Value::UInt(IntUnsigned::UInt8(c as u8))),
+                        "u16" => Ok(Value::UInt(IntUnsigned::UInt16(c as u16))),
+                        "u32" => Ok(Value::UInt(IntUnsigned::UInt32(c as u32))),
+                        "u64" => Ok(Value::UInt(IntUnsigned::UInt64(c as u64))),
+                        "u128" => Ok(Value::UInt(IntUnsigned::UInt128(c as u128))),
+
+                        "String" => {
+                            let new_bn = s.insert_to_heap(Value::String(c.to_string()));
+                            Ok(Value::StringBox(new_bn))
+                        },
+
+                        t => Err(numeric_error_cast_string(Value::Char(c), t, &(invalid_cast_error(t)))),
                     }
 
                 }else{
