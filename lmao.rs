@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.77
+//Version: 0.3.78
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3398,7 +3398,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                             "Boolean" => {
                                 if st == "True" || st == "true"{
                                     Ok(Value::Boolean(true))
-                                }else if (st == "False" || st == "false"){
+                                }else if st == "False" || st == "false"{
                                     Ok(Value::Boolean(false))
                                 }else{
                                     Err(string_cast_error(string_num, st, t, 
@@ -3454,6 +3454,31 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                 (true, false) => Err(bad_stringbox_for_casting_error(bn)),
                 (false, true) => Err(bad_box_error("cast", "ListBox", "NA", ls_num, usize::MAX, false)),
                 (false, false) => Err(bad_box_error("cast", "ListBox", "StringBox", ls_num, bn, true)),
+            }
+        },
+
+        (Some(Value::ObjectBox(obj_num)), Some(Value::StringBox(bn))) => {
+            match (s.validate_box(obj_num), s.validate_box(bn)) {
+                (true, true) => {
+                    if let (ref obj, Value::String(ref t)) = (&s.heap[obj_num].0, &s.heap[bn].0){
+                        let t: &str = t;
+                        match t{
+                            "Object" => Ok(Value::ObjectBox(obj_num)),
+                            "String" => {
+                                let obj_str = format!("{}", obj);
+                                let new_bn = s.insert_to_heap(Value::String(obj_str[7..].to_string()));
+                                Ok(Value::StringBox(new_bn))
+                            },
+                            t => Err(format!("Operator (cast) error! Failed \
+                                to cast ObjectBox {} to {} because: {}", obj_num, t, &invalid_cast_error(t))),
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("cast_stuff"))
+                    }
+                },
+                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
+                (false, true) => Err(bad_box_error("cast", "ObjectBox", "NA", obj_num, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("cast", "ObjectBox", "StringBox", obj_num, bn, true)),
             }
         },
 
