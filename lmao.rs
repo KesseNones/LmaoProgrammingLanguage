@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.75
+//Version: 0.3.76
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3393,6 +3393,31 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                                     Ok(casted) => Ok(Value::Float64(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
+                            },
+
+                            "Boolean" => {
+                                if st == "True" || st == "true"{
+                                    Ok(Value::Boolean(true))
+                                }else if (st == "False" || st == "false"){
+                                    Ok(Value::Boolean(false))
+                                }else{
+                                    Err(string_cast_error(string_num, st, t, 
+                                        &String::from("provided string is not a valid Boolean")))
+                                }
+                            },
+
+                            //Casting a string to a string is basically a no-op. 
+                            "String" => {
+                                Ok(Value::StringBox(string_num))
+                            },
+
+                            "List" => {
+                                let char_ls: Vec<Value> = st
+                                    .chars()
+                                    .map(|c| Value::Char(c))
+                                    .collect();
+                                let ls_bn = s.insert_to_heap(Value::List(char_ls));
+                                Ok(Value::ListBox(ls_bn))
                             },
 
                             t => Err(string_cast_error(string_num, st, t, &invalid_cast_error(t))),
