@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.72
+//Version: 0.3.73
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3101,6 +3101,11 @@ where
     }
 }
 
+fn string_cast_error(bn: usize, str_contents: &Value, t: &str, reason: &str) -> String{
+    format!("Operator (cast) error! Failed to cast \
+        StringBox {} ({}) to type {} because: {}", bn, str_contents, t, reason)
+}
+
 //Performs all valid casts in existence wherein the top 
 // of the stack tries to be casted to another data type.
 fn cast_stuff(s: &mut State) -> Result<(), String>{
@@ -3294,6 +3299,30 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
             }else{
                 Err(bad_stringbox_for_casting_error(bn))
             }  
+        },
+
+        (Some(Value::StringBox(string_num)), Some(Value::StringBox(bn))) => {
+            match (s.validate_box(string_num), s.validate_box(string_num)) {
+                (true, true) => {
+                    if let (Value::String(ref st), Value::String(ref t)) = (&s.heap[string_num].0, &s.heap[bn].0){
+                        let t: &str = t;
+                        match t{
+                            "isize" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::IntSize(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, &s.heap[string_num].0, t, &e.to_string())),
+                                }
+                            },
+                            t => Err(string_cast_error(string_num, &s.heap[string_num].0, t, &invalid_cast_error(t))),
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("cast_stuff"))
+                    }
+                },
+                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
+                (false, true) => Err(bad_stringbox_for_casting_error(string_num)),
+                (false, false) => Err(bad_box_error("cast", "StringBox", "StringBox", string_num, bn, true)),
+            }
         },
 
         (Some(a), Some(b)) => {
