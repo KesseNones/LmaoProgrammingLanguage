@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.79
+//Version: 0.3.80
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -13,6 +13,7 @@ use std::fmt;
 use std::cmp::Ordering;
 use std::convert::TryInto;
 use fmt::Display;
+use std::io;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -3519,6 +3520,22 @@ fn print_line(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Reads a line from stdin and allocates it as 
+// a string on the heap, pushing a stringbox to the stack.
+fn read_line_from_in(s: &mut State) -> Result<(), String>{
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("READ-LINE FAILED");
+    if input.ends_with("\n"){
+        let _ = input.pop();
+    }
+
+    let bn = s.insert_to_heap(Value::String(input));
+    s.push(Value::StringBox(bn));
+
+    Ok(())
+
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -3619,6 +3636,7 @@ impl State{
         
         //IO operators
         ops_map.insert("printLine".to_string(), print_line);
+        ops_map.insert("readLine".to_string(), read_line_from_in);
 
         State {
             stack: Vec::new(),
