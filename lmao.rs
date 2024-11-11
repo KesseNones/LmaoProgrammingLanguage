@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.80
+//Version: 0.3.81
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3498,6 +3498,13 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+//Creates an error string that indicates a wrong 
+// given type for the various print io functions.
+fn io_needing_one_item_on_stack_error(op_type: &str, needed_type: &str, attempted_value: &Value) -> String{
+    format!("Operator ({}) error! Top of stack must be type {}! \
+        Attempted value: {}", op_type, needed_type, attempted_value)
+}
+
 //Prints contents of a string box and consumes it. 
 // Like everything else, the stringbox is not free'd.
 fn print_line(s: &mut State) -> Result<(), String>{
@@ -3514,8 +3521,7 @@ fn print_line(s: &mut State) -> Result<(), String>{
                 Err(bad_box_error("printLine", "StringBox", "NA", bn, usize::MAX, false))
             }
         },
-        Some(v) => Err(format!("Operator (printLine) error! Top of stack \
-            must be of type StringBox! Attempted value: {}", v)),
+        Some(v) => Err(io_needing_one_item_on_stack_error("printLine", "StringBox", &v)),
         None => Err(needs_n_args_only_n_provided("printLine", "One", "none")),
     }
 }
@@ -3534,6 +3540,19 @@ fn read_line_from_in(s: &mut State) -> Result<(), String>{
 
     Ok(())
 
+}
+
+//Prints out a single char to stdout. 
+// Top of stack must be a char.
+fn print_char(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::Char(c)) => {
+            print!("{}", c);
+            Ok(())
+        },
+        Some(v) => Err(io_needing_one_item_on_stack_error("printChar", "Char", &v)),
+        None => Err(needs_n_args_only_n_provided("printChar", "One", "none")),
+    }
 }
 
 impl State{
@@ -3637,6 +3656,7 @@ impl State{
         //IO operators
         ops_map.insert("printLine".to_string(), print_line);
         ops_map.insert("readLine".to_string(), read_line_from_in);
+        ops_map.insert("printChar".to_string(), print_char);
 
         State {
             stack: Vec::new(),
