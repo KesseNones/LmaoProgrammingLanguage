@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.78
+//Version: 0.3.79
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3497,6 +3497,28 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+//Prints contents of a string box and consumes it. 
+// Like everything else, the stringbox is not free'd.
+fn print_line(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = &s.heap[bn].0{
+                    println!("{}", st);
+                    Ok(())
+                }else{
+                    Err(should_never_get_here_for_func("print_line"))
+                }
+            }else{
+                Err(bad_box_error("printLine", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(format!("Operator (printLine) error! Top of stack \
+            must be of type StringBox! Attempted value: {}", v)),
+        None => Err(needs_n_args_only_n_provided("printLine", "One", "none")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -3592,8 +3614,11 @@ impl State{
         ops_map.insert("bitNot".to_string(), bit_not);
         ops_map.insert("bitShift".to_string(), bit_shift);
 
-        //Type operators
+        //Casting
         ops_map.insert("cast".to_string(), cast_stuff);
+        
+        //IO operators
+        ops_map.insert("printLine".to_string(), print_line);
 
         State {
             stack: Vec::new(),
