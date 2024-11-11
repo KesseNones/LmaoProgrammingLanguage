@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.81
+//Version: 0.3.82
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3555,6 +3555,35 @@ fn print_char(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Reads in one Char from stdin and pushes it to the stack.
+//SEEMS TO WORK WELL ENOUGH, ASSUMING THERE'S NO CRAZY EDGE CASE THAT WOULD DESTROY THIS
+fn read_char(s: &mut State) -> Result<(), String>{
+    let mut buff: [u8; 1] = [0];
+    let mut buff_collection: Vec<u8> = Vec::with_capacity(4);
+
+    //Reads until it hits a valid character.
+    loop{
+        //Reads one byte into the buffer and adds to the byte vec for conversion, 
+        // or throws an error if there were explosions.
+        match io::stdin().read(&mut buff){
+            Ok(_) => buff_collection.push(buff[0]),
+            Err(e) => return Err(format!("Operator (readChar) error! Unable \
+                to read Char from stdin because: {}", e)),
+        }
+
+        //Tries to convert the read in bytes to a valid utf-8 string.
+        // Once it succeeds it grabs the first char from it and pushes it to the stack.
+        if let Ok(st) = std::str::from_utf8(&buff_collection){
+            if let Some(c) = st.chars().nth(0){
+                s.push(Value::Char(c));
+                return Ok(());
+            }
+        }
+
+    }
+
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -3657,6 +3686,7 @@ impl State{
         ops_map.insert("printLine".to_string(), print_line);
         ops_map.insert("readLine".to_string(), read_line_from_in);
         ops_map.insert("printChar".to_string(), print_char);
+        ops_map.insert("readChar".to_string(), read_char);
 
         State {
             stack: Vec::new(),
