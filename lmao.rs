@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.83
+//Version: 0.3.84
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3588,6 +3588,28 @@ fn read_char(s: &mut State) -> Result<(), String>{
 
 }
 
+//Prints contents of a string box and consumes it. 
+// Like everything else, the stringbox is not free'd.
+//Unlike printline, this operator doesn't append a newline character.
+fn print_string(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = &s.heap[bn].0{
+                    print!("{}", st);
+                    Ok(())
+                }else{
+                    Err(should_never_get_here_for_func("print_string"))
+                }
+            }else{
+                Err(bad_box_error("print", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(io_needing_one_item_on_stack_error("print", "StringBox", &v)),
+        None => Err(needs_n_args_only_n_provided("print", "One", "none")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -3691,6 +3713,7 @@ impl State{
         ops_map.insert("readLine".to_string(), read_line_from_in);
         ops_map.insert("printChar".to_string(), print_char);
         ops_map.insert("readChar".to_string(), read_char);
+        ops_map.insert("print".to_string(), print_string);
 
         State {
             stack: Vec::new(),
