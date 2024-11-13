@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.88
+//Version: 0.3.89
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3555,6 +3555,10 @@ fn print_char(s: &mut State) -> Result<(), String>{
     }
 }
 
+fn unable_to_read_error(op_type: &str, reason: &str) -> String{
+    format!("Operator ({}) error! Unable to read from stdin because: {}", op_type, reason)
+}
+
 //Reads in one Char from stdin and pushes it to the stack.
 //SEEMS TO WORK WELL ENOUGH, ASSUMING THERE'S NO CRAZY EDGE CASE THAT WOULD DESTROY THIS
 fn read_char(s: &mut State) -> Result<(), String>{
@@ -3571,8 +3575,7 @@ fn read_char(s: &mut State) -> Result<(), String>{
                 buff_collection[buff_collection_length] = buff[0];
                 buff_collection_length += 1;
             }, 
-            Err(e) => return Err(format!("Operator (readChar) error! Unable \
-                to read Char from stdin because: {}", e)),
+            Err(e) => return Err(unable_to_read_error("readChar", &e.to_string())),
         }
 
         //Tries to convert the read in bytes to a valid utf-8 string.
@@ -3608,6 +3611,40 @@ fn print_string(s: &mut State) -> Result<(), String>{
         Some(v) => Err(io_needing_one_item_on_stack_error("print", "StringBox", &v)),
         None => Err(needs_n_args_only_n_provided("print", "One", "none")),
     }
+}
+
+//Reads the contents of stdin into a string. Basically like readline \
+// but doesn't stop reading until stdin is manually closed.
+fn read_from_in(s: &mut State) -> Result<(), String>{
+    let mut buff: [u8; 8192] = [0; 8192];
+    let mut bytes: Vec<u8> = Vec::new();
+
+    loop{
+        match io::stdin().read(&mut buff){
+            Ok(bytes_read) => {
+                if bytes_read > 0{
+                    bytes.extend_from_slice(&buff[0..bytes_read]);
+                }else{
+                    break;
+                }
+            },
+            Err(e) => return Err(unable_to_read_error("read", &e.to_string())),
+        }
+    }
+
+    match std::str::from_utf8(&bytes){
+        Ok(st) => {
+            let new_string = replace_literals_with_escapes(&st);
+            let bn = s.insert_to_heap(Value::String(new_string));
+            s.push(Value::StringBox(bn));
+            Ok(())
+        },
+        Err(e) => {
+            Err(format!("Operator (read) error! Unable to \
+                convert input to a proper string because: {}", e))
+        },
+    }
+
 }
 
 impl State{
@@ -3714,6 +3751,7 @@ impl State{
         ops_map.insert("printChar".to_string(), print_char);
         ops_map.insert("readChar".to_string(), read_char);
         ops_map.insert("print".to_string(), print_string);
+        ops_map.insert("read".to_string(), read_from_in);
 
         State {
             stack: Vec::new(),
