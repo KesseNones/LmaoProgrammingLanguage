@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.86
+//Version: 0.3.87
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -165,7 +165,7 @@ impl fmt::Display for Value{
             },
             Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Boolean {}", b),
-            Value::String(s) => write!(f, "String \"{}\"", s),
+            Value::String(s) => write!(f, "String {:?}", s),
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
             Value::List(ls) => {
                 let ls_strs: Vec<String> = ls.iter().map(|el| format!("{}", el)).collect();
@@ -4314,8 +4314,8 @@ fn main(){
 
     //TEMPORARY STATUS MESSAGE FOR DEBUGGING
     match result{
-        Ok(_) => println!("The program completed successfully!"),
-        Err(e) => println!("The program failed with error: {}", e),
+        Ok(_) => println!("\nThe program completed successfully!"),
+        Err(e) => println!("\nThe program failed with error: {}", e),
     }
 
     //TEMPORARY HEAP PRINT FOR DEBUGGING
