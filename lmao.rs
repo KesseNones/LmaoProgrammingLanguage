@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.84
+//Version: 0.3.85
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3804,12 +3804,12 @@ fn tokenize(chars: &Vec<char>) -> Vec<String>{
         match (chars[i], in_string, in_comment){
             //Char tokenization
             ('\'', false, false) => {
-                if ((i + 2) < chars.len()) && (chars[i + 2] == '\''){
-                    tokens.push(String::from(format!("\'{}\'", chars[i + 1])));
-                    i += 3;
-                }else if ((i + 3) < chars.len()) && (chars[i + 1] == '\\') && (chars[i + 3] == '\'') {
+                if ((i + 3) < chars.len()) && (chars[i + 1] == '\\') && (chars[i + 3] == '\''){
                     tokens.push(String::from(format!("\'\\{}\'", chars[i + 2])));
                     i += 4;
+                }else if ((i + 2) < chars.len()) && (chars[i + 2] == '\''){
+                    tokens.push(String::from(format!("\'{}\'", chars[i + 1])));
+                    i += 3;
                 }else{
                     panic!("Parse error! Char missing closing apostraphie!");
                 }
@@ -3924,10 +3924,10 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                         't' => '\t',
                         'r' => '\r',
                         '0' => '\0',
+                        '\'' => '\'',
+                        '\"' => '\"',
                         _ => captured,
                     };
-                    println!("{}", captured);
-
                 }
                 lexed.push(Token::V(Value::Char(captured)));
             },
