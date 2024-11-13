@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.87
+//Version: 0.3.88
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3535,7 +3535,7 @@ fn read_line_from_in(s: &mut State) -> Result<(), String>{
         let _ = input.pop();
     }
 
-    let bn = s.insert_to_heap(Value::String(input));
+    let bn = s.insert_to_heap(Value::String(replace_literals_with_escapes(&input)));
     s.push(Value::StringBox(bn));
 
     Ok(())
@@ -3891,6 +3891,16 @@ fn throw_parse_error(t: &str, attempted_token: &String){
     panic!("Parse error! Incorrectly constructed {}! Tried: {}", t, attempted_token);
 }
 
+fn replace_literals_with_escapes(s: &str) -> String{
+    s
+        .replace("\\n", "\n")
+        .replace("\\t", "\t")
+        .replace("\\r", "\r")
+        .replace("\\\"", "\"")
+        .replace("\\\'", "\'")
+        .replace("\\0", "\0")
+}
+
 //Given reference to list of seperated tokens, 
 // differentiates each one as either a value or word.
 //WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
@@ -3912,14 +3922,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             },
             //String case.
             ref t if t.starts_with("\"") && t.ends_with("\"") => {
-                let lexxed_string = tok[1..(tok.len() - 1)]
-                    .replace("\\n", "\n")
-                    .replace("\\t", "\t")
-                    .replace("\\r", "\r")
-                    .replace("\\\"", "\"")
-                    .replace("\\\'", "\'")
-                    .replace("\\0", "\0");
-                lexed.push(Token::V(Value::String(lexxed_string)));
+                lexed.push(Token::V(Value::String(replace_literals_with_escapes(&tok[1..(tok.len() - 1)]))));
             }, 
             //Char case.
             ref t if t.starts_with("\'") && t.ends_with("\'") => {
