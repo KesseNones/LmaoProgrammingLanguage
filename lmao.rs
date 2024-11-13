@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.85
+//Version: 0.3.86
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3912,7 +3912,14 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             },
             //String case.
             ref t if t.starts_with("\"") && t.ends_with("\"") => {
-                lexed.push(Token::V(Value::String(tok[1..(tok.len() - 1)].to_string())));
+                let lexxed_string = tok[1..(tok.len() - 1)]
+                    .replace("\\n", "\n")
+                    .replace("\\t", "\t")
+                    .replace("\\r", "\r")
+                    .replace("\\\"", "\"")
+                    .replace("\\\'", "\'")
+                    .replace("\\0", "\0");
+                lexed.push(Token::V(Value::String(lexxed_string)));
             }, 
             //Char case.
             ref t if t.starts_with("\'") && t.ends_with("\'") => {
