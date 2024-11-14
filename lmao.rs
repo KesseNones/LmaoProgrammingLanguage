@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.95
+//Version: 0.3.96
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3875,6 +3875,36 @@ fn delete_file_based_on_string(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Pushes a boolean based on whether or not the file exists.
+fn file_exists(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref file_name) = &s.heap[bn].0{
+                    let file_path = Path::new(file_name);
+
+                    //THIS MIGHT BE TOO BROAD, WITH PERMISSIONS EDGE CASES GETTING IN THE WAY
+                    let exists = match File::open(file_path){
+                        Ok(_) => true,
+                        Err(_) => false,
+                    };
+
+                    s.push(Value::Boolean(exists));
+
+                    Ok(())
+
+                }else{
+                    Err(should_never_get_here_for_func("file_exists"))
+                }
+            }else{
+                Err(bad_box_error("fileExists", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(single_arg_file_io_type_error("fileExists", &v)),
+        None => Err(needs_n_args_only_n_provided("fileExists", "One", "none")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -3988,6 +4018,7 @@ impl State{
         ops_map.insert("fileRead".to_string(), read_data_from_file);
         ops_map.insert("fileCreate".to_string(), create_file_based_on_string);
         ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
+        ops_map.insert("fileExists".to_string(), file_exists);
 
         State {
             stack: Vec::new(),
