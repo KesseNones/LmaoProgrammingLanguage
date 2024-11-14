@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.89
+//Version: 0.3.90
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3647,6 +3647,33 @@ fn read_from_in(s: &mut State) -> Result<(), String>{
 
 }
 
+//Prints each item on the stack while 
+// also indicating if box types are valid or not.
+fn debug_stack_print(s: &mut State) -> Result<(), String>{
+    println!("--------------------------------");
+    println!("BEGIN STACK PRINT\n--------------------------------");
+    for item in s.stack.iter(){
+        match item {
+            Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) | Value::MiscBox(bn) => {
+                if s.validate_box(*bn){
+                    println!("{}", item);
+                }else{
+                    //NEEDS TESTING, SINCE FREEING BOXES DOESN'T EXIST YET!
+                    println!("{} [INVALID]", item);
+                }
+            },
+            v => println!("{}", item),
+        }
+    }
+
+    println!("--------------------------------");
+    println!("STACK LENGTH: {}", s.stack.len());
+    println!("--------------------------------\nEND STACK PRINT"); 
+    println!("--------------------------------");
+
+    Ok(())
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -3752,6 +3779,7 @@ impl State{
         ops_map.insert("readChar".to_string(), read_char);
         ops_map.insert("print".to_string(), print_string);
         ops_map.insert("read".to_string(), read_from_in);
+        ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
 
         State {
             stack: Vec::new(),
