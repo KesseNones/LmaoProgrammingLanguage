@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.91
+//Version: 0.3.92
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -8,7 +8,9 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::io::Read;
+use std::io::Write; 
 use std::fmt;
 use std::cmp::Ordering;
 use std::convert::TryInto;
@@ -3664,7 +3666,7 @@ fn debug_stack_print(s: &mut State) -> Result<(), String>{
                     println!("{} [INVALID]", item);
                 }
             },
-            v => println!("{}", item),
+            _ => println!("{}", item),
         }
     }
 
@@ -3708,6 +3710,52 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
     println!("{}", filler_str);
 
     Ok(())
+}
+
+//Writes the data of one stringbox to a file with the name held in the other string box. 
+// Creates a file if one doesn't exist. 
+fn write_data_to_file(s: &mut State) -> Result<(), String>{
+    match s.pop2(){
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    if let (Value::String(ref file_name), Value::String(ref string_to_write)) = (&s.heap[a].0, &s.heap[b].0){
+                        let file_path = Path::new(file_name);
+                        let mut file = match OpenOptions::new().write(true).truncate(true).open(file_path){
+                            Ok(f) => f,
+                            Err(reason) => {
+                                return Err(format!("Operator (fileWrite) error! \
+                                    Unable to open file name {} \
+                                    because: {}", file_name, reason.to_string()));
+                            },
+                        };
+
+                        match file.write_all(string_to_write.as_bytes()){
+                            Ok(_) => Ok(()),
+                            Err(reason) => {
+                                Err(format!("Operator (fileWrite) error! \
+                                    Unable to write to {} because: {}", file_name, reason))
+                            },
+                        }
+
+                    }else{
+                        Err(should_never_get_here_for_func("write_data_to_file"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("fileWrite", "StringBox", "NA", a, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("fileWrite", "StringBox", "NA", b, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("fileWrite", "StringBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (fileWrite) error! Second to top \
+                and top of stack must both be of type StringBox! \
+                Attempted values: {} and {}", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("fileWrite", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("fileWrite", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("write_data_to_file")),
+    }
 }
 
 impl State{
@@ -3817,6 +3865,7 @@ impl State{
         ops_map.insert("read".to_string(), read_from_in);
         ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
         ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
+        ops_map.insert("fileWrite".to_string(), write_data_to_file);
 
         State {
             stack: Vec::new(),
