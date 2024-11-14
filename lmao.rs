@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.90
+//Version: 0.3.91
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3650,8 +3650,10 @@ fn read_from_in(s: &mut State) -> Result<(), String>{
 //Prints each item on the stack while 
 // also indicating if box types are valid or not.
 fn debug_stack_print(s: &mut State) -> Result<(), String>{
-    println!("--------------------------------");
-    println!("BEGIN STACK PRINT\n--------------------------------");
+    let filler_str = "--------------------------------";
+
+    println!("{}", filler_str);
+    println!("BEGIN STACK PRINT\n{}", filler_str);
     for item in s.stack.iter(){
         match item {
             Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) | Value::MiscBox(bn) => {
@@ -3666,10 +3668,44 @@ fn debug_stack_print(s: &mut State) -> Result<(), String>{
         }
     }
 
-    println!("--------------------------------");
+    println!("{}", filler_str);
     println!("STACK LENGTH: {}", s.stack.len());
-    println!("--------------------------------\nEND STACK PRINT"); 
-    println!("--------------------------------");
+    println!("{}\nEND STACK PRINT", filler_str); 
+    println!("{}", filler_str);
+
+    Ok(())
+}
+
+//Prints the whole heap to stdout for debugging purposes.
+//This is something like O(n^2) at least so definitely only use it for debugging!
+fn debug_heap_print(s: &mut State) -> Result<(), String>{
+    let filler_str = "////////////////////////////////";
+    
+    println!("{}", filler_str);
+    println!("BEGIN HEAP PRINT\n{}", filler_str);
+    
+    for i in 0..(s.heap.len()){
+        if s.heap[i].1{
+            println!("BOX {}:\n\t{}", i, s.heap[i].0);
+        }else{
+            //NEEDS TESTING, SINCE FREEING BOXES DOESN'T EXIST YET!
+            println!("BOX {}:\n[INVALID]\n\t{}", i, s.heap[i].0);
+        }
+    }
+
+    println!("{}", filler_str);
+    println!("HEAP SIZE: {}\n{}", s.heap.len(), filler_str);
+    print!("FREE'D BOX NUMBERS: [");
+    for i in 0..(s.free_list.len()){
+        if i < (s.free_list.len() - 1){
+            print!("{}, ", s.free_list[i]);
+        }else{
+            print!("{}", s.free_list[i]);
+        }
+    }
+    println!("]\n{}\nFREE'D BOX NUMBERS LENGTH: {}", filler_str, s.free_list.len());
+    println!("{}\nEND HEAP PRINT", filler_str);
+    println!("{}", filler_str);
 
     Ok(())
 }
@@ -3780,6 +3816,7 @@ impl State{
         ops_map.insert("print".to_string(), print_string);
         ops_map.insert("read".to_string(), read_from_in);
         ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
+        ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
 
         State {
             stack: Vec::new(),
