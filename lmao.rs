@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.92
+//Version: 0.3.93
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3758,6 +3758,53 @@ fn write_data_to_file(s: &mut State) -> Result<(), String>{
     }
 }
 
+fn single_arg_file_io_type_error(op_type: &str, v: &Value) -> String{
+    format!("Operator ({}) error! Top of stack must\
+     be type StringBox! Attempted value: {}", op_type, v)
+}
+
+//Reads the contents of a file into a string and allocates it on the heap.
+fn read_data_from_file(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref file_name) = &s.heap[bn].0{
+                    let file_path = Path::new(file_name);
+                    let mut file = match OpenOptions::new().read(true).open(file_path){
+                        Ok(f) => f,
+                        Err(reason) => {
+                            return Err(format!("Operator (fileRead) error! Unable \
+                                to open file {} because: {}", file_name, reason.to_string()));
+                        },
+                    };
+
+                    let mut literal_file_string = String::new();
+                    match file.read_to_string(&mut literal_file_string){
+                        Ok(_) => {},
+                        Err(reason) => {
+                            return Err(format!("Operator (fileRead) error! Failed \
+                                to read from file {} because: {}", file_name, reason));
+                        },
+                    }
+                    
+                    let file_string = replace_literals_with_escapes(&literal_file_string);
+                    let new_bn = s.insert_to_heap(Value::String(file_string));
+
+                    s.push(Value::StringBox(new_bn));
+                    Ok(())
+
+                }else{
+                    Err(should_never_get_here_for_func("read_data_from_file"))
+                }
+            }else{
+                Err(bad_box_error("fileRead", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(single_arg_file_io_type_error("fileRead", &v)),
+        None => Err(needs_n_args_only_n_provided("fileRead", "One", "none")),
+    }
+}
+
 impl State{
     //Creates a new state.
     fn new() -> Self{
@@ -3866,6 +3913,7 @@ impl State{
         ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
         ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
         ops_map.insert("fileWrite".to_string(), write_data_to_file);
+        ops_map.insert("fileRead".to_string(), read_data_from_file);
 
         State {
             stack: Vec::new(),
