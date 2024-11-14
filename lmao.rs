@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.94
+//Version: 0.3.95
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use std::fs::File;
+use std::fs::remove_file;
 use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write; 
@@ -3805,7 +3806,7 @@ fn read_data_from_file(s: &mut State) -> Result<(), String>{
     }
 }
 
-//Reads the contents of a file into a string and allocates it on the heap.
+//Creates a file with the desired name. Throws error if the file already exists.
 fn create_file_based_on_string(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
@@ -3813,6 +3814,7 @@ fn create_file_based_on_string(s: &mut State) -> Result<(), String>{
                 if let Value::String(ref file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
 
+                    //Throws error if file with given name already exists.
                     match File::open(file_path){
                         Ok(_) => {
                             return Err(format!("Operator (fileCreate) error! Unable \
@@ -3840,6 +3842,36 @@ fn create_file_based_on_string(s: &mut State) -> Result<(), String>{
         },
         Some(v) => Err(single_arg_file_io_type_error("fileCreate", &v)),
         None => Err(needs_n_args_only_n_provided("fileCreate", "One", "none")),
+    }
+}
+
+//Deletes a file with the input name.
+fn delete_file_based_on_string(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref file_name) = &s.heap[bn].0{
+                    let file_path = Path::new(file_name);
+
+                    match remove_file(file_path){
+                        Ok(_) => {},
+                        Err(reason) => {
+                            return Err(format!("Operator (fileRemove) error! Unable \
+                                to remove file {} because: {}", file_name, reason.to_string()));
+                        },
+                    }
+
+                    Ok(())
+
+                }else{
+                    Err(should_never_get_here_for_func("delete_file_based_on_string"))
+                }
+            }else{
+                Err(bad_box_error("fileRemove", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(single_arg_file_io_type_error("fileRemove", &v)),
+        None => Err(needs_n_args_only_n_provided("fileRemove", "One", "none")),
     }
 }
 
@@ -3955,6 +3987,7 @@ impl State{
         ops_map.insert("fileWrite".to_string(), write_data_to_file);
         ops_map.insert("fileRead".to_string(), read_data_from_file);
         ops_map.insert("fileCreate".to_string(), create_file_based_on_string);
+        ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
 
         State {
             stack: Vec::new(),
