@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.93
+//Version: 0.3.94
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3759,7 +3759,7 @@ fn write_data_to_file(s: &mut State) -> Result<(), String>{
 }
 
 fn single_arg_file_io_type_error(op_type: &str, v: &Value) -> String{
-    format!("Operator ({}) error! Top of stack must\
+    format!("Operator ({}) error! Top of stack must \
      be type StringBox! Attempted value: {}", op_type, v)
 }
 
@@ -3802,6 +3802,44 @@ fn read_data_from_file(s: &mut State) -> Result<(), String>{
         },
         Some(v) => Err(single_arg_file_io_type_error("fileRead", &v)),
         None => Err(needs_n_args_only_n_provided("fileRead", "One", "none")),
+    }
+}
+
+//Reads the contents of a file into a string and allocates it on the heap.
+fn create_file_based_on_string(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref file_name) = &s.heap[bn].0{
+                    let file_path = Path::new(file_name);
+
+                    match File::open(file_path){
+                        Ok(_) => {
+                            return Err(format!("Operator (fileCreate) error! Unable \
+                                to create file {} because it already exists!", file_name));
+                        },
+                        Err(_) => {},
+                    }
+
+                    match File::create(file_path){
+                        Ok(_) => {},
+                        Err(reason) => {
+                            return Err(format!("Operator (fileCreate) error! Unable \
+                                to create file {} because: {}", file_name, reason.to_string()));
+                        },
+                    }
+
+                    Ok(())
+
+                }else{
+                    Err(should_never_get_here_for_func("create_file_based_on_string"))
+                }
+            }else{
+                Err(bad_box_error("fileCreate", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(single_arg_file_io_type_error("fileCreate", &v)),
+        None => Err(needs_n_args_only_n_provided("fileCreate", "One", "none")),
     }
 }
 
@@ -3912,8 +3950,11 @@ impl State{
         ops_map.insert("read".to_string(), read_from_in);
         ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
         ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
+        
+        //File IO operators
         ops_map.insert("fileWrite".to_string(), write_data_to_file);
         ops_map.insert("fileRead".to_string(), read_data_from_file);
+        ops_map.insert("fileCreate".to_string(), create_file_based_on_string);
 
         State {
             stack: Vec::new(),
