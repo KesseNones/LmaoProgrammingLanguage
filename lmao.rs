@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.2
+//Version: 0.4.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2381,9 +2381,9 @@ fn is_valid_mutation(a: &Value, b: &Value) -> bool{
     }
 }
 
-fn invalid_mutation_error(op_type: &str, v1: &Value, v2: &Value) -> String{
-    format!("Operator ({}) error! Invalid mutation between \
-        two values! Unable to mutate {} to {}", op_type, v1, v2)
+fn invalid_mutation_error(op_type: &str, thing_being_mutated: &str, thing_name: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Invalid mutation of {} \"{}\"! \
+        Unable to mutate {} to {}", op_type, thing_being_mutated, thing_name, v1, v2)
 }
 
 //Mutates the field to a new value in an object if it exists and it's a valid mutation.
@@ -2401,7 +2401,7 @@ fn mut_field(s: &mut State) -> Result<(), String>{
                                     s.heap[a].0 = obj_to_mut;
                                     Ok(Value::ObjectBox(a))
                                 }else{
-                                    let ret = Err(invalid_mutation_error("objMutField", &old_v, &v));
+                                    let ret = Err(invalid_mutation_error("objMutField", "Object field", st, &old_v, &v));
                                     s.heap[a].0 = obj_to_mut;
                                     ret
                                 }
@@ -4604,7 +4604,26 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     },
                                 }
                             },
-                            "mut" => {},
+                            "mut" => {
+                                match state.vars.get_mut(name){
+                                    Some(v) => {
+                                        match state.stack.pop(){
+                                            Some(new_v) => {
+                                                if is_valid_mutation(v, &new_v){
+                                                    *v = new_v;
+                                                }else{
+                                                    return Err(invalid_mutation_error("var mut", "variable", name, &v, &new_v));
+                                                }
+                                            },
+                                            None => return Err(variable_lack_of_args_error("mutation (mut)")),
+                                        }
+                                    },
+                                    None => {
+                                        return Err(format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
+                                            Try making it first using var mak!", &name));
+                                    },
+                                }
+                            },
                             "del" => {},
                             c => {
                                 return Err(format!("Variable (var) error! \
