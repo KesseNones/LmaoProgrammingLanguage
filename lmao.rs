@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.0
+//Version: 0.4.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4545,6 +4545,13 @@ fn make_ast(tokens: Vec<Token>) -> ASTNode{
 //     BoxOp(String)
 // }
 
+//Error string for when var mak and var mut 
+// don't have anything on the stack for them.
+fn variable_lack_of_args_error(var_action: &str) -> String{
+    format!("Variable (var) error! Variable {} needs one \
+        item on the stack! None provided!", var_action)
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
     match ast{
@@ -4564,6 +4571,37 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 return Err(format!("Unrecognized Operator: {}", op));
                             },
                         } 
+                    },
+                    ASTNode::Variable{var_name: name, var_cmd: cmd} => {
+                        let varcmd: &str = &cmd;
+                        match varcmd{
+                            "mak" => {
+                                match state.vars.get(name){
+                                    Some(_) => {
+                                        return Err(format!("Variable (var) error! Variable {} already exists! \
+                                            Try deleting it using del!", &name));
+                                    },
+                                    None => {
+                                        match state.pop(){
+                                            Some(v) => {
+                                                state.vars.insert(name.clone(), v);
+                                            },
+                                            None => {
+                                                return Err(variable_lack_of_args_error("creation (mak)"));
+                                            },
+                                        }
+                                    },
+                                }
+                            },
+                            "get" => {},
+                            "mut" => {},
+                            "del" => {},
+                            c => {
+                                return Err(format!("Variable (var) error! \
+                                    Unrecognized variable command! Valid: mak, get, mut, del . \
+                                    Attempted: {}", c));
+                            },
+                        }
                     },
                     _ => {},
                 }
