@@ -1,13 +1,22 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.3.0
+//Version: 0.4.0
+
+//LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 use std::fs::File;
+use std::fs::remove_file;
+use std::fs::OpenOptions;
 use std::io::Read;
+use std::io::Write; 
 use std::fmt;
+use std::cmp::Ordering;
+use std::convert::TryInto;
+use fmt::Display;
+use std::io;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -144,25 +153,45 @@ impl fmt::Display for Value{
             Value::Int(int) => write!(f, "{}", int),
             Value::UInt(uint) => write!(f, "{}", uint),
             Value::Float32(flt32) => {
-                let exp = flt32.log10() as isize;
-                if exp.abs() > 15{
+                if flt32.abs() > 9999999999999999.0{
                     write!(f, "f32 {:e}", flt32)
                 }else{
                     write!(f, "f32 {}", flt32)
                 }
             },
-            Value::Float64(flt64) => write!(f, "f64 {:e}", flt64),
+            Value::Float64(flt64) => {
+                if flt64.abs() > 9999999999999999.0{
+                    write!(f, "f64 {:e}", flt64)
+                }else{
+                    write!(f, "f64 {}", flt64)
+                }
+            },
             Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Boolean {}", b),
-            Value::String(s) => write!(f, "String \"{}\"", s),
+            Value::String(s) => write!(f, "String {:?}", s),
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
-            Value::List(_) => write!(f, "LIST [INSERT_CONTENTS_HERE]"), //Do some kind of actual printing here later!
+            Value::List(ls) => {
+                let ls_strs: Vec<String> = ls.iter().map(|el| format!("{}", el)).collect();
+                write!(f, "List [{}]", ls_strs.join(", "))
+            },
             Value::ListBox(lb) => write!(f, "ListBox {}", lb),
-            Value::Object(_) => write!(f, "Object OBJ"), //Do some kind of actual printing here later!
+            Value::Object(o) => {
+                let mut obj_strs: Vec<String> = Vec::new();
+                for (key, value) in o.iter(){
+                    obj_strs.push(format!("{}: {}", key, value));
+                }
+                write!(f, "Object {}{}{}", "{", obj_strs.join(", "), "}")
+            },
             Value::ObjectBox(ob) => write!(f, "ObjectBox {}", ob),
             Value::MiscBox(bn) => write!(f, "MiscBox {}", bn),
-            Value::NULLBox => write!(f, "Box NULL"),
+            Value::NULLBox => write!(f, "NULLBox"),
         }
+    }
+}
+
+impl Default for Value{
+    fn default() -> Self{
+        Value::NULLBox
     }
 }
 
@@ -264,7 +293,7 @@ fn type_to_string(v: &Value) -> String{
         Value::String(_) => "String",
         Value::StringBox(_) => "StringBox",
         Value::List(_) => "List",
-        Value::ListBox(_) => "List",
+        Value::ListBox(_) => "ListBox",
         Value::Object(_) => "Object",
         Value::ObjectBox(_) => "ObjectBox",
         Value::MiscBox(_) => "MiscBox",
@@ -274,77 +303,3606 @@ fn type_to_string(v: &Value) -> String{
     type_str.to_string()
 }
 
-//FIGURE OUT HOW TO HANDLE OVERFLOWS!
+//Used for numerical operators like +, -, *, etc.
+fn numerical_type_error_string(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Operand types must match and be numeric types! Attempted values: {} and {}", op_type, v1, v2)
+}
+
+fn needs_n_args_only_n_provided(op_type: &str, args_needed: &str, args_provided: &str) -> String{
+    let plural_s: &str;
+    if args_needed == "One"{
+        plural_s = "";
+    }else{
+        plural_s = "s";
+    }
+    format!("Operator ({}) error! {} operand{} required on stack; {} provided!", op_type, args_needed, plural_s, args_provided)
+}
+
+fn should_never_get_here_for_func(func: &str) -> String{
+    format!("Should never get here for {} function!", func)
+}
+
+fn push_val_or_err(r: Result<Value, String>, s: &mut State) -> Result<(), String>{
+    match r{
+        Ok(v) => {
+            s.push(v);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
 //Adds two values of matching numerical types together, pusing the result to the stack.
 fn add(s: &mut State) -> Result<(), String>{
-    match s.pop2(){
+    let res: Result<Value, String> = match s.pop2(){
         (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            s.push(Value::Int(IntSigned::IntSize(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::IntSize(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UIntSize(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UIntSize(a.wrapping_add(b))))
         },
-
 
         (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            s.push(Value::Int(IntSigned::Int8(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int8(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            s.push(Value::Int(IntSigned::Int16(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int16(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            s.push(Value::Int(IntSigned::Int32(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int32(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            s.push(Value::Int(IntSigned::Int64(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int64(a.wrapping_add(b))))
         },
         (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            s.push(Value::Int(IntSigned::Int128(a.wrapping_add(b))))
+            Ok(Value::Int(IntSigned::Int128(a.wrapping_add(b))))
         },
 
         (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt8(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt8(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt16(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt16(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt32(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt32(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt64(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt64(a.wrapping_add(b))))
         },
         (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            s.push(Value::UInt(IntUnsigned::UInt128(a.wrapping_add(b))))
+            Ok(Value::UInt(IntUnsigned::UInt128(a.wrapping_add(b))))
         },
 
         (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
-            s.push(Value::Float32(a + b))
+            Ok(Value::Float32(a + b))
         },
         (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
-            s.push(Value::Float64(a + b))
+            Ok(Value::Float64(a + b))
         },
 
         (Some(a), Some(b)) => {
-            let a_type = type_to_string(&a);
-            let b_type = type_to_string(&b);
-            return Err(format!("Operator (+) error! Operand types must match and be numeric types! Attempted types: {} and {}", a_type, b_type));
+            Err(numerical_type_error_string("+", &a, &b))
         },
 
-        (None, Some(b)) => {
-            return Err("Operator (+) error! Two operands required on stack; only one provided!".to_string());
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("+", "Two", "only one"))
         },
 
         (None, None) => {
-            return Err("Operator (+) error! Two operands required on stack; none provided!".to_string());
+            Err(needs_n_args_only_n_provided("+", "Two", "none"))
         },
 
-        _ => return Err("Should never get here for add function!".to_string()),
+        _ => Err(should_never_get_here_for_func("add")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Subtracts two values of matching numerical types, pusing the result to the stack.
+fn sub(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Int(IntSigned::IntSize(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UIntSize(a.wrapping_sub(b))))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Int(IntSigned::Int8(a.wrapping_sub(b))))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Int(IntSigned::Int16(a.wrapping_sub(b))))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Int(IntSigned::Int32(a.wrapping_sub(b))))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Int(IntSigned::Int64(a.wrapping_sub(b))))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Int(IntSigned::Int128(a.wrapping_sub(b))))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt8(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt16(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt32(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt64(a.wrapping_sub(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt128(a.wrapping_sub(b))))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Float32(a - b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Float64(a - b))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(numerical_type_error_string("-", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("-", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("-", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("sub")),
+
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Pops two items from top of stack and multiplies them, pushing result to stack.
+// Throws errors for non-matching types and insufficient operands.
+fn mult(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Int(IntSigned::IntSize(a.wrapping_mul(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UIntSize(a.wrapping_mul(b))))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Int(IntSigned::Int8(a.wrapping_mul(b))))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Int(IntSigned::Int16(a.wrapping_mul(b))))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Int(IntSigned::Int32(a.wrapping_mul(b))))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Int(IntSigned::Int64(a.wrapping_mul(b))))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Int(IntSigned::Int128(a.wrapping_mul(b))))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt8(a.wrapping_mul(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt16(a.wrapping_mul(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt32(a.wrapping_mul(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt64(a.wrapping_mul(b))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt128(a.wrapping_mul(b))))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Float32(a * b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Float64(a * b))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(numerical_type_error_string("*", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("*", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("*", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("mult")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+fn division_by_zero_error(t: &str) -> String{
+    format!("Operator (/) error! Division by zero occuring between two operands of type {}!", t)
+}
+
+//Pops two items from top of stack and divides them, pushing result to stack.
+// Throws errors for non-matching types and insufficient operands, as well as division by zero.
+fn div(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::IntSize(a / b)))
+            }else{
+                Err(division_by_zero_error("isize"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UIntSize(a / b)))
+            }else{
+                Err(division_by_zero_error("usize"))
+            }
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int8(a / b)))
+            }else{
+                Err(division_by_zero_error("i8"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int16(a / b)))
+            }else{
+                Err(division_by_zero_error("i16"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int32(a / b)))
+            }else{
+                Err(division_by_zero_error("i32"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int64(a / b)))
+            }else{
+                Err(division_by_zero_error("i64"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int128(a / b)))
+            }else{
+                Err(division_by_zero_error("i128"))
+            }
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt8(a / b)))
+            }else{
+                Err(division_by_zero_error("u8"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt16(a / b)))
+            }else{
+                Err(division_by_zero_error("u16"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt32(a / b)))
+            }else{
+                Err(division_by_zero_error("u32"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt64(a / b)))
+            }else{
+                Err(division_by_zero_error("u64"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt128(a / b)))
+            }else{
+                Err(division_by_zero_error("u128"))
+            }
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            if b != 0.0{
+                Ok(Value::Float32(a / b))
+            }else{
+                Err(division_by_zero_error("f32"))
+            }
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            if b != 0.0{
+                Ok(Value::Float64(a / b))
+            }else{
+                Err(division_by_zero_error("f64"))
+            }
+        },
+
+        (Some(a), Some(b)) => {
+            Err(numerical_type_error_string("/", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("/", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("/", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("div")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Creates string for error return in modulo function.
+fn modulo_by_zero_error(t: &str) -> String{
+    format!("Operator (%) error! Modulo by zero occuring between two operands of type {}!", t)
+}
+
+//Pops two items from top of stack and modulos them, pushing result to stack.
+// Throws errors for non-matching types and insufficient operands, as well as modulo by zero.
+fn modulo(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::IntSize(a % b)))
+            }else{
+                Err(modulo_by_zero_error("isize"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UIntSize(a % b)))
+            }else{
+                Err(modulo_by_zero_error("usize"))
+            }
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int8(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i8"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int16(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i16"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int32(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i32"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int64(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i64"))
+            }
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            if b != 0{
+                Ok(Value::Int(IntSigned::Int128(a % b)))
+            }else{
+                Err(modulo_by_zero_error("i128"))
+            }
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt8(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u8"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt16(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u16"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt32(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u32"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt64(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u64"))
+            }
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            if b != 0{
+                Ok(Value::UInt(IntUnsigned::UInt128(a % b)))
+            }else{
+                Err(modulo_by_zero_error("u128"))
+            }
+        },
+
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (% [aka mod]) error! Modulo operation requires two operands with \
+                a singular matching type that is an integer type! Attempted values: {} and {}", a, b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("% [aka mod]", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("% [aka mod]", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("modulo")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Adds two values of matching numerical types together, pusing the result to the stack.
+fn power(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Float32(a.powf(b)))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Float64(a.powf(b)))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (pow) error. Exponential operation requires two operands with a singular \
+                matching type that is either f32 or f64! Attempted values: {} and {}", a, b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("pow", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("pow", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("power")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Swaps the top two items on the stack, errors out of inusfficient items exist.
+fn swap(s: &mut State) -> Result<(), String>{
+    match s.pop2(){
+        (Some(a), Some(b)) => {
+            s.push(b);
+            s.push(a);
+            Ok(())
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("swap", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("swap", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("swap")),
+    }
+}
+
+//Removes the top item from the stack 
+// or errors out if stack is empty.
+fn drop(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(_) => Ok(()),
+        None => Err(needs_n_args_only_n_provided("drop", "One", "none")),
+    }
+}
+
+//Clears existing stack to be empty. 
+// This can be useful if you want a clean stack without doing a ton of drops.
+fn drop_stack(s: &mut State) -> Result<(), String>{
+    s.stack.clear();
+    Ok(())
+}
+
+//Rotates top three items on stack, 
+// putting the top item below the previous two.
+fn rot(s: &mut State) -> Result<(), String>{
+    match s.pop3(){
+        (Some(a), Some(b), Some(c)) => {
+            s.push(c);
+            s.push(a);
+            s.push(b);
+
+            Ok(())
+        },
+        (None, Some(_), Some(_)) => Err(needs_n_args_only_n_provided("rot", "Three", "only two")),
+        (None, None, Some(_)) => Err(needs_n_args_only_n_provided("rot", "Three", "only one")),
+        (None, None, None) => Err(needs_n_args_only_n_provided("rot", "Three", "none")),
+        _ => Err(should_never_get_here_for_func("rot")),
+    }
+}
+
+//Very literally just copies the top element of the stack and pushes it. 
+// If it's a box, the box itself is copied, not the data it contains.
+fn dup(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(v) => {
+            s.push(v.clone());
+            s.push(v.clone());
+            Ok(())
+        },
+        None => Err(needs_n_args_only_n_provided("dup", "One", "none")),
+    }
+}
+
+//Creates an error string used in the deep_dup function to avoid some code duplication.
+fn error_for_deep_dup_due_to_bad_box(box_type: &str, disp_value: Value) -> String{
+    format!("Operator (deepDup) error. Deep duplication of {} failed \
+        because it's an invalid {} number due to being been free'd!", disp_value, box_type)
+}
+
+//Works like dup but duplicates the data held by box types 
+// and creates a new box to hold the duplicated data.
+fn deep_dup(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                let dupped_string = s.heap[bn].0.clone();
+                let new_bn = s.insert_to_heap(dupped_string);
+                s.push(Value::StringBox(bn));
+                s.push(Value::StringBox(new_bn));
+                Ok(())
+            }else{
+                Err(error_for_deep_dup_due_to_bad_box("StringBox", Value::StringBox(bn)))
+            }
+        },
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                let dupped_list = s.heap[bn].0.clone();
+                let new_bn = s.insert_to_heap(dupped_list);
+                s.push(Value::ListBox(bn));
+                s.push(Value::ListBox(new_bn));
+                Ok(())
+            }else{
+                Err(error_for_deep_dup_due_to_bad_box("ListBox", Value::ListBox(bn)))
+            }
+        },
+        Some(Value::ObjectBox(bn)) => {
+            if s.validate_box(bn){
+                let dupped_obj = s.heap[bn].0.clone();
+                let new_bn = s.insert_to_heap(dupped_obj);
+                s.push(Value::ObjectBox(bn));
+                s.push(Value::ObjectBox(new_bn));
+                Ok(())
+            }else{
+                Err(error_for_deep_dup_due_to_bad_box("ObjectBox", Value::ObjectBox(bn)))
+            }
+        },
+        Some(Value::MiscBox(bn)) => {
+            if s.validate_box(bn){
+                let dupped_data = s.heap[bn].0.clone();
+                let new_bn = s.insert_to_heap(dupped_data);
+                s.push(Value::MiscBox(bn));
+                s.push(Value::MiscBox(new_bn));
+                Ok(())
+            }else{
+                Err(error_for_deep_dup_due_to_bad_box("MiscBox", Value::MiscBox(bn)))
+            }
+        },
+        Some(v) => {
+            s.push(v.clone());
+            s.push(v.clone());
+            Ok(())
+        },
+        None => Err(needs_n_args_only_n_provided("dup", "One", "none")),
+    }
+}
+
+//DELETE THIS LATER
+// //This enum is used to contain all the possible data types of Lmao.
+// enum Value{
+//     //Specific signed integers found from type declarations. (coming soonTM)
+//     Int(IntSigned),
+//     //Speficic unsigned integers found from type declarations.
+//     UInt(IntUnsigned),
+//     //Specified float types
+//     Float32(f32),
+//     Float64(f64),
+//     Char(char),
+//     Boolean(bool),
+//     //String and its equivalent box to live on the stack.
+//     String(String),
+//     StringBox(usize),
+//     List(Vec<Value>),
+//     ListBox(usize),
+//     Object(HashMap<String, Value>),
+//     ObjectBox(usize),
+//     MiscBox(usize),
+//     NULLBox,
+// }
+
+//Used in == and != operators to generate an error.
+fn equality_error(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Comparisons of equality and inequality \
+        must have matching types! Attempted values: {} and {}", op_type, v1, v2)
+}
+
+//Checks for equality between two data types. For boxes it checks to see 
+// if the box numbers are equal and for NULL box it checks for self-equality.
+//Consumes both items from stack and pushes resulting boolean based on their comparison.
+fn is_equal(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::Char(a)), Some(Value::Char(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::StringBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::StringBox(_))) => Ok(Value::Boolean(false)),
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::ListBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::ListBox(_))) => Ok(Value::Boolean(false)),
+
+        (Some(Value::ObjectBox(a)), Some(Value::ObjectBox(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::ObjectBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::ObjectBox(_))) => Ok(Value::Boolean(false)),
+
+        (Some(Value::MiscBox(a)), Some(Value::MiscBox(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::MiscBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::MiscBox(_))) => Ok(Value::Boolean(false)),
+
+        (Some(Value::NULLBox), Some(Value::NULLBox)) => Ok(Value::Boolean(true)),
+
+        (Some(a), Some(b)) => {
+            Err(equality_error("==", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("==", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("==", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("is_equal")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Checks for inequality between two data types. For boxes it checks to see 
+// if the box numbers are equal and for NULL box it checks for self-inequality.
+//Consumes both items from stack and pushes resulting boolean based on their comparison.
+fn is_not_equal(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::Char(a)), Some(Value::Char(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::StringBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::StringBox(_))) => Ok(Value::Boolean(true)),
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::ListBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::ListBox(_))) => Ok(Value::Boolean(true)),
+
+        (Some(Value::ObjectBox(a)), Some(Value::ObjectBox(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::ObjectBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::ObjectBox(_))) => Ok(Value::Boolean(true)),
+
+        (Some(Value::MiscBox(a)), Some(Value::MiscBox(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::MiscBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::MiscBox(_))) => Ok(Value::Boolean(true)),
+
+        (Some(Value::NULLBox), Some(Value::NULLBox)) => Ok(Value::Boolean(false)),
+
+        (Some(a), Some(b)) => {
+            Err(equality_error("!=", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("!=", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("!=", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("is_not_equal")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+fn comparison_error(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Non-equality comparison operators need matching \
+        non-null types to function! Attempted values: {} and {}", op_type, v1, v2)
+}
+
+//Compares two values on stack to see if the second to top is greater than the top.
+fn is_greater_than(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::Char(a)), Some(Value::Char(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::ObjectBox(a)), Some(Value::ObjectBox(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::MiscBox(a)), Some(Value::MiscBox(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(comparison_error(">", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided(">", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided(">", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("is_greater_than")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Compares two values on stack to see if the second to top is less than the top.
+fn is_less_than(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::Char(a)), Some(Value::Char(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::ObjectBox(a)), Some(Value::ObjectBox(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::MiscBox(a)), Some(Value::MiscBox(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(comparison_error("<", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("<", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("<", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("is_less_than")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Compares two values on stack to see if the second to top is greater than or equal to the top.
+fn is_greater_than_equal_to(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::Char(a)), Some(Value::Char(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::ObjectBox(a)), Some(Value::ObjectBox(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::MiscBox(a)), Some(Value::MiscBox(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(comparison_error(">=", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided(">=", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided(">=", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("is_greater_than_equal_to")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Compares two values on stack to see if the second to top is less than or equal to the top.
+fn is_less_than_equal_to(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::Float64(a)), Some(Value::Float64(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::Char(a)), Some(Value::Char(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::ObjectBox(a)), Some(Value::ObjectBox(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::MiscBox(a)), Some(Value::MiscBox(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(comparison_error("<=", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("<=", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("<=", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("is_less_than_equal_to")),
+    };
+
+    push_val_or_err(res, s)
+    
+}
+
+//Creates error string for when a box involved is invalid.
+fn bad_box_error(op_type: &str, box_type1: &str, box_type2: &str, bn1: usize, bn2: usize, is_two_boxes: bool) -> String{
+    if !is_two_boxes{
+        format!("Operator ({}) error! Box {} of type {} is invalid \
+            because it's either out of range of heap or free'd!", op_type, bn1, box_type1)
+    }else{
+        format!("Operator ({}) error! Box {} of type {} and Box {} of type {} are invalid \
+            because they're either out of range of heap or free'd!", op_type, bn1, box_type1, bn2, box_type2)
+    }
+}
+
+//Concatenates two strings or two lists together.
+//DECIDED THAT TOP STRING BOX ISN'T FREED SINCE IT DOESN'T NEED TO BE
+fn concat(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            //Only concatenates the strings if both boxes are valid and different!
+            if a != b{
+                match (s.validate_box(a), s.validate_box(b)){
+                    (true, true) => {
+                        //Concatenates string from Box B to string in Box A.
+                        let mut a_str: Value = std::mem::take(&mut s.heap[a].0);
+                        if let (Value::String(ref mut s1), Value::String(ref s2)) = (&mut a_str, &s.heap[b].0){
+                            s1.push_str(s2);
+                            s.heap[a].0 = a_str;
+                            Ok(Value::StringBox(a))
+                        }else{
+                            s.heap[a].0 = a_str;
+                            Err(should_never_get_here_for_func("concat"))
+                        }
+                    },
+                    (true, false) => {
+                        Err(bad_box_error("++", "StringBox", "NA", b, usize::MAX, false))
+                    },
+                    (false, true) => {
+                        Err(bad_box_error("++", "StringBox", "NA", a, usize::MAX, false))
+                    },
+                    (false, false) => {
+                        Err(bad_box_error("++", "StringBox", "StringBox", a, b, true))
+                    },
+                }
+            }else{
+                Err(format!("Operator (++) error! Concatenation needs two DIFFERENT \
+                    string boxes to work! Attempted values: StringBox {} and StringBox {}", a, b))
+            }
+        },
+
+        (Some(Value::ListBox(a)), Some(Value::ListBox(b))) => {
+            //Only concatenates the lists if both boxes are valid and different!
+            if a != b{
+                match (s.validate_box(a), s.validate_box(b)){
+                    (true, true) => {
+                        //Concatenates list from Box B to list in Box A.
+                        //THIS IS CRINGE, TRY TO MAYBE FIGURE OUT A BETTER WAY LATER
+                        let mut list_a: Value = std::mem::take(&mut s.heap[a].0);
+                        if let (Value::List(ref mut ls1), Value::List(ref ls2)) = (&mut list_a, &s.heap[b].0){
+                            //NEEDS TESTING LATER TO MAKE SURE IT WORKS!!!
+                            for el in ls2.iter(){
+                                ls1.push(el.clone());
+                            }
+                            s.heap[a].0 = list_a;
+                            Ok(Value::ListBox(a))
+                        }else{
+                            Err(should_never_get_here_for_func("concat"))
+                        }
+                    },
+                    (true, false) => {
+                        Err(bad_box_error("++", "ListBox", "NA", b, usize::MAX, false))
+                    },
+                    (false, true) => {
+                        Err(bad_box_error("++", "ListBox", "NA", a, usize::MAX, false))
+                    },
+                    (false, false) => {
+                        Err(bad_box_error("++", "ListBox", "ListBox", a, b, true))
+                    },
+                }
+            }else{
+                Err(format!("Operator (++) error! Concatenation needs two DIFFERENT \
+                    string boxes to work! Attempted values: StringBox {} and StringBox {}", a, b))
+            }
+        },
+
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (++) error! Concatenation needs top two operands to \
+                be matching types of type StringBox or ListBox! Attempted values: {} and {}", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("++", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("++", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("concat")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+fn logical_operator_type_error(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Logical operation requires two operands \
+        of matching type Boolean! Attempted values: {} and {}", op_type, v1, v2)
+}
+
+//Performs logical AND on two operands.
+fn and(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a && b))
+        },
+        (Some(a), Some(b)) => {
+            Err(logical_operator_type_error("and/&&", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("and/&&", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("and/&&", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("and")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Performs logical OR on two operands.
+fn or(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a || b))
+        },
+        (Some(a), Some(b)) => {
+            Err(logical_operator_type_error("or/||", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("or/||", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("or/||", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("or")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Performs logical XOR on two operands.
+fn xor(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(a), Some(b)) => {
+            Err(logical_operator_type_error("xor", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("xor", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("xor", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("xor")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Performs logical NOT on top of stack if boolean.
+fn not(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop(){
+        Some(Value::Boolean(x)) => Ok(Value::Boolean(!x)),
+        Some(x) => {
+            Err(format!("Operator (not/!) error! Logical NOT requires \
+                one Boolean type on the stack. Attempted value: {}", x))
+        },
+        None => Err(needs_n_args_only_n_provided("not/!", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Pushes a value to a list or a character to a string.
+fn list_push(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::ListBox(bn)), Some(v)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    ls.push(v);
+                    Ok(Value::ListBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_push"))
+                }
+            }else{
+                Err(bad_box_error("push/p", "ListBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    st.push(c);
+                    Ok(Value::StringBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_push"))
+                }
+            }else{
+                Err(bad_box_error("push/p", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (push/p) error! Push operator requires \
+                a ListBox/StringBox second to top on the stack \
+                and a Value/Char on top of the stack! Attempted values: {} and {}", a, b))
+        },
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("push/p", "Two", "only one"))
+        },
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("push/p", "Two", "none"))
+        },
+        _ => Err(should_never_get_here_for_func("list_push")),
+    };
+
+    push_val_or_err(res, s)
+
+}
+
+//Generates error string for 0 length errors for pop and fpop error.
+fn pop_error(op_type: &str, collection_type: &str, op_detail: &str) -> String{
+    format!("Operator ({}) error! {} needs to be greater \
+        than length 0 for {} operation to actually pop something!", op_type, collection_type, op_detail)
+}
+
+//Pops from the end of a list/string and pushes the popped thing to the stack.
+fn list_pop(s: &mut State) -> Result<(), String>{
+    let res: Result<(Value, Value), String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    match ls.pop(){
+                        Some(v) => Ok((Value::ListBox(bn), v)),
+                        None => Err(pop_error("pop/po", "List", "pop")),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("list_pop"))
+                }
+            }else{
+                Err(bad_box_error("pop/po", "ListBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    match st.pop(){
+                        Some(v) => Ok((Value::StringBox(bn), Value::Char(v))),
+                        None => Err(pop_error("pop/po", "String", "pop")),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("list_pop"))
+                }
+            }else{
+                Err(bad_box_error("pop/po", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => {
+            Err(format!("Operator (pop/po) error! Top of stack needs \
+                to be of type StringBox or ListBox! Attempted value: {}", v))
+        },
+        None => {
+            Err(needs_n_args_only_n_provided("pop/po", "One", "none"))
+        },
+    };  
+
+    match res{
+        Ok((v1, v2)) => {
+            s.push(v1);
+            s.push(v2);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
+//Pushes a value to the front of a list or a character to the front of a string.
+fn list_front_push(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::ListBox(bn)), Some(v)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    ls.insert(0, v);
+                    Ok(Value::ListBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_front_push"))
+                }
+            }else{
+                Err(bad_box_error("fpush/fp", "ListBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    st.insert(0, c);
+                    Ok(Value::StringBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_front_push"))
+                }
+            }else{
+                Err(bad_box_error("fpush/fp", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (fpush/fp) error! Front push operator requires \
+                a ListBox/StringBox second to top on the stack \
+                and a Value/Char on top of the stack! Attempted values: {} and {}", a, b))
+        },
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("fpush/fp", "Two", "only one"))
+        },
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("fpush/fp", "Two", "none"))
+        },
+        _ => Err(should_never_get_here_for_func("list_front_push")),
+    };
+
+    push_val_or_err(res, s)
+
+}
+
+//Pops from the front of a list/string and pushes the popped thing to the stack.
+fn list_front_pop(s: &mut State) -> Result<(), String>{
+    let res: Result<(Value, Value), String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    if ls.len() > 0{
+                        Ok((Value::ListBox(bn), ls.remove(0)))
+                    }else{
+                        Err(pop_error("fpop/fpo", "List", "front pop"))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("list_front_pop"))
+                }
+            }else{
+                Err(bad_box_error("fpop/fpo", "ListBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    if st.len() > 0{
+                        Ok((Value::StringBox(bn), Value::Char(st.remove(0))))
+                    }else{
+                        Err(pop_error("fpop/fpo", "String", "front pop"))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("list_front_pop"))
+                }
+            }else{
+                Err(bad_box_error("fpop/fpo", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => {
+            Err(format!("Operator (fpop/fpo) error! Top of stack needs \
+                to be of type StringBox or ListBox! Attempted value: {}", v))
+        },
+        None => {
+            Err(needs_n_args_only_n_provided("fpop/fpo", "One", "none"))
+        },
+    };  
+
+    match res{
+        Ok((v1, v2)) => {
+            s.push(v1);
+            s.push(v2);
+            Ok(())
+        },
+        Err(e) => Err(e),
+    }
+}
+
+//Indexes into a list or string, 
+// pushing the indexed item to the stack.
+fn index(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::ListBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
+            if s.validate_box(bn){
+                if let Value::List(ref ls) = s.heap[bn].0{
+                    if i < ls.len(){
+                        Ok(ls[i].clone())
+                    }else{
+                        Err(format!("Operator (index) error! \
+                            Index {} is out of range of List of size {}", i, ls.len()))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("index"))
+                }
+            }else{
+                Err(bad_box_error("index", "ListBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(Value::StringBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = s.heap[bn].0{
+                    if i < st.len(){
+                        Ok(Value::Char(st.chars().nth(i).unwrap()))
+                    }else{
+                        Err(format!("Operator (index) error! \
+                            Index {} is out of range of String of size {}", i, st.len()))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("index"))
+                }
+            }else{
+                Err(bad_box_error("index", "ListBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (index) error! Index operator requires second \
+                to top of stack to be either a ListBox or a StringBox, \
+                and requires the top of the stack to be of type usize! \
+                Attempted values: {} and {}", a, b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("index", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("index", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("index")),
+    };
+
+    push_val_or_err(res, s)
+
+}
+
+//Determines length of string or list and pushes it to stack.
+fn length(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref ls) = s.heap[bn].0{
+                    Ok(Value::UInt(IntUnsigned::UIntSize(ls.len())))
+                }else{
+                    Err(should_never_get_here_for_func("length"))
+                }
+            }else{
+                Err(bad_box_error("length/len", "ListBox", "NA", bn, usize::MAX, false))
+            }            
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = s.heap[bn].0{
+                    Ok(Value::UInt(IntUnsigned::UIntSize(st.len())))
+                }else{
+                    Err(should_never_get_here_for_func("length"))
+                }
+            }else{
+                Err(bad_box_error("length/len", "StringBox", "NA", bn, usize::MAX, false))
+            }            
+        },
+        Some(v) => {
+            Err(format!("Operator (length/len) error! Top of stack must \
+                be of type ListBox or StringBox! Attempted value: {}", v))
+        },
+        None => Err(needs_n_args_only_n_provided("length/len", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Takes a string/list and pushes a boolean based on whether it's empty or not.
+fn is_empty(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref ls) = s.heap[bn].0{
+                    Ok(Value::Boolean(ls.len() == 0))
+                }else{
+                    Err(should_never_get_here_for_func("is_empty"))
+                }
+            }else{
+                Err(bad_box_error("isEmpty", "ListBox", "NA", bn, usize::MAX, false))
+            }            
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = s.heap[bn].0{
+                    Ok(Value::Boolean(st.len() == 0))
+                }else{
+                    Err(should_never_get_here_for_func("is_empty"))
+                }
+            }else{
+                Err(bad_box_error("isEmpty", "StringBox", "NA", bn, usize::MAX, false))
+            }            
+        },
+        Some(v) => {
+            Err(format!("Operator (isEmpty) error! Top of stack must \
+                be of type ListBox or StringBox! Attempted value: {}", v))
+        },
+        None => Err(needs_n_args_only_n_provided("isEmpty", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Clears a list/string to empty.
+fn list_clear(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop(){
+        Some(Value::ListBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    ls.clear();
+                    Ok(Value::ListBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_clear"))
+                }
+            }else{
+                Err(bad_box_error("clear", "ListBox", "NA", bn, usize::MAX, false))
+            }            
+        },
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                    st.clear();
+                    Ok(Value::StringBox(bn))
+                }else{
+                    Err(should_never_get_here_for_func("list_clear"))
+                }
+            }else{
+                Err(bad_box_error("clear", "StringBox", "NA", bn, usize::MAX, false))
+            }            
+        },
+        Some(v) => {
+            Err(format!("Operator (clear) error! Top of stack must \
+                be of type ListBox or StringBox! Attempted value: {}", v))
+        },
+        None => Err(needs_n_args_only_n_provided("clear", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Consumes a list/object/string box and a value/char and 
+// pushes a boolean based on whether or not that value/value/char
+// is in that list/object/string box.
+fn list_contains(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::ListBox(bn)), Some(v)) => {
+            if s.validate_box(bn){
+                if let Value::List(ref ls) = &s.heap[bn].0{
+                    Ok(Value::Boolean(ls.contains(&v)))
+                }else{
+                    Err(should_never_get_here_for_func("list_contains"))
+                }
+            }else{
+                Err(bad_box_error("contains", "ListBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    if let (Value::Object(ref o), Value::String(ref s)) = (&s.heap[a].0, &s.heap[b].0){
+                        Ok(Value::Boolean(o.contains_key(s)))
+                    }else{
+                        Err(should_never_get_here_for_func("list_contains"))
+                    }
+                },
+                (true, false) => {
+                    Err(bad_box_error("contains", "StringBox", "NA", b, usize::MAX, false))
+                },
+                (false, true) => {
+                    Err(bad_box_error("contains", "ObjectBox", "NA", a, usize::MAX, false))
+                },
+                (false, false) => {
+                    Err(bad_box_error("contains", "ObjectBox", "StringBox", a, b, true))
+                },
+            }
+        },
+        (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = &s.heap[bn].0{
+                    Ok(Value::Boolean(st.contains(c)))
+                }else{
+                    Err(should_never_get_here_for_func("list_contains"))
+                }
+            }else{
+                Err(bad_box_error("contains", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (contains) error! Second to top \
+                of stack must be type ListBox/ObjectBox/StringBox and top \
+                of stack must be Value/StringBox/Char respectably! \
+                Attempted values: {} and {}", a, b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("contains", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("contains", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("list_contains")),
+    };
+
+
+    push_val_or_err(res, s)
+}
+
+//Alters an item in a list at a particular index to something else.
+//MAYBE ADD ABILITY TO CHANGE CHARS IN STRING IN THE FUTURE
+fn change_item_at(s: &mut State) -> Result<(), String>{
+    let res = match s.pop3(){
+        (Some(Value::ListBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i))), Some(v)) => {
+            //Changes item in list to new value at 
+            // index i assuming list is valid and index is in range.
+            if s.validate_box(bn){
+                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                    if i < ls.len(){
+                        ls[i] = v;
+                        Ok(Value::ListBox(bn))
+                    }else{
+                        Err(format!("Operator (changeItemAt) error! \
+                            Index {} is out of range of List of size {}", i, ls.len()))
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("change_item_at"))
+                }
+            }else{
+                Err(bad_box_error("changeItemAt", "ListBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        (Some(a), Some(b), Some(c)) => {
+            Err(format!("Operator (changeItemAt) error! \
+                Third to top of stack must be type ListBox, \
+                second to top of stack must be type usize, \
+                and top of stack must by type Value! Attempted values: {}, {}, and {}", a, b, c))
+        },
+        (None, Some(_), Some(_)) => Err(needs_n_args_only_n_provided("changeItemAt", "Three", "only two")),
+        (None, None, Some(_)) => Err(needs_n_args_only_n_provided("changeItemAt", "Three", "only one")),
+        (None, None, None) => Err(needs_n_args_only_n_provided("changeItemAt", "Three", "none")),
+        _ => Err(should_never_get_here_for_func("change_item_at")),
+    };
+
+    push_val_or_err(res, s)
+
+}
+
+//Creates an error string for the three char operators below.
+fn non_char_error(op_type: &str, v: &Value) -> String{
+    format!("Operator ({}) error! Top of stack must \
+        be of type Char! Attempted value: {}", op_type, v)
+}
+
+//Conumes a character and pushes a boolean saying whether or not it's whitespace.
+fn whitespace_detect(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::Char(c)) => {
+            Ok(Value::Boolean(c.is_whitespace()))
+        },
+        Some(v) => {
+            Err(non_char_error("isWhitespaceChar", &v))
+        },
+        None => Err(needs_n_args_only_n_provided("isWhitespaceChar", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Determines if top of stack is an alphabetical char.
+fn alpha_char_detect(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::Char(c)) => {
+            Ok(Value::Boolean(c.is_alphabetic()))
+        },
+        Some(v) => {
+            Err(non_char_error("isAlphaChar", &v))
+        },
+        None => Err(needs_n_args_only_n_provided("isAlphaChar", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Determines if top of stack is a numeric char.
+fn num_char_detect(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::Char(c)) => {
+            Ok(Value::Boolean(c.is_numeric()))
+        },
+        Some(v) => {
+            Err(non_char_error("isNumChar", &v))
+        },
+        None => Err(needs_n_args_only_n_provided("isNumChar", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+fn invalid_types_for_obj_add_or_mut(op_type: &str, v1: &Value, v2: &Value, v3: &Value) -> String{
+    format!("Operator ({}) error! Third to top of stack must be of type ObjectBox, \
+        second to top must be type StringBox, and top must be type Value! \
+        Attempted values: {}, {}, and {}", op_type, v1, v2, v3)
+}
+
+//Adds a field to the given object and pushes the mutated object back.
+fn add_field(s: &mut State) -> Result<(), String>{
+    let res = match s.pop3(){
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
+                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                        if !o.contains_key(st){
+                            o.insert(st.clone(), v);
+                            s.heap[a].0 = obj_to_mut;
+                            Ok(Value::ObjectBox(a))
+                        }else{
+                            let ret = Err(format!("Operator (objAddField) error! \
+                                ObjectBox {} already contains field \"{}\"! \
+                                Try removing it first!", a, st));
+                            s.heap[a].0 = obj_to_mut;
+                            ret
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("add_field"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("objAddField", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objAddField", "ObjectBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objAddField", "ObjectBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b), Some(c)) => {
+            Err(invalid_types_for_obj_add_or_mut("objAddField", &a, &b, &c))
+        },
+        (None, Some(_), Some(_)) => Err(needs_n_args_only_n_provided("objAddField", "Three", "only two")),
+        (None, None, Some(_)) => Err(needs_n_args_only_n_provided("objAddField", "Three", "only one")),
+        (None, None, None) => Err(needs_n_args_only_n_provided("objAddField", "Three", "none")),
+        _ => Err(should_never_get_here_for_func("add_field")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+fn invalid_types_for_get_or_rem(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Second to top of stack must \
+        be type ObjectBox and top must be type StringBox! \
+        Attempted values: {} and {}", op_type, v1, v2)
+}
+
+fn field_not_in_obj_err(op_type: &str, box_num: usize, field_name: &str) -> String{
+    format!("Operator ({}) error! Field \"{}\" doesn't exist \
+        in ObjectBox {} ! Try adding it!", op_type, field_name, box_num) 
+}
+
+//Given an object and string box, conumes the boxes 
+// and pushes the value at that key if it exists.
+fn get_field(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    if let (Value::Object(ref o), Value::String(ref st)) = (&s.heap[a].0, &s.heap[b].0){
+                        match o.get(st){
+                            Some(v) => Ok(v.clone()),
+                            None => Err(field_not_in_obj_err("objGetField", a, st))
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("get_field"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("objGetField", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objGetField", "ObjectBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objGetField", "ObjectBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(invalid_types_for_get_or_rem("objGetField", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("objGetField", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("objGetField", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("get_field")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Determines if a translation from one value type to another is valid. 
+// Typically the types have to match unless it's nullbox to box stuff.
+fn is_valid_mutation(a: &Value, b: &Value) -> bool{
+    match (a, b) {
+        (Value::Int(IntSigned::IntSize(_)), Value::Int(IntSigned::IntSize(_))) => true,
+        (Value::UInt(IntUnsigned::UIntSize(_)), Value::UInt(IntUnsigned::UIntSize(_))) => true,
+
+        (Value::Int(IntSigned::Int8(_)), Value::Int(IntSigned::Int8(_))) => true,
+        (Value::Int(IntSigned::Int16(_)), Value::Int(IntSigned::Int16(_))) => true,
+        (Value::Int(IntSigned::Int32(_)), Value::Int(IntSigned::Int32(_))) => true,
+        (Value::Int(IntSigned::Int64(_)), Value::Int(IntSigned::Int64(_))) => true,
+        (Value::Int(IntSigned::Int128(_)), Value::Int(IntSigned::Int128(_))) => true,
+
+        (Value::UInt(IntUnsigned::UInt8(_)), Value::UInt(IntUnsigned::UInt8(_))) => true,
+        (Value::UInt(IntUnsigned::UInt16(_)), Value::UInt(IntUnsigned::UInt16(_))) => true,
+        (Value::UInt(IntUnsigned::UInt32(_)), Value::UInt(IntUnsigned::UInt32(_))) => true,
+        (Value::UInt(IntUnsigned::UInt64(_)), Value::UInt(IntUnsigned::UInt64(_))) => true,
+        (Value::UInt(IntUnsigned::UInt128(_)), Value::UInt(IntUnsigned::UInt128(_))) => true,
+
+        (Value::Float32(_), Value::Float32(_)) => true,
+        (Value::Float64(_), Value::Float64(_)) => true,
+
+        (Value::Char(_), Value::Char(_)) => true,
+        (Value::Boolean(_), Value::Boolean(_)) => true,
+
+        (Value::StringBox(_), Value::StringBox(_)) => true,
+        (Value::ListBox(_), Value::ListBox(_)) => true,
+        (Value::Object(_), Value::Object(_)) => true,
+        (Value::MiscBox(_), Value::MiscBox(_)) => true,
+
+        (Value::NULLBox, Value::StringBox(_)) => true,
+        (Value::StringBox(_), Value::NULLBox) => true,
+        (Value::NULLBox, Value::ListBox(_)) => true,
+        (Value::ListBox(_), Value::NULLBox) => true,
+        (Value::NULLBox, Value::ObjectBox(_)) => true,
+        (Value::ObjectBox(_), Value::NULLBox) => true,
+        (Value::NULLBox, Value::MiscBox(_)) => true,
+        (Value::MiscBox(_), Value::NULLBox) => true,
+        (Value::NULLBox, Value::NULLBox) => true,
+
+        _ => false,
+
+    }
+}
+
+fn invalid_mutation_error(op_type: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Invalid mutation between \
+        two values! Unable to mutate {} to {}", op_type, v1, v2)
+}
+
+//Mutates the field to a new value in an object if it exists and it's a valid mutation.
+fn mut_field(s: &mut State) -> Result<(), String>{
+    let res = match s.pop3(){
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
+                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                        match o.get_mut(st){
+                            Some(old_v) => {
+                                if is_valid_mutation(old_v, &v){
+                                    *old_v = v;
+                                    s.heap[a].0 = obj_to_mut;
+                                    Ok(Value::ObjectBox(a))
+                                }else{
+                                    let ret = Err(invalid_mutation_error("objMutField", &old_v, &v));
+                                    s.heap[a].0 = obj_to_mut;
+                                    ret
+                                }
+                            },
+                            None => {
+                                let ret = Err(field_not_in_obj_err("objMutField", a, st));
+                                s.heap[a].0 = obj_to_mut; 
+                                ret
+                            },
+                        }
+                    }else{
+                        s.heap[a].0 = obj_to_mut;
+                        Err(should_never_get_here_for_func("mut_field"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("objMutField", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objMutField", "ObjectBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objMutField", "ObjectBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b), Some(c)) => {
+            Err(invalid_types_for_obj_add_or_mut("objMutField", &a, &b, &c))
+        },
+        (None, Some(_), Some(_)) => Err(needs_n_args_only_n_provided("objMutField", "Three", "only two")),
+        (None, None, Some(_)) => Err(needs_n_args_only_n_provided("objMutField", "Three", "only one")),
+        (None, None, None) => Err(needs_n_args_only_n_provided("objMutField", "Three", "none")),
+        _ => Err(should_never_get_here_for_func("mut_field")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Removes a field from an object at the desired key held in the string box.
+fn remove_field(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
+                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                        match o.remove(st){
+                            Some(_) => {
+                                s.heap[a].0 = obj_to_mut;
+                                Ok(Value::ObjectBox(a))
+                            },
+                            None => {
+                                let ret = Err(field_not_in_obj_err("objRemField", a, st));
+                                s.heap[a].0 = obj_to_mut;
+                                ret
+                            },
+                        }
+                    }else{
+                        s.heap[a].0 = obj_to_mut;
+                        Err(should_never_get_here_for_func("remove_field"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("objRemField", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("objRemField", "ObjectBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("objRemField", "ObjectBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(invalid_types_for_get_or_rem("objRemField", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("objRemField", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("objRemField", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("remove_field")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Acts like C's strcmp, eating two string boxes and pushing 
+// an integer to indicate the result of the comparison between their contents.
+// If the second to top is less than the top, a negative one is pushed
+// If the second to top is equal to the top, a zero is pushed
+// If the second to top is greater than the top, a one is pushed
+fn string_compare(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    if let (Value::String(ref str_a), Value::String(ref str_b)) = (&s.heap[a].0, &s.heap[b].0){
+                        let comp_res: isize = match str_a.cmp(str_b){
+                            Ordering::Less => -1,
+                            Ordering::Equal => 0,
+                            Ordering::Greater => 1,
+                        };
+                        Ok(Value::Int(IntSigned::IntSize(comp_res)))
+                    }else{
+                        Err(should_never_get_here_for_func("string_compare"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("stringCompare", "StringBox", "NA", b, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("stringCompare", "StringBox", "NA", a, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("stringCompare", "StringBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (stringCompare) error! String comparison \
+                requires two items of type StringBox on the stack! \
+                Attempted values: {} and {}", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("stringCompare", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("stringCompare", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("string_compare")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Performs bitwise OR between two integers.
+fn bit_or(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Int(IntSigned::IntSize(a | b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UIntSize(a | b)))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Int(IntSigned::Int8(a | b)))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Int(IntSigned::Int16(a | b)))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Int(IntSigned::Int32(a | b)))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Int(IntSigned::Int64(a | b)))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Int(IntSigned::Int128(a | b)))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt8(a | b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt16(a | b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt32(a | b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt64(a | b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt128(a | b)))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(numerical_type_error_string("bitOr/|", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("bitOr/|", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("bitOr/|", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("bit_or")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Performs bitwise AND between two matching integer types.
+fn bit_and(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Int(IntSigned::IntSize(a & b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UIntSize(a & b)))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Int(IntSigned::Int8(a & b)))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Int(IntSigned::Int16(a & b)))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Int(IntSigned::Int32(a & b)))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Int(IntSigned::Int64(a & b)))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Int(IntSigned::Int128(a & b)))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt8(a & b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt16(a & b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt32(a & b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt64(a & b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt128(a & b)))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(numerical_type_error_string("bitAnd/&", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("bitAnd/&", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("bitAnd/&", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("bit_and")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Performs bitwise XOR between two matching integer types.
+fn bit_xor(s: &mut State) -> Result<(), String>{
+    let res: Result<Value, String> = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+            Ok(Value::Int(IntSigned::IntSize(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UIntSize(a ^ b)))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+            Ok(Value::Int(IntSigned::Int8(a ^ b)))
+        },
+        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+            Ok(Value::Int(IntSigned::Int16(a ^ b)))
+        },
+        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+            Ok(Value::Int(IntSigned::Int32(a ^ b)))
+        },
+        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+            Ok(Value::Int(IntSigned::Int64(a ^ b)))
+        },
+        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+            Ok(Value::Int(IntSigned::Int128(a ^ b)))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt8(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt16(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt32(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt64(a ^ b)))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt128(a ^ b)))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(numerical_type_error_string("bitXor/^", &a, &b))
+        },
+
+        (None, Some(_)) => {
+            Err(needs_n_args_only_n_provided("bitXor/^", "Two", "only one"))
+        },
+
+        (None, None) => {
+            Err(needs_n_args_only_n_provided("bitXor/^", "Two", "none"))
+        },
+
+        _ => Err(should_never_get_here_for_func("bit_xor")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Performs a bitwise not on an integer on the stack.
+fn bit_not(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::Int(IntSigned::IntSize(n))) => Ok(Value::Int(IntSigned::IntSize(!n))),
+        Some(Value::UInt(IntUnsigned::UIntSize(n))) => Ok(Value::UInt(IntUnsigned::UIntSize(!n))),
+
+        Some(Value::Int(IntSigned::Int8(n))) => Ok(Value::Int(IntSigned::Int8(!n))),
+        Some(Value::Int(IntSigned::Int16(n))) => Ok(Value::Int(IntSigned::Int16(!n))),
+        Some(Value::Int(IntSigned::Int32(n))) => Ok(Value::Int(IntSigned::Int32(!n))),
+        Some(Value::Int(IntSigned::Int64(n))) => Ok(Value::Int(IntSigned::Int64(!n))),
+        Some(Value::Int(IntSigned::Int128(n))) => Ok(Value::Int(IntSigned::Int128(!n))),
+
+        Some(Value::UInt(IntUnsigned::UInt8(n))) => Ok(Value::UInt(IntUnsigned::UInt8(!n))),
+        Some(Value::UInt(IntUnsigned::UInt16(n))) => Ok(Value::UInt(IntUnsigned::UInt16(!n))),
+        Some(Value::UInt(IntUnsigned::UInt32(n))) => Ok(Value::UInt(IntUnsigned::UInt32(!n))),
+        Some(Value::UInt(IntUnsigned::UInt64(n))) => Ok(Value::UInt(IntUnsigned::UInt64(!n))),
+        Some(Value::UInt(IntUnsigned::UInt128(n))) => Ok(Value::UInt(IntUnsigned::UInt128(!n))),
+
+        Some(v) => {
+            Err(format!("Operator (bitNot) error! Bitwise not requires \
+                top of stack to be an integer numeric type! \
+                Attempted value: {}", &v))
+        },
+        None => Err(needs_n_args_only_n_provided("bitNot", "One", "none")),
+
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Performs a bitshift on stuff.
+//OVERFLOW NEEDS TO BE HANDLED LESS JANKILY IN THE FUTURE MOST LIKELY!!!
+fn shift<T: std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> + Default>(n: T, shift_n: isize) -> T{
+    let t_bit_count = std::mem::size_of::<T>() * 8;
+    let shift_n_abs = shift_n.abs() as usize;
+
+    if shift_n >= 0{
+        if shift_n_abs < t_bit_count{
+            n << shift_n_abs
+        }else{
+            T::default()
+        }
+    }else{
+        if shift_n_abs < t_bit_count{
+            n >> shift_n_abs
+        }else{
+            T::default()
+        }
+    }
+}
+
+//Performs a left or right bitshift by n bits on an integer.
+fn bit_shift(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::IntSize(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UIntSize(shift(n, shift_n))))
+        },
+
+        (Some(Value::Int(IntSigned::Int8(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int8(shift(n, shift_n))))
+        },
+        (Some(Value::Int(IntSigned::Int16(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int16(shift(n, shift_n))))
+        },
+        (Some(Value::Int(IntSigned::Int32(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int32(shift(n, shift_n))))
+        },
+        (Some(Value::Int(IntSigned::Int64(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int64(shift(n, shift_n))))
+        },
+        (Some(Value::Int(IntSigned::Int128(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::Int(IntSigned::Int128(shift(n, shift_n))))
+        },
+
+        (Some(Value::UInt(IntUnsigned::UInt8(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt8(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt16(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt32(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt64(shift(n, shift_n))))
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
+            Ok(Value::UInt(IntUnsigned::UInt128(shift(n, shift_n))))
+        },
+
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (bitShift) error! Second to top must \
+                be numeric integer type and top must be type isize! \
+                Attempted values: {} and {}", &a, &b))
+        },
+
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("bitShift", "Two", "only one")),
+
+        (None, None) => Err(needs_n_args_only_n_provided("bitShift", "Two", "none")),
+
+        _ => Err(should_never_get_here_for_func("bit_shift")),
+    };
+
+    push_val_or_err(res, s)
+
+}
+
+//Pushes maximum value for isize datatype to stack.
+fn max_isize(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::IntSize(isize::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for usize datatype to stack.
+fn max_usize(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UIntSize(usize::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i8 datatype to stack.
+fn max_i8(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int8(i8::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i16 datatype to stack.
+fn max_i16(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int16(i16::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i32 datatype to stack.
+fn max_i32(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int32(i32::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i64 datatype to stack.
+fn max_i64(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int64(i64::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for i128 datatype to stack.
+fn max_i128(s: &mut State) -> Result<(), String>{
+    s.push(Value::Int(IntSigned::Int128(i128::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u8 datatype to stack.
+fn max_u8(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt8(u8::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u16 datatype to stack.
+fn max_u16(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt16(u16::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u32 datatype to stack.
+fn max_u32(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt32(u32::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u64 datatype to stack.
+fn max_u64(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt64(u64::MAX)));
+    Ok(())
+}
+
+//Pushes maximum value for u128 datatype to stack.
+fn max_u128(s: &mut State) -> Result<(), String>{
+    s.push(Value::UInt(IntUnsigned::UInt128(u128::MAX)));
+    Ok(())
+}
+
+trait ToFloat32 {
+    fn into_float32(self) -> f32;
+}
+
+trait ToFloat64 {
+    fn into_float64(self) -> f64;
+}
+
+//This eldritch bit of code essentially makes implementation blocks 
+// for every input type to implement ToFloat32 and ToFloat64 traits.
+macro_rules! impl_to_float {
+    //What this block basically says is to loop through zero 
+    // or more type arguments given and generate the two impl's below.
+    ($($t:ty), *) => {
+        $(
+            impl ToFloat32 for $t{
+                fn into_float32(self) -> f32{
+                    self as f32
+                }
+            }
+            impl ToFloat64 for $t {
+                fn into_float64(self) -> f64{
+                    self as f64
+                }
+            }
+        )*
+    }
+}
+
+impl_to_float!(isize, usize, i8, i16, i32, i64, i128, u8, u16, u32, u64, u128, f32, f64);
+
+fn numeric_error_cast_string(v: Value, t: &str, r: &str) -> String{
+    format!("Operator (cast) error! Failed to cast {} to type {} because: {}", v, t, r)
+}
+
+fn invalid_cast_error(t: &str) -> String{
+    format!("{} is not a valid type to cast \
+        this data type to or is an invalid type", t)
+}
+
+//Tries to cast a numeric type to all the other types it could be.
+fn cast_num_to_others<T>(t: &str, v: T) -> Result<Value, String>
+where 
+    T: 
+        TryInto<isize> + 
+        TryInto<usize> +
+        TryInto<i8> +
+        TryInto<i16> +
+        TryInto<i32> +
+        TryInto<i64> +
+        TryInto<i128> +
+        TryInto<u8> +
+        TryInto<u16> +
+        TryInto<u32> +
+        TryInto<u64> +
+        TryInto<u128> +
+        ToFloat32 + 
+        ToFloat64 +
+        Display,
+    <T as TryInto<isize>>::Error: std::fmt::Display,
+    <T as TryInto<usize>>::Error: std::fmt::Display,
+    <T as TryInto<i8>>::Error: std::fmt::Display,
+    <T as TryInto<i16>>::Error: std::fmt::Display,
+    <T as TryInto<i32>>::Error: std::fmt::Display,
+    <T as TryInto<i64>>::Error: std::fmt::Display,
+    <T as TryInto<i128>>::Error: std::fmt::Display,
+    <T as TryInto<u8>>::Error: std::fmt::Display,
+    <T as TryInto<u16>>::Error: std::fmt::Display,
+    <T as TryInto<u32>>::Error: std::fmt::Display,
+    <T as TryInto<u64>>::Error: std::fmt::Display,
+    <T as TryInto<u128>>::Error: std::fmt::Display,
+{
+    match t{
+        "isize" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::IntSize(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        }, 
+        "usize" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UIntSize(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        }, 
+        "i8" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int8(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "i16" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int16(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "i32" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int32(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "i64" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int64(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "i128" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::Int(IntSigned::Int128(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u8" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt8(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u16" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt16(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u32" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt32(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u64" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt64(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+        "u128" => {
+            match v.try_into(){
+                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt128(casted))),
+                Err(reason) => Err(reason.to_string()),
+            }
+        },
+
+        "f32" => {
+            Ok(Value::Float32(v.into_float32()))
+        },
+
+        "f64" => {
+            Ok(Value::Float64(v.into_float64()))
+        },
+
+        "Char" => {
+            match v.try_into(){
+                Ok(u32_val) => {
+                    match std::char::from_u32(u32_val){
+                        Some(casted) => Ok(Value::Char(casted)),
+                        None => Err("given value is outside of valid UTF-8 Char range!".to_string()),
+                    }   
+                },
+                Err(u32_cast_fail) => Err(format!("{}, which means that the given value was unable \
+                    to be converted to a u32 to then be converted to a Char!", u32_cast_fail)),
+            }
+        },
+
+        "String" => {
+            Ok(Value::String(v.to_string()))
+        },
+        t => Err(invalid_cast_error(t)), 
+    }
+
+}
+
+fn bad_stringbox_for_casting_error(box_num: usize) -> String{
+    bad_box_error("cast", "StringBox", "NA", box_num, usize::MAX, false)
+}
+
+//Function with a generic that carries out the casting action 
+// for all numeric data types to make the main cast function more compact.
+fn integer_cast_action<T>(s: &mut State, v: Value, v_inside: T, bn: usize) -> Result<Value, String>
+where 
+    T: 
+        TryInto<isize> + 
+        TryInto<usize> +
+        TryInto<i8> +
+        TryInto<i16> +
+        TryInto<i32> +
+        TryInto<i64> +
+        TryInto<i128> +
+        TryInto<u8> +
+        TryInto<u16> +
+        TryInto<u32> +
+        TryInto<u64> +
+        TryInto<u128> +
+        ToFloat32 + 
+        ToFloat64 +
+        Display,
+    <T as TryInto<isize>>::Error: std::fmt::Display,
+    <T as TryInto<usize>>::Error: std::fmt::Display,
+    <T as TryInto<i8>>::Error: std::fmt::Display,
+    <T as TryInto<i16>>::Error: std::fmt::Display,
+    <T as TryInto<i32>>::Error: std::fmt::Display,
+    <T as TryInto<i64>>::Error: std::fmt::Display,
+    <T as TryInto<i128>>::Error: std::fmt::Display,
+    <T as TryInto<u8>>::Error: std::fmt::Display,
+    <T as TryInto<u16>>::Error: std::fmt::Display,
+    <T as TryInto<u32>>::Error: std::fmt::Display,
+    <T as TryInto<u64>>::Error: std::fmt::Display,
+    <T as TryInto<u128>>::Error: std::fmt::Display,
+{
+    if s.validate_box(bn){
+        if let Value::String(ref t) = &s.heap[bn].0{
+            match cast_num_to_others(t, v_inside){
+                Ok(Value::String(st)) => {
+                    let new_bn = s.insert_to_heap(Value::String(st));
+                    Ok(Value::StringBox(new_bn))
+                },
+                Ok(val) => Ok(val),
+                Err(reason) => Err(numeric_error_cast_string(v, t, &reason)), 
+            }
+        }else{
+            Err(should_never_get_here_for_func("cast_stuff"))
+        }
+    }else{
+        Err(bad_stringbox_for_casting_error(bn))
+    }
+}
+
+fn string_cast_error(bn: usize, str_contents: &str, t: &str, reason: &str) -> String{
+    format!("Operator (cast) error! Failed to cast \
+        StringBox {} (\"{}\") to type {} because: {}", bn, str_contents, t, reason)
+}
+
+//Performs all valid casts in existence wherein the top 
+// of the stack tries to be casted to another data type.
+fn cast_stuff(s: &mut State) -> Result<(), String>{
+    let res = match s.pop2(){
+        (Some(Value::Int(IntSigned::IntSize(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int(IntSigned::IntSize(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UIntSize(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UIntSize(n)), n, bn)
+        },
+
+        (Some(Value::Int(IntSigned::Int8(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int(IntSigned::Int8(n)), n, bn)
+        },
+        (Some(Value::Int(IntSigned::Int16(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int(IntSigned::Int16(n)), n, bn)
+        },
+        (Some(Value::Int(IntSigned::Int32(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int(IntSigned::Int32(n)), n, bn)
+        },
+        (Some(Value::Int(IntSigned::Int64(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int(IntSigned::Int64(n)), n, bn)
+        },
+        (Some(Value::Int(IntSigned::Int128(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int(IntSigned::Int128(n)), n, bn)
+        },
+        
+        (Some(Value::UInt(IntUnsigned::UInt8(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt8(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UInt16(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt16(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UInt32(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt32(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UInt64(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt64(n)), n, bn)
+        },
+        (Some(Value::UInt(IntUnsigned::UInt128(n))), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt(IntUnsigned::UInt128(n)), n, bn)
+        },
+
+        (Some(Value::Float32(n)), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    let t: &str = t;
+                    match t{
+                        "isize" => Ok(Value::Int(IntSigned::IntSize(n as isize))),
+                        "usize" => Ok(Value::UInt(IntUnsigned::UIntSize(n as usize))),
+
+                        "i8" => Ok(Value::Int(IntSigned::Int8(n as i8))),
+                        "i16" => Ok(Value::Int(IntSigned::Int16(n as i16))),
+                        "i32" => Ok(Value::Int(IntSigned::Int32(n as i32))),
+                        "i64" => Ok(Value::Int(IntSigned::Int64(n as i64))),
+                        "i128" => Ok(Value::Int(IntSigned::Int128(n as i128))),
+
+                        "u8" => Ok(Value::UInt(IntUnsigned::UInt8(n as u8))),
+                        "u16" => Ok(Value::UInt(IntUnsigned::UInt16(n as u16))),
+                        "u32" => Ok(Value::UInt(IntUnsigned::UInt32(n as u32))),
+                        "u64" => Ok(Value::UInt(IntUnsigned::UInt64(n as u64))),
+                        "u128" => Ok(Value::UInt(IntUnsigned::UInt128(n as u128))),
+
+                        "f32" => Ok(Value::Float32(n as f32)),
+                        "f64" => Ok(Value::Float64(n as f64)),
+
+                        "String" => {
+                            let f32_str = format!("{}", Value::Float32(n));
+                            let new_bn = s.insert_to_heap(Value::String(f32_str[4..].to_string()));
+                            Ok(Value::StringBox(new_bn))
+                        },
+
+                        t => Err(numeric_error_cast_string(Value::Float32(n), t, &(invalid_cast_error(t)))),
+                    }
+
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
+
+        (Some(Value::Float64(n)), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    let t: &str = t;
+                    match t{
+                        "isize" => Ok(Value::Int(IntSigned::IntSize(n as isize))),
+                        "usize" => Ok(Value::UInt(IntUnsigned::UIntSize(n as usize))),
+
+                        "i8" => Ok(Value::Int(IntSigned::Int8(n as i8))),
+                        "i16" => Ok(Value::Int(IntSigned::Int16(n as i16))),
+                        "i32" => Ok(Value::Int(IntSigned::Int32(n as i32))),
+                        "i64" => Ok(Value::Int(IntSigned::Int64(n as i64))),
+                        "i128" => Ok(Value::Int(IntSigned::Int128(n as i128))),
+
+                        "u8" => Ok(Value::UInt(IntUnsigned::UInt8(n as u8))),
+                        "u16" => Ok(Value::UInt(IntUnsigned::UInt16(n as u16))),
+                        "u32" => Ok(Value::UInt(IntUnsigned::UInt32(n as u32))),
+                        "u64" => Ok(Value::UInt(IntUnsigned::UInt64(n as u64))),
+                        "u128" => Ok(Value::UInt(IntUnsigned::UInt128(n as u128))),
+
+                        "f32" => Ok(Value::Float32(n as f32)),
+                        "f64" => Ok(Value::Float64(n as f64)),
+
+                        "String" => {
+                            let f64_str = format!("{}", Value::Float64(n));
+                            let new_bn = s.insert_to_heap(Value::String(f64_str[4..].to_string()));
+                            Ok(Value::StringBox(new_bn))
+                        },
+
+                        t => Err(numeric_error_cast_string(Value::Float64(n), t, &(invalid_cast_error(t)))),
+                    }
+
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
+
+        (Some(Value::Char(c)), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    let t: &str = t;
+                    match t{
+                        "isize" => Ok(Value::Int(IntSigned::IntSize(c as isize))),
+                        "usize" => Ok(Value::UInt(IntUnsigned::UIntSize(c as usize))),
+
+                        "i8" => Ok(Value::Int(IntSigned::Int8(c as i8))),
+                        "i16" => Ok(Value::Int(IntSigned::Int16(c as i16))),
+                        "i32" => Ok(Value::Int(IntSigned::Int32(c as i32))),
+                        "i64" => Ok(Value::Int(IntSigned::Int64(c as i64))),
+                        "i128" => Ok(Value::Int(IntSigned::Int128(c as i128))),
+
+                        "u8" => Ok(Value::UInt(IntUnsigned::UInt8(c as u8))),
+                        "u16" => Ok(Value::UInt(IntUnsigned::UInt16(c as u16))),
+                        "u32" => Ok(Value::UInt(IntUnsigned::UInt32(c as u32))),
+                        "u64" => Ok(Value::UInt(IntUnsigned::UInt64(c as u64))),
+                        "u128" => Ok(Value::UInt(IntUnsigned::UInt128(c as u128))),
+
+                        "String" => {
+                            let new_bn = s.insert_to_heap(Value::String(c.to_string()));
+                            Ok(Value::StringBox(new_bn))
+                        },
+
+                        t => Err(numeric_error_cast_string(Value::Char(c), t, &(invalid_cast_error(t)))),
+                    }
+
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }
+        },
+
+        (Some(Value::Boolean(b)), Some(Value::StringBox(bn))) => {
+            if s.validate_box(bn){
+                if let Value::String(ref t) = &s.heap[bn].0{
+                    let t: &str = t;
+                    match t{
+                        "isize" => Ok(Value::Int(IntSigned::IntSize(b as isize))),
+                        "usize" => Ok(Value::UInt(IntUnsigned::UIntSize(b as usize))),
+
+                        "i8" => Ok(Value::Int(IntSigned::Int8(b as i8))),
+                        "i16" => Ok(Value::Int(IntSigned::Int16(b as i16))),
+                        "i32" => Ok(Value::Int(IntSigned::Int32(b as i32))),
+                        "i64" => Ok(Value::Int(IntSigned::Int64(b as i64))),
+                        "i128" => Ok(Value::Int(IntSigned::Int128(b as i128))),
+
+                        "u8" => Ok(Value::UInt(IntUnsigned::UInt8(b as u8))),
+                        "u16" => Ok(Value::UInt(IntUnsigned::UInt16(b as u16))),
+                        "u32" => Ok(Value::UInt(IntUnsigned::UInt32(b as u32))),
+                        "u64" => Ok(Value::UInt(IntUnsigned::UInt64(b as u64))),
+                        "u128" => Ok(Value::UInt(IntUnsigned::UInt128(b as u128))),
+
+                        "String" => {
+                            let new_bn = s.insert_to_heap(Value::String(b.to_string()));
+                            Ok(Value::StringBox(new_bn))
+                        },
+
+                        t => Err(numeric_error_cast_string(Value::Boolean(b), t, &(invalid_cast_error(t)))),
+                    }
+
+                }else{
+                    Err(should_never_get_here_for_func("cast_stuff"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(bn))
+            }  
+        },
+
+        (Some(Value::StringBox(string_num)), Some(Value::StringBox(bn))) => {
+            match (s.validate_box(string_num), s.validate_box(bn)) {
+                (true, true) => {
+                    if let (Value::String(ref st), Value::String(ref t)) = (&s.heap[string_num].0, &s.heap[bn].0){
+                        let t: &str = t;
+                        match t{
+                            "isize" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::IntSize(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "usize" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UIntSize(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            
+                            "i8" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int8(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "i16" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int16(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "i32" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int32(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "i64" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int64(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "i128" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Int(IntSigned::Int128(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+
+                            "u8" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt8(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "u16" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt16(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "u32" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt32(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "u64" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt64(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "u128" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt128(casted))),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+
+                            "f32" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Float32(casted)),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+                            "f64" => {
+                                match (*st).parse(){
+                                    Ok(casted) => Ok(Value::Float64(casted)),
+                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
+                                }
+                            },
+
+                            "Boolean" => {
+                                if st == "True" || st == "true"{
+                                    Ok(Value::Boolean(true))
+                                }else if st == "False" || st == "false"{
+                                    Ok(Value::Boolean(false))
+                                }else{
+                                    Err(string_cast_error(string_num, st, t, 
+                                        &String::from("provided string is not a valid Boolean")))
+                                }
+                            },
+
+                            //Casting a string to a string is basically a no-op. 
+                            "String" => {
+                                Ok(Value::StringBox(string_num))
+                            },
+
+                            "List" => {
+                                let char_ls: Vec<Value> = st
+                                    .chars()
+                                    .map(|c| Value::Char(c))
+                                    .collect();
+                                let ls_bn = s.insert_to_heap(Value::List(char_ls));
+                                Ok(Value::ListBox(ls_bn))
+                            },
+
+                            t => Err(string_cast_error(string_num, st, t, &invalid_cast_error(t))),
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("cast_stuff"))
+                    }
+                },
+                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
+                (false, true) => Err(bad_stringbox_for_casting_error(string_num)),
+                (false, false) => Err(bad_box_error("cast", "StringBox", "StringBox", string_num, bn, true)),
+            }
+        },
+
+        (Some(Value::ListBox(ls_num)), Some(Value::StringBox(bn))) => {
+            match (s.validate_box(ls_num), s.validate_box(bn)) {
+                (true, true) => {
+                    if let (ref ls, Value::String(ref t)) = (&s.heap[ls_num].0, &s.heap[bn].0){
+                        let t: &str = t;
+                        match t{
+                            "List" => Ok(Value::ListBox(ls_num)),
+                            "String" => {
+                                let ls_str = format!("{}", ls);
+                                let new_bn = s.insert_to_heap(Value::String(ls_str[5..].to_string()));
+                                Ok(Value::StringBox(new_bn))
+                            },
+                            t => Err(format!("Operator (cast) error! Failed \
+                                to cast ListBox {} to {} because: {}", ls_num, t, &invalid_cast_error(t))),
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("cast_stuff"))
+                    }
+                },
+                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
+                (false, true) => Err(bad_box_error("cast", "ListBox", "NA", ls_num, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("cast", "ListBox", "StringBox", ls_num, bn, true)),
+            }
+        },
+
+        (Some(Value::ObjectBox(obj_num)), Some(Value::StringBox(bn))) => {
+            match (s.validate_box(obj_num), s.validate_box(bn)) {
+                (true, true) => {
+                    if let (ref obj, Value::String(ref t)) = (&s.heap[obj_num].0, &s.heap[bn].0){
+                        let t: &str = t;
+                        match t{
+                            "Object" => Ok(Value::ObjectBox(obj_num)),
+                            "String" => {
+                                let obj_str = format!("{}", obj);
+                                let new_bn = s.insert_to_heap(Value::String(obj_str[7..].to_string()));
+                                Ok(Value::StringBox(new_bn))
+                            },
+                            t => Err(format!("Operator (cast) error! Failed \
+                                to cast ObjectBox {} to {} because: {}", obj_num, t, &invalid_cast_error(t))),
+                        }
+                    }else{
+                        Err(should_never_get_here_for_func("cast_stuff"))
+                    }
+                },
+                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
+                (false, true) => Err(bad_box_error("cast", "ObjectBox", "NA", obj_num, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("cast", "ObjectBox", "StringBox", obj_num, bn, true)),
+            }
+        },
+
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (cast) error! Second to top \
+                of stack must be of type Value and a castable type, \
+                and top of stack must be of type StringBox! \
+                Attempted values: {} and {}", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("cast", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("cast", "Two", "none")),
+
+        _ => Err(should_never_get_here_for_func("cast_stuff")),
+    };
+
+    push_val_or_err(res, s)
+}
+
+//Creates an error string that indicates a wrong 
+// given type for the various print io functions.
+fn io_needing_one_item_on_stack_error(op_type: &str, needed_type: &str, attempted_value: &Value) -> String{
+    format!("Operator ({}) error! Top of stack must be type {}! \
+        Attempted value: {}", op_type, needed_type, attempted_value)
+}
+
+//Prints contents of a string box and consumes it. 
+// Like everything else, the stringbox is not free'd.
+fn print_line(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = &s.heap[bn].0{
+                    println!("{}", st);
+                    Ok(())
+                }else{
+                    Err(should_never_get_here_for_func("print_line"))
+                }
+            }else{
+                Err(bad_box_error("printLine", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(io_needing_one_item_on_stack_error("printLine", "StringBox", &v)),
+        None => Err(needs_n_args_only_n_provided("printLine", "One", "none")),
+    }
+}
+
+//Reads a line from stdin and allocates it as 
+// a string on the heap, pushing a stringbox to the stack.
+fn read_line_from_in(s: &mut State) -> Result<(), String>{
+    let mut input = String::new();
+    io::stdin().read_line(&mut input).expect("READ-LINE FAILED");
+    if input.ends_with("\n"){
+        let _ = input.pop();
+    }
+
+    let bn = s.insert_to_heap(Value::String(replace_literals_with_escapes(&input)));
+    s.push(Value::StringBox(bn));
+
+    Ok(())
+
+}
+
+//Prints out a single char to stdout. 
+// Top of stack must be a char.
+fn print_char(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::Char(c)) => {
+            print!("{}", c);
+            Ok(())
+        },
+        Some(v) => Err(io_needing_one_item_on_stack_error("printChar", "Char", &v)),
+        None => Err(needs_n_args_only_n_provided("printChar", "One", "none")),
+    }
+}
+
+fn unable_to_read_error(op_type: &str, reason: &str) -> String{
+    format!("Operator ({}) error! Unable to read from stdin because: {}", op_type, reason)
+}
+
+//Reads in one Char from stdin and pushes it to the stack.
+//SEEMS TO WORK WELL ENOUGH, ASSUMING THERE'S NO CRAZY EDGE CASE THAT WOULD DESTROY THIS
+fn read_char(s: &mut State) -> Result<(), String>{
+    let mut buff: [u8; 1] = [0];
+    let mut buff_collection: [u8; 4] = [0; 4];
+    let mut buff_collection_length: usize = 0;
+
+    //Reads until it hits a valid character.
+    loop{
+        //Reads one byte into the buffer and adds to the byte vec for conversion, 
+        // or throws an error if there were explosions.
+        match io::stdin().read(&mut buff){
+            Ok(_) => {
+                buff_collection[buff_collection_length] = buff[0];
+                buff_collection_length += 1;
+            }, 
+            Err(e) => return Err(unable_to_read_error("readChar", &e.to_string())),
+        }
+
+        //Tries to convert the read in bytes to a valid utf-8 string.
+        // Once it succeeds it grabs the first char from it and pushes it to the stack.
+        if let Ok(st) = std::str::from_utf8(&buff_collection[0..buff_collection_length]){
+            if let Some(c) = st.chars().nth(0){
+                s.push(Value::Char(c));
+                return Ok(());
+            }
+        }
 
     }
 
+}
+
+//Prints contents of a string box and consumes it. 
+// Like everything else, the stringbox is not free'd.
+//Unlike printline, this operator doesn't append a newline character.
+fn print_string(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref st) = &s.heap[bn].0{
+                    print!("{}", st);
+                    Ok(())
+                }else{
+                    Err(should_never_get_here_for_func("print_string"))
+                }
+            }else{
+                Err(bad_box_error("print", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(io_needing_one_item_on_stack_error("print", "StringBox", &v)),
+        None => Err(needs_n_args_only_n_provided("print", "One", "none")),
+    }
+}
+
+//Reads the contents of stdin into a string. Basically like readline \
+// but doesn't stop reading until stdin is manually closed.
+fn read_from_in(s: &mut State) -> Result<(), String>{
+    let mut buff: [u8; 8192] = [0; 8192];
+    let mut bytes: Vec<u8> = Vec::new();
+
+    loop{
+        match io::stdin().read(&mut buff){
+            Ok(bytes_read) => {
+                if bytes_read > 0{
+                    bytes.extend_from_slice(&buff[0..bytes_read]);
+                }else{
+                    break;
+                }
+            },
+            Err(e) => return Err(unable_to_read_error("read", &e.to_string())),
+        }
+    }
+
+    match std::str::from_utf8(&bytes){
+        Ok(st) => {
+            let new_string = replace_literals_with_escapes(&st);
+            let bn = s.insert_to_heap(Value::String(new_string));
+            s.push(Value::StringBox(bn));
+            Ok(())
+        },
+        Err(e) => {
+            Err(format!("Operator (read) error! Unable to \
+                convert input to a proper string because: {}", e))
+        },
+    }
+
+}
+
+//Prints each item on the stack while 
+// also indicating if box types are valid or not.
+fn debug_stack_print(s: &mut State) -> Result<(), String>{
+    let filler_str = "--------------------------------";
+
+    println!("{}", filler_str);
+    println!("BEGIN STACK PRINT\n{}", filler_str);
+    for item in s.stack.iter(){
+        match item {
+            Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) | Value::MiscBox(bn) => {
+                if s.validate_box(*bn){
+                    println!("{}", item);
+                }else{
+                    //NEEDS TESTING, SINCE FREEING BOXES DOESN'T EXIST YET!
+                    println!("{} [INVALID]", item);
+                }
+            },
+            _ => println!("{}", item),
+        }
+    }
+
+    println!("{}", filler_str);
+    println!("STACK LENGTH: {}", s.stack.len());
+    println!("{}\nEND STACK PRINT", filler_str); 
+    println!("{}", filler_str);
+
     Ok(())
+}
+
+//Prints the whole heap to stdout for debugging purposes.
+//This is something like O(n^2) at least so definitely only use it for debugging!
+fn debug_heap_print(s: &mut State) -> Result<(), String>{
+    let filler_str = "////////////////////////////////";
     
+    println!("{}", filler_str);
+    println!("BEGIN HEAP PRINT\n{}", filler_str);
+    
+    for i in 0..(s.heap.len()){
+        if s.heap[i].1{
+            println!("BOX {}:\n\t{}", i, s.heap[i].0);
+        }else{
+            //NEEDS TESTING, SINCE FREEING BOXES DOESN'T EXIST YET!
+            println!("BOX {}:\n[INVALID]\n\t{}", i, s.heap[i].0);
+        }
+    }
+
+    println!("{}", filler_str);
+    println!("HEAP SIZE: {}\n{}", s.heap.len(), filler_str);
+    print!("FREE'D BOX NUMBERS: [");
+    for i in 0..(s.free_list.len()){
+        if i < (s.free_list.len() - 1){
+            print!("{}, ", s.free_list[i]);
+        }else{
+            print!("{}", s.free_list[i]);
+        }
+    }
+    println!("]\n{}\nFREE'D BOX NUMBERS LENGTH: {}", filler_str, s.free_list.len());
+    println!("{}\nEND HEAP PRINT", filler_str);
+    println!("{}", filler_str);
+
+    Ok(())
+}
+
+//Writes the data of one stringbox to a file with the name held in the other string box. 
+// Creates a file if one doesn't exist. 
+fn write_data_to_file(s: &mut State) -> Result<(), String>{
+    match s.pop2(){
+        (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
+            match (s.validate_box(a), s.validate_box(b)){
+                (true, true) => {
+                    if let (Value::String(ref file_name), Value::String(ref string_to_write)) = (&s.heap[a].0, &s.heap[b].0){
+                        let file_path = Path::new(file_name);
+                        let mut file = match OpenOptions::new().write(true).truncate(true).open(file_path){
+                            Ok(f) => f,
+                            Err(reason) => {
+                                return Err(format!("Operator (fileWrite) error! \
+                                    Unable to open file name {} \
+                                    because: {}", file_name, reason.to_string()));
+                            },
+                        };
+
+                        match file.write_all(string_to_write.as_bytes()){
+                            Ok(_) => Ok(()),
+                            Err(reason) => {
+                                Err(format!("Operator (fileWrite) error! \
+                                    Unable to write to {} because: {}", file_name, reason))
+                            },
+                        }
+
+                    }else{
+                        Err(should_never_get_here_for_func("write_data_to_file"))
+                    }
+                },
+                (true, false) => Err(bad_box_error("fileWrite", "StringBox", "NA", a, usize::MAX, false)),
+                (false, true) => Err(bad_box_error("fileWrite", "StringBox", "NA", b, usize::MAX, false)),
+                (false, false) => Err(bad_box_error("fileWrite", "StringBox", "StringBox", a, b, true)),
+            }
+        },
+        (Some(a), Some(b)) => {
+            Err(format!("Operator (fileWrite) error! Second to top \
+                and top of stack must both be of type StringBox! \
+                Attempted values: {} and {}", &a, &b))
+        },
+        (None, Some(_)) => Err(needs_n_args_only_n_provided("fileWrite", "Two", "only one")),
+        (None, None) => Err(needs_n_args_only_n_provided("fileWrite", "Two", "none")),
+        _ => Err(should_never_get_here_for_func("write_data_to_file")),
+    }
+}
+
+fn single_arg_file_io_type_error(op_type: &str, v: &Value) -> String{
+    format!("Operator ({}) error! Top of stack must \
+     be type StringBox! Attempted value: {}", op_type, v)
+}
+
+//Reads the contents of a file into a string and allocates it on the heap.
+fn read_data_from_file(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref file_name) = &s.heap[bn].0{
+                    let file_path = Path::new(file_name);
+                    let mut file = match OpenOptions::new().read(true).open(file_path){
+                        Ok(f) => f,
+                        Err(reason) => {
+                            return Err(format!("Operator (fileRead) error! Unable \
+                                to open file {} because: {}", file_name, reason.to_string()));
+                        },
+                    };
+
+                    let mut literal_file_string = String::new();
+                    match file.read_to_string(&mut literal_file_string){
+                        Ok(_) => {},
+                        Err(reason) => {
+                            return Err(format!("Operator (fileRead) error! Failed \
+                                to read from file {} because: {}", file_name, reason));
+                        },
+                    }
+                    
+                    let file_string = replace_literals_with_escapes(&literal_file_string);
+                    let new_bn = s.insert_to_heap(Value::String(file_string));
+
+                    s.push(Value::StringBox(new_bn));
+                    Ok(())
+
+                }else{
+                    Err(should_never_get_here_for_func("read_data_from_file"))
+                }
+            }else{
+                Err(bad_box_error("fileRead", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(single_arg_file_io_type_error("fileRead", &v)),
+        None => Err(needs_n_args_only_n_provided("fileRead", "One", "none")),
+    }
+}
+
+//Creates a file with the desired name. Throws error if the file already exists.
+fn create_file_based_on_string(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref file_name) = &s.heap[bn].0{
+                    let file_path = Path::new(file_name);
+
+                    //Throws error if file with given name already exists.
+                    match File::open(file_path){
+                        Ok(_) => {
+                            return Err(format!("Operator (fileCreate) error! Unable \
+                                to create file {} because it already exists!", file_name));
+                        },
+                        Err(_) => {},
+                    }
+
+                    match File::create(file_path){
+                        Ok(_) => {},
+                        Err(reason) => {
+                            return Err(format!("Operator (fileCreate) error! Unable \
+                                to create file {} because: {}", file_name, reason.to_string()));
+                        },
+                    }
+
+                    Ok(())
+
+                }else{
+                    Err(should_never_get_here_for_func("create_file_based_on_string"))
+                }
+            }else{
+                Err(bad_box_error("fileCreate", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(single_arg_file_io_type_error("fileCreate", &v)),
+        None => Err(needs_n_args_only_n_provided("fileCreate", "One", "none")),
+    }
+}
+
+//Deletes a file with the input name.
+fn delete_file_based_on_string(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref file_name) = &s.heap[bn].0{
+                    let file_path = Path::new(file_name);
+
+                    match remove_file(file_path){
+                        Ok(_) => {},
+                        Err(reason) => {
+                            return Err(format!("Operator (fileRemove) error! Unable \
+                                to remove file {} because: {}", file_name, reason.to_string()));
+                        },
+                    }
+
+                    Ok(())
+
+                }else{
+                    Err(should_never_get_here_for_func("delete_file_based_on_string"))
+                }
+            }else{
+                Err(bad_box_error("fileRemove", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(single_arg_file_io_type_error("fileRemove", &v)),
+        None => Err(needs_n_args_only_n_provided("fileRemove", "One", "none")),
+    }
+}
+
+//Pushes a boolean based on whether or not the file exists.
+fn file_exists(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let Value::String(ref file_name) = &s.heap[bn].0{
+                    let file_path = Path::new(file_name);
+
+                    //THIS MIGHT BE TOO BROAD, WITH PERMISSIONS EDGE CASES GETTING IN THE WAY
+                    let exists = match File::open(file_path){
+                        Ok(_) => true,
+                        Err(_) => false,
+                    };
+
+                    s.push(Value::Boolean(exists));
+
+                    Ok(())
+
+                }else{
+                    Err(should_never_get_here_for_func("file_exists"))
+                }
+            }else{
+                Err(bad_box_error("fileExists", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(single_arg_file_io_type_error("fileExists", &v)),
+        None => Err(needs_n_args_only_n_provided("fileExists", "One", "none")),
+    }
 }
 
 impl State{
@@ -352,7 +3910,115 @@ impl State{
     fn new() -> Self{
         //Creates lookup table for operator functions.
         let mut ops_map: HashMap<String, OpFunc> = HashMap::new();
+        //Basic math operators.
         ops_map.insert("+".to_string(), add);
+        ops_map.insert("-".to_string(), sub);
+        ops_map.insert("*".to_string(), mult);
+        ops_map.insert("/".to_string(), div);
+        ops_map.insert("%".to_string(), modulo);
+        ops_map.insert("mod".to_string(), modulo);
+        ops_map.insert("pow".to_string(), power);
+
+        //Maximum values for each integer data type operators.
+        ops_map.insert("isizeMax".to_string(), max_isize);
+        ops_map.insert("usizeMax".to_string(), max_usize);
+        ops_map.insert("i8Max".to_string(), max_i8);
+        ops_map.insert("i16Max".to_string(), max_i16);
+        ops_map.insert("i32Max".to_string(), max_i32);
+        ops_map.insert("i64Max".to_string(), max_i64);
+        ops_map.insert("i128Max".to_string(), max_i128);
+        ops_map.insert("u8Max".to_string(), max_u8);
+        ops_map.insert("u16Max".to_string(), max_u16);
+        ops_map.insert("u32Max".to_string(), max_u32);
+        ops_map.insert("u64Max".to_string(), max_u64);
+        ops_map.insert("u128Max".to_string(), max_u128);
+
+        //Stack operators.
+        ops_map.insert("swap".to_string(), swap);
+        ops_map.insert("drop".to_string(), drop);
+        ops_map.insert("dropStack".to_string(), drop_stack);
+        ops_map.insert("rot".to_string(), rot);
+        ops_map.insert("dup".to_string(), dup);
+        ops_map.insert("deepDup".to_string(), deep_dup);
+
+        //Comparison operators.
+        ops_map.insert("==".to_string(), is_equal);
+        ops_map.insert("!=".to_string(), is_not_equal);
+        ops_map.insert(">".to_string(), is_greater_than);
+        ops_map.insert("<".to_string(), is_less_than);
+        ops_map.insert(">=".to_string(), is_greater_than_equal_to);
+        ops_map.insert("<=".to_string(), is_less_than_equal_to);
+        ops_map.insert("stringCompare".to_string(), string_compare);
+
+        //String concatenation operator.
+        ops_map.insert("++".to_string(), concat);
+
+        //Basic logical operators.
+        ops_map.insert("and".to_string(), and);
+        ops_map.insert("&&".to_string(), and);
+        ops_map.insert("or".to_string(), or);
+        ops_map.insert("||".to_string(), or);
+        ops_map.insert("xor".to_string(), xor);
+        ops_map.insert("not".to_string(), not);
+        ops_map.insert("!".to_string(), not);
+
+        //List/String operations.
+        ops_map.insert("push".to_string(), list_push);
+        ops_map.insert("p".to_string(), list_push);
+        ops_map.insert("pop".to_string(), list_pop);
+        ops_map.insert("po".to_string(), list_pop);
+        ops_map.insert("fpush".to_string(), list_front_push);
+        ops_map.insert("fp".to_string(), list_front_push);
+        ops_map.insert("fpop".to_string(), list_front_pop);
+        ops_map.insert("fpo".to_string(), list_front_pop);
+        ops_map.insert("index".to_string(), index);
+        ops_map.insert("length".to_string(), length);
+        ops_map.insert("len".to_string(), length);
+        ops_map.insert("isEmpty".to_string(), is_empty);
+        ops_map.insert("clear".to_string(), list_clear);
+        ops_map.insert("contains".to_string(), list_contains);
+        ops_map.insert("changeItemAt".to_string(), change_item_at);
+
+        //Character operators
+        ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
+        ops_map.insert("isAlphaChar".to_string(), alpha_char_detect);
+        ops_map.insert("isNumChar".to_string(), num_char_detect);
+
+        //Object operators
+        ops_map.insert("objAddField".to_string(), add_field);
+        ops_map.insert("objGetField".to_string(), get_field);
+        ops_map.insert("objMutField".to_string(), mut_field);
+        ops_map.insert("objRemField".to_string(), remove_field);
+
+        //Bitwise operators
+        ops_map.insert("bitOr".to_string(), bit_or);
+        ops_map.insert("|".to_string(), bit_or);
+        ops_map.insert("bitAnd".to_string(), bit_and);
+        ops_map.insert("&".to_string(), bit_and);
+        ops_map.insert("bitXor".to_string(), bit_xor);
+        ops_map.insert("^".to_string(), bit_xor);
+        ops_map.insert("bitNot".to_string(), bit_not);
+        ops_map.insert("bitShift".to_string(), bit_shift);
+
+        //Casting
+        ops_map.insert("cast".to_string(), cast_stuff);
+        
+        //IO operators
+        ops_map.insert("printLine".to_string(), print_line);
+        ops_map.insert("readLine".to_string(), read_line_from_in);
+        ops_map.insert("printChar".to_string(), print_char);
+        ops_map.insert("readChar".to_string(), read_char);
+        ops_map.insert("print".to_string(), print_string);
+        ops_map.insert("read".to_string(), read_from_in);
+        ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
+        ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
+        
+        //File IO operators
+        ops_map.insert("fileWrite".to_string(), write_data_to_file);
+        ops_map.insert("fileRead".to_string(), read_data_from_file);
+        ops_map.insert("fileCreate".to_string(), create_file_based_on_string);
+        ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
+        ops_map.insert("fileExists".to_string(), file_exists);
 
         State {
             stack: Vec::new(),
@@ -375,6 +4041,19 @@ impl State{
         }else{
             self.heap.push((ins_val, true));
             return self.heap.len() - 1;
+        }
+    }
+
+    //Returns a boolean based on whether or not the desired box number is valid.
+    fn validate_box(&self, box_num: usize) -> bool{
+        box_num >= 0 && box_num < self.heap.len() && self.heap[box_num].1
+    }
+
+    //Frees a cell in a heap or does nothing if it's invalid already.
+    fn free_heap_cell(&mut self, box_num: usize){
+        if self.validate_box(box_num){
+            self.heap[box_num].1 = false;
+            self.free_list.push(box_num);
         }
     }
 
@@ -430,12 +4109,12 @@ fn tokenize(chars: &Vec<char>) -> Vec<String>{
         match (chars[i], in_string, in_comment){
             //Char tokenization
             ('\'', false, false) => {
-                if ((i + 2) < chars.len()) && (chars[i + 2] == '\''){
-                    tokens.push(String::from(format!("\'{}\'", chars[i + 1])));
-                    i += 3;
-                }else if ((i + 3) < chars.len()) && (chars[i + 1] == '\\') && (chars[i + 3] == '\'') {
+                if ((i + 3) < chars.len()) && (chars[i + 1] == '\\') && (chars[i + 3] == '\''){
                     tokens.push(String::from(format!("\'\\{}\'", chars[i + 2])));
                     i += 4;
+                }else if ((i + 2) < chars.len()) && (chars[i + 2] == '\''){
+                    tokens.push(String::from(format!("\'{}\'", chars[i + 1])));
+                    i += 3;
                 }else{
                     panic!("Parse error! Char missing closing apostraphie!");
                 }
@@ -517,6 +4196,16 @@ fn throw_parse_error(t: &str, attempted_token: &String){
     panic!("Parse error! Incorrectly constructed {}! Tried: {}", t, attempted_token);
 }
 
+fn replace_literals_with_escapes(s: &str) -> String{
+    s
+        .replace("\\n", "\n")
+        .replace("\\t", "\t")
+        .replace("\\r", "\r")
+        .replace("\\\"", "\"")
+        .replace("\\\'", "\'")
+        .replace("\\0", "\0")
+}
+
 //Given reference to list of seperated tokens, 
 // differentiates each one as either a value or word.
 //WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
@@ -538,7 +4227,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             },
             //String case.
             ref t if t.starts_with("\"") && t.ends_with("\"") => {
-                lexed.push(Token::V(Value::String(tok[1..(tok.len() - 1)].to_string())));
+                lexed.push(Token::V(Value::String(replace_literals_with_escapes(&tok[1..(tok.len() - 1)]))));
             }, 
             //Char case.
             ref t if t.starts_with("\'") && t.ends_with("\'") => {
@@ -550,10 +4239,10 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                         't' => '\t',
                         'r' => '\r',
                         '0' => '\0',
+                        '\'' => '\'',
+                        '\"' => '\"',
                         _ => captured,
                     };
-                    println!("{}", captured);
-
                 }
                 lexed.push(Token::V(Value::Char(captured)));
             },
@@ -927,37 +4616,29 @@ fn main(){
 
     println!("{}\n\n\n\n", ast);
 
-//DELETE THIS LATER
-// //This enum is used to contain all the possible data types of Lmao.
-// enum Value{
-//     //Specific signed integers found from type declarations. (coming soonTM)
-//     Int(IntSigned),
-//     //Speficic unsigned integers found from type declarations.
-//     UInt(IntUnsigned),
-//     //Specified float types
-//     Float32(f32),
-//     Float64(f64),
-//     Char(char),
-//     Boolean(bool),
-//     //String and its equivalent box to live on the stack.
-//     String(String),
-//     StringBox(usize),
-//     List(Vec<Value>),
-//     ListBox(usize),
-//     Object(HashMap<String, Value>),
-//     ObjectBox(usize),
-//     MiscBox(usize),
-//     NULLBox,
-// }
-
     let mut state = State::new();
 
     let result = run_program(&ast, &mut state);
 
+    //TEMPORARY STATUS MESSAGE FOR DEBUGGING
     match result{
-        Ok(_) => println!("The program completed successfully!"),
-        Err(e) => println!("The program failed with error: {}", e),
+        Ok(_) => println!("\nThe program completed successfully!"),
+        Err(e) => println!("\nThe program failed with error: {}", e),
     }
+
+    //TEMPORARY HEAP PRINT FOR DEBUGGING
+    println!("HEAP START");
+    let mut box_num = 0;
+    for el in state.heap.iter(){
+        println!("BOX NUM {} -> ({}, {})", box_num, el.0, el.1);
+        box_num += 1;
+    }
+    print!("[");
+    for el in state.free_list.iter(){
+        print!("{} ", el);
+    }
+    print!("]\n");
+    println!("HEAP END\n\n\n\n");
 
     //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
     println!("STACK START");
