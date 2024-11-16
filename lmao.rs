@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.4
+//Version: 0.4.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4552,6 +4552,17 @@ fn variable_lack_of_args_error(var_action: &str) -> String{
         item on the stack! None provided!", var_action)
 }
 
+//Frees a box on the heap or kicks back an error.
+fn box_free_func(s: &mut State, v: Value, box_num: usize) -> Result<(), String>{
+    if s.validate_box(box_num){
+        s.free_heap_cell(box_num);
+        Ok(())
+    }else{
+        Err(format!("Box free error! {} is invalid due \
+            to having already been free'd!", &v))
+    }
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
     match ast{
@@ -4638,6 +4649,55 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 return Err(format!("Variable (var) error! \
                                     Unrecognized variable command! Valid: mak, get, mut, del . \
                                     Attempted: {}", c));
+                            },
+                        }
+                    },
+                    ASTNode::BoxOp(box_op) => {
+                        match &box_op as &str{
+                            "free" => {
+                                match state.stack.pop(){
+                                    Some(Value::StringBox(bn)) => {
+                                        match box_free_func(state, Value::StringBox(bn), bn){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    },
+                                    Some(Value::ListBox(bn)) => {
+                                        match box_free_func(state, Value::ListBox(bn), bn){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    },
+                                    Some(Value::ObjectBox(bn)) => {
+                                        match box_free_func(state, Value::ObjectBox(bn), bn){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    },
+                                    Some(Value::MiscBox(bn)) => {
+                                        match box_free_func(state, Value::MiscBox(bn), bn){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    },
+                                    Some(v) => {
+                                        return Err(format!("Box free error! Top of stack must be of type StringBox, \
+                                            ListBox, ObjectBox, or MiscBox! Attempted value: {}", &v));
+                                    },
+
+                                    None => {
+                                        return Err(needs_n_args_only_n_provided("box free", "One", "none"));
+                                    },
+
+                                }
+                            },
+                            "null" => {},
+                            "make" => {},
+                            "open" => {},
+                            "altr" => {},
+                            o => {
+                                return Err(format!("Box error! Unrecognized box operation! \
+                                    Valid: free, null, make, open, altr . Attempted: {}", o));
                             },
                         }
                     },
