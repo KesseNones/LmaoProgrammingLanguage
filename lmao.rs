@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.3
+//Version: 0.4.4
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4624,7 +4624,16 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     },
                                 }
                             },
-                            "del" => {},
+                            "del" => {
+                                match state.vars.remove(name){
+                                    Some(_) => {},
+                                    None => {
+                                        return Err(format!("Variable deletion (var del) error! \
+                                            Variable {} doesn't exist or was already deleted! \
+                                            Try making it first using var mak!", &name));
+                                    },
+                                }
+                            },
                             c => {
                                 return Err(format!("Variable (var) error! \
                                     Unrecognized variable command! Valid: mak, get, mut, del . \
