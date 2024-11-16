@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.5
+//Version: 0.4.6
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3650,6 +3650,13 @@ fn read_from_in(s: &mut State) -> Result<(), String>{
 
 }
 
+//Used to make some code more slick.
+fn box_type_string_maker(v: &Value) -> String{
+    let mut box_type_str = type_to_string(v);
+    box_type_str.push_str("Box");
+    box_type_str
+}
+
 //Prints each item on the stack while 
 // also indicating if box types are valid or not.
 fn debug_stack_print(s: &mut State) -> Result<(), String>{
@@ -3660,10 +3667,9 @@ fn debug_stack_print(s: &mut State) -> Result<(), String>{
     for item in s.stack.iter(){
         match item {
             Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) | Value::MiscBox(bn) => {
-                if s.validate_box(*bn){
+                if s.validate_box(*bn) && (type_to_string(item) == box_type_string_maker(&s.heap[*bn].0)){
                     println!("{}", item);
                 }else{
-                    //NEEDS TESTING, SINCE FREEING BOXES DOESN'T EXIST YET!
                     println!("{} [INVALID]", item);
                 }
             },
@@ -3688,11 +3694,11 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
     println!("BEGIN HEAP PRINT\n{}", filler_str);
     
     for i in 0..(s.heap.len()){
+        let box_type_str: String = box_type_string_maker(&s.heap[i].0);
         if s.heap[i].1{
-            println!("BOX {}:\n\t{}", i, s.heap[i].0);
+            println!("{} {}:\n\t{}", box_type_str, i, s.heap[i].0);
         }else{
-            //NEEDS TESTING, SINCE FREEING BOXES DOESN'T EXIST YET!
-            println!("BOX {}:\n[INVALID]\n\t{}", i, s.heap[i].0);
+            println!("{} {} [INVALID]:\n\t{}", box_type_str, i, s.heap[i].0);
         }
     }
 
