@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.1
+//Version: 0.4.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4578,7 +4578,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             "mak" => {
                                 match state.vars.get(name){
                                     Some(_) => {
-                                        return Err(format!("Variable (var) error! Variable {} already exists! \
+                                        return Err(format!("Variable creation (var mak) error! Variable {} already exists! \
                                             Try deleting it using del!", &name));
                                     },
                                     None => {
@@ -4593,7 +4593,17 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     },
                                 }
                             },
-                            "get" => {},
+                            "get" => {
+                                match state.vars.get(name){
+                                    Some(v) => {
+                                        state.stack.push(v.clone());
+                                    },
+                                    None => {
+                                        return Err(format!("Variable get (var get) error! Variable {} doesn't exist. \
+                                            Try making it first using var mak!", &name));
+                                    },
+                                }
+                            },
                             "mut" => {},
                             "del" => {},
                             c => {
