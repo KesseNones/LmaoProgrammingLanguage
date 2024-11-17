@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.8
+//Version: 0.4.9
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4728,7 +4728,23 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     None => return Err(needs_n_args_only_n_provided("box make", "One", "none")),
                                 }
                             },
-                            "open" => {},
+                            "open" => {
+                                match state.stack.pop(){
+                                    Some(Value::MiscBox(bn)) => {
+                                        if state.validate_box(bn){
+                                            let val_to_push = state.heap[bn].0.clone();
+                                            state.push(val_to_push);
+                                        }else{
+                                            return Err(bad_box_error("box open", "MiscBox", "NA", bn, usize::MAX, false));
+                                        }
+                                    },
+                                    Some(v) => {
+                                        return Err(format!("Box open error! Top of stack must be type MiscBox! \
+                                            Attempted value: {}", &v));
+                                    },
+                                    None => return Err(needs_n_args_only_n_provided("box open", "One", "none")),
+                                }
+                            },
                             "altr" => {},
                             o => {
                                 return Err(format!("Box error! Unrecognized box operation! \
