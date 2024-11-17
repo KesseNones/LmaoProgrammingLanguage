@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.5.3
+//Version: 0.5.4
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -252,6 +252,33 @@ impl fmt::Display for ASTNode{
             ASTNode::Variable{var_name: name, var_cmd: cmd} => write!(f, "Variable [name: {}, cmd: {}]", name, cmd),
             ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
+        }
+    }
+}
+
+impl Clone for ASTNode{
+    fn clone(&self) -> ASTNode{
+        match self{
+            ASTNode::Terminal(Token::V(val)) => ASTNode::Terminal(Token::V(val.clone())),
+            ASTNode::Terminal(Token::Word(w)) => ASTNode::Terminal(Token::Word(w.clone())),
+            ASTNode::If{if_true: true_branch, if_false: false_branch} => {
+                ASTNode::If{if_true: Box::new(*true_branch.clone()), 
+                    if_false: Box::new(*false_branch.clone())}
+            },
+            ASTNode::While(bod) => ASTNode::While(Box::new(*bod.clone())),
+            ASTNode::Expression(nodes) => {
+                let new_nodes: Vec<ASTNode> = nodes.iter().map(|n| n.clone()).collect();
+                ASTNode::Expression(new_nodes)
+            },
+            ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
+                ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
+                    func_bod: Box::new(*bod.clone())}
+            },
+            ASTNode::Variable{var_name: name, var_cmd: cmd} => {
+                ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone()}
+            },
+            ASTNode::LocVar{name: n, cmd: c} => ASTNode::LocVar{name: n.clone(), cmd: c.clone()},
+            ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
         }
     }
 }
@@ -4071,7 +4098,7 @@ impl State{
 
     //Returns a boolean based on whether or not the desired box number is valid.
     fn validate_box(&self, box_num: usize) -> bool{
-        box_num >= 0 && box_num < self.heap.len() && self.heap[box_num].1
+        box_num < self.heap.len() && self.heap[box_num].1
     }
 
     //Frees a cell in a heap or does nothing if it's invalid already.
@@ -4818,6 +4845,28 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 },
                                 None => return Err(needs_n_args_only_n_provided("while", "One", "none")),
                             }
+                        }
+                    },
+                    ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
+                        match &cmd as &str{
+                            "def" => {
+                                match state.fns.get(name){
+                                    Some(_) => {
+                                        return Err(format!("Function definition (func def) error! \
+                                            Function \"{}\" is already defined!", &name));
+                                    },
+                                    None => {
+                                        state.fns.insert(name.clone(), (**bod).clone());
+                                    },
+                                }
+                            },
+                            "call" => {
+
+                            },
+                            c => {
+                                return Err(format!("Function error! Invalid function \
+                                    command given! Valid: def, call . Attempted: {}", c));
+                            },
                         }
                     },
                     _ => {},
