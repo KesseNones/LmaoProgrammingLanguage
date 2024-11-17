@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.5.0
+//Version: 0.5.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4774,6 +4774,28 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 return Err(format!("Box error! Unrecognized box operation! \
                                     Valid: free, null, make, open, altr . Attempted: {}", o));
                             },
+                        }
+                    },
+                    ASTNode::If{if_true: true_branch, if_false: false_branch} => {
+                        match state.pop(){
+                            Some(Value::Boolean(b)) => {
+                                let res = match b{
+                                    true => run_program(&true_branch, state),
+                                    false => run_program(&false_branch, state),
+                                };
+
+                                match res{
+                                    Ok(_) => {},
+                                    Err(e) => return Err(e),
+                                }
+                            },
+                            Some(v) => {
+                                return Err(format!("If statement error! \
+                                    Top of stack needs to be type Boolean \
+                                    for effective branching to occur! \
+                                    Attempted value: {}", &v));
+                            },
+                            None => return Err(needs_n_args_only_n_provided("if", "One", "none")),
                         }
                     },
                     _ => {},
