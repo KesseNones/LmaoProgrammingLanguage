@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.9
+//Version: 0.4.10
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2382,7 +2382,7 @@ fn is_valid_mutation(a: &Value, b: &Value) -> bool{
 }
 
 fn invalid_mutation_error(op_type: &str, thing_being_mutated: &str, thing_name: &str, v1: &Value, v2: &Value) -> String{
-    format!("Operator ({}) error! Invalid mutation of {} \"{}\"! \
+    format!("Operator ({}) error! Invalid mutation of {} {} ! \
         Unable to mutate {} to {}", op_type, thing_being_mutated, thing_name, v1, v2)
 }
 
@@ -4745,7 +4745,31 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     None => return Err(needs_n_args_only_n_provided("box open", "One", "none")),
                                 }
                             },
-                            "altr" => {},
+                            "altr" => {
+                                match state.pop2(){
+                                    (Some(Value::MiscBox(bn)), Some(v)) => {
+                                        if state.validate_box(bn){
+                                            if is_valid_mutation(&state.heap[bn].0, &v){
+                                                state.heap[bn].0 = v;
+                                                state.push(Value::MiscBox(bn));
+                                            }else{
+                                                return Err(invalid_mutation_error("box altr", 
+                                                    "MiscBox", &bn.to_string(), &state.heap[bn].0, &v));
+                                            }
+                                        }else{
+                                            return Err(bad_box_error("box altr", "MiscBox", "NA", bn, usize::MAX, false));
+                                        }
+                                    },
+                                    (Some(a), Some(b)) => {
+                                        return Err(format!("Box altr error! Second to top of stack \
+                                            must be type MiscBox and top of stack type Value! \
+                                            Attempted values: {} and {}", &a, &b));
+                                    },
+                                    (None, Some(_)) => return Err(needs_n_args_only_n_provided("box altr", "Two", "only one")),
+                                    (None, None) => return Err(needs_n_args_only_n_provided("box altr", "Two", "none")),
+                                    _ => return Err(should_never_get_here_for_func("box altr")),
+                                }
+                            },
                             o => {
                                 return Err(format!("Box error! Unrecognized box operation! \
                                     Valid: free, null, make, open, altr . Attempted: {}", o));
