@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.5.2
+//Version: 0.5.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4855,51 +4855,17 @@ fn main(){
     let file_chars: Vec<char> = file_string.chars().collect();
     let tokens = tokenize(&file_chars);
 
-    for tok in tokens.iter(){
-        print!("{} | ", tok);
-    }
-    println!("\n\n\n\n\n");
-
     let lexed = lex_tokens(tokens);
 
-    for lxt in lexed.iter(){
-        println!("{}", lxt);
-    }
-    println!("\n\n\n\n\n");
-
     let ast: ASTNode = make_ast(lexed);
-
-    println!("{}\n\n\n\n", ast);
 
     let mut state = State::new();
 
     let result = run_program(&ast, &mut state);
 
-    //TEMPORARY STATUS MESSAGE FOR DEBUGGING
     match result{
-        Ok(_) => println!("\nThe program completed successfully!"),
-        Err(e) => println!("\nThe program failed with error: {}", e),
+        Ok(_) => {},
+        Err(e) => println!("{}", e),
     }
-
-    //TEMPORARY HEAP PRINT FOR DEBUGGING
-    println!("HEAP START");
-    let mut box_num = 0;
-    for el in state.heap.iter(){
-        println!("BOX NUM {} -> ({}, {})", box_num, el.0, el.1);
-        box_num += 1;
-    }
-    print!("[");
-    for el in state.free_list.iter(){
-        print!("{} ", el);
-    }
-    print!("]\n");
-    println!("HEAP END\n\n\n\n");
-
-    //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
-    println!("STACK START");
-    for el in state.stack.iter(){
-        println!("{}", el);
-    }
-    println!("STACK END");
 
 }
