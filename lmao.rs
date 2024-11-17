@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.7
+//Version: 0.4.8
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3666,8 +3666,19 @@ fn debug_stack_print(s: &mut State) -> Result<(), String>{
     println!("BEGIN STACK PRINT\n{}", filler_str);
     for item in s.stack.iter(){
         match item {
-            Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) | Value::MiscBox(bn) => {
+            Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) => {
                 if s.validate_box(*bn) && (type_to_string(item) == box_type_string_maker(&s.heap[*bn].0)){
+                    println!("{}", item);
+                }else{
+                    println!("{} [INVALID]", item);
+                }
+            },
+            Value::MiscBox(bn) => {
+                if s.validate_box(*bn) && 
+                    (&type_to_string(&s.heap[*bn].0) != "String") && 
+                    (&type_to_string(&s.heap[*bn].0) != "List") &&
+                    (&type_to_string(&s.heap[*bn].0) != "Object")
+                {
                     println!("{}", item);
                 }else{
                     println!("{} [INVALID]", item);
@@ -3694,7 +3705,15 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
     println!("BEGIN HEAP PRINT\n{}", filler_str);
     
     for i in 0..(s.heap.len()){
-        let box_type_str: String = box_type_string_maker(&s.heap[i].0);
+        //If it's a regular box, constructs the type appropriately, 
+        // otherwise gives the exception of miscbox.
+        let box_type_str: String;
+        if matches!(&s.heap[i].0, Value::String(_) | Value::List(_) | Value::Object(_)){
+            box_type_str = box_type_string_maker(&s.heap[i].0);
+        }else{
+            box_type_str = "MiscBox".to_string();
+        }
+
         if s.heap[i].1{
             println!("{} {}:\n\t{}", box_type_str, i, s.heap[i].0);
         }else{
@@ -4700,7 +4719,15 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             "null" => {
                                 state.push(Value::NULLBox);
                             },
-                            "make" => {},
+                            "make" => {
+                                match state.stack.pop(){
+                                    Some(v) => {
+                                        let new_bn = state.insert_to_heap(v);
+                                        state.push(Value::MiscBox(new_bn));
+                                    },
+                                    None => return Err(needs_n_args_only_n_provided("box make", "One", "none")),
+                                }
+                            },
                             "open" => {},
                             "altr" => {},
                             o => {
