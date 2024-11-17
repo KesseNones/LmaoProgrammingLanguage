@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.4.0
+//Version: 0.5.0
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -2381,9 +2381,9 @@ fn is_valid_mutation(a: &Value, b: &Value) -> bool{
     }
 }
 
-fn invalid_mutation_error(op_type: &str, v1: &Value, v2: &Value) -> String{
-    format!("Operator ({}) error! Invalid mutation between \
-        two values! Unable to mutate {} to {}", op_type, v1, v2)
+fn invalid_mutation_error(op_type: &str, thing_being_mutated: &str, thing_name: &str, v1: &Value, v2: &Value) -> String{
+    format!("Operator ({}) error! Invalid mutation of {} {} ! \
+        Unable to mutate {} to {}", op_type, thing_being_mutated, thing_name, v1, v2)
 }
 
 //Mutates the field to a new value in an object if it exists and it's a valid mutation.
@@ -2401,7 +2401,7 @@ fn mut_field(s: &mut State) -> Result<(), String>{
                                     s.heap[a].0 = obj_to_mut;
                                     Ok(Value::ObjectBox(a))
                                 }else{
-                                    let ret = Err(invalid_mutation_error("objMutField", &old_v, &v));
+                                    let ret = Err(invalid_mutation_error("objMutField", "Object field", st, &old_v, &v));
                                     s.heap[a].0 = obj_to_mut;
                                     ret
                                 }
@@ -3650,6 +3650,13 @@ fn read_from_in(s: &mut State) -> Result<(), String>{
 
 }
 
+//Used to make some code more slick.
+fn box_type_string_maker(v: &Value) -> String{
+    let mut box_type_str = type_to_string(v);
+    box_type_str.push_str("Box");
+    box_type_str
+}
+
 //Prints each item on the stack while 
 // also indicating if box types are valid or not.
 fn debug_stack_print(s: &mut State) -> Result<(), String>{
@@ -3659,11 +3666,21 @@ fn debug_stack_print(s: &mut State) -> Result<(), String>{
     println!("BEGIN STACK PRINT\n{}", filler_str);
     for item in s.stack.iter(){
         match item {
-            Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) | Value::MiscBox(bn) => {
-                if s.validate_box(*bn){
+            Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) => {
+                if s.validate_box(*bn) && (type_to_string(item) == box_type_string_maker(&s.heap[*bn].0)){
                     println!("{}", item);
                 }else{
-                    //NEEDS TESTING, SINCE FREEING BOXES DOESN'T EXIST YET!
+                    println!("{} [INVALID]", item);
+                }
+            },
+            Value::MiscBox(bn) => {
+                if s.validate_box(*bn) && 
+                    (&type_to_string(&s.heap[*bn].0) != "String") && 
+                    (&type_to_string(&s.heap[*bn].0) != "List") &&
+                    (&type_to_string(&s.heap[*bn].0) != "Object")
+                {
+                    println!("{}", item);
+                }else{
                     println!("{} [INVALID]", item);
                 }
             },
@@ -3688,11 +3705,19 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
     println!("BEGIN HEAP PRINT\n{}", filler_str);
     
     for i in 0..(s.heap.len()){
-        if s.heap[i].1{
-            println!("BOX {}:\n\t{}", i, s.heap[i].0);
+        //If it's a regular box, constructs the type appropriately, 
+        // otherwise gives the exception of miscbox.
+        let box_type_str: String;
+        if matches!(&s.heap[i].0, Value::String(_) | Value::List(_) | Value::Object(_)){
+            box_type_str = box_type_string_maker(&s.heap[i].0);
         }else{
-            //NEEDS TESTING, SINCE FREEING BOXES DOESN'T EXIST YET!
-            println!("BOX {}:\n[INVALID]\n\t{}", i, s.heap[i].0);
+            box_type_str = "MiscBox".to_string();
+        }
+
+        if s.heap[i].1{
+            println!("{} {}:\n\t{}", box_type_str, i, s.heap[i].0);
+        }else{
+            println!("{} {} [INVALID]:\n\t{}", box_type_str, i, s.heap[i].0);
         }
     }
 
@@ -4545,6 +4570,24 @@ fn make_ast(tokens: Vec<Token>) -> ASTNode{
 //     BoxOp(String)
 // }
 
+//Error string for when var mak and var mut 
+// don't have anything on the stack for them.
+fn variable_lack_of_args_error(var_action: &str) -> String{
+    format!("Variable (var) error! Variable {} needs one \
+        item on the stack! None provided!", var_action)
+}
+
+//Frees a box on the heap or kicks back an error.
+fn box_free_func(s: &mut State, v: Value, box_num: usize) -> Result<(), String>{
+    if s.validate_box(box_num){
+        s.free_heap_cell(box_num);
+        Ok(())
+    }else{
+        Err(format!("Box free error! {} is invalid due \
+            to having already been free'd!", &v))
+    }
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
     match ast{
@@ -4564,6 +4607,174 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 return Err(format!("Unrecognized Operator: {}", op));
                             },
                         } 
+                    },
+                    ASTNode::Variable{var_name: name, var_cmd: cmd} => {
+                        let varcmd: &str = &cmd;
+                        match varcmd{
+                            "mak" => {
+                                match state.vars.get(name){
+                                    Some(_) => {
+                                        return Err(format!("Variable creation (var mak) error! Variable {} already exists! \
+                                            Try deleting it using del!", &name));
+                                    },
+                                    None => {
+                                        match state.pop(){
+                                            Some(v) => {
+                                                state.vars.insert(name.clone(), v);
+                                            },
+                                            None => {
+                                                return Err(variable_lack_of_args_error("creation (mak)"));
+                                            },
+                                        }
+                                    },
+                                }
+                            },
+                            "get" => {
+                                match state.vars.get(name){
+                                    Some(v) => {
+                                        state.stack.push(v.clone());
+                                    },
+                                    None => {
+                                        return Err(format!("Variable get (var get) error! Variable {} doesn't exist. \
+                                            Try making it first using var mak!", &name));
+                                    },
+                                }
+                            },
+                            "mut" => {
+                                match state.vars.get_mut(name){
+                                    Some(v) => {
+                                        match state.stack.pop(){
+                                            Some(new_v) => {
+                                                if is_valid_mutation(v, &new_v){
+                                                    *v = new_v;
+                                                }else{
+                                                    return Err(invalid_mutation_error("var mut", "variable", name, &v, &new_v));
+                                                }
+                                            },
+                                            None => return Err(variable_lack_of_args_error("mutation (mut)")),
+                                        }
+                                    },
+                                    None => {
+                                        return Err(format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
+                                            Try making it first using var mak!", &name));
+                                    },
+                                }
+                            },
+                            "del" => {
+                                match state.vars.remove(name){
+                                    Some(_) => {},
+                                    None => {
+                                        return Err(format!("Variable deletion (var del) error! \
+                                            Variable {} doesn't exist or was already deleted! \
+                                            Try making it first using var mak!", &name));
+                                    },
+                                }
+                            },
+                            c => {
+                                return Err(format!("Variable (var) error! \
+                                    Unrecognized variable command! Valid: mak, get, mut, del . \
+                                    Attempted: {}", c));
+                            },
+                        }
+                    },
+                    ASTNode::BoxOp(box_op) => {
+                        match &box_op as &str{
+                            "free" => {
+                                match state.stack.pop(){
+                                    Some(Value::StringBox(bn)) => {
+                                        match box_free_func(state, Value::StringBox(bn), bn){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    },
+                                    Some(Value::ListBox(bn)) => {
+                                        match box_free_func(state, Value::ListBox(bn), bn){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    },
+                                    Some(Value::ObjectBox(bn)) => {
+                                        match box_free_func(state, Value::ObjectBox(bn), bn){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    },
+                                    Some(Value::MiscBox(bn)) => {
+                                        match box_free_func(state, Value::MiscBox(bn), bn){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    },
+                                    Some(v) => {
+                                        return Err(format!("Box free error! Top of stack must be of type StringBox, \
+                                            ListBox, ObjectBox, or MiscBox! Attempted value: {}", &v));
+                                    },
+
+                                    None => {
+                                        return Err(needs_n_args_only_n_provided("box free", "One", "none"));
+                                    },
+
+                                }
+                            },
+                            "null" => {
+                                state.push(Value::NULLBox);
+                            },
+                            "make" => {
+                                match state.stack.pop(){
+                                    Some(v) => {
+                                        let new_bn = state.insert_to_heap(v);
+                                        state.push(Value::MiscBox(new_bn));
+                                    },
+                                    None => return Err(needs_n_args_only_n_provided("box make", "One", "none")),
+                                }
+                            },
+                            "open" => {
+                                match state.stack.pop(){
+                                    Some(Value::MiscBox(bn)) => {
+                                        if state.validate_box(bn){
+                                            let val_to_push = state.heap[bn].0.clone();
+                                            state.push(val_to_push);
+                                        }else{
+                                            return Err(bad_box_error("box open", "MiscBox", "NA", bn, usize::MAX, false));
+                                        }
+                                    },
+                                    Some(v) => {
+                                        return Err(format!("Box open error! Top of stack must be type MiscBox! \
+                                            Attempted value: {}", &v));
+                                    },
+                                    None => return Err(needs_n_args_only_n_provided("box open", "One", "none")),
+                                }
+                            },
+                            "altr" => {
+                                match state.pop2(){
+                                    (Some(Value::MiscBox(bn)), Some(v)) => {
+                                        if state.validate_box(bn){
+                                            if is_valid_mutation(&state.heap[bn].0, &v){
+                                                state.heap[bn].0 = v;
+                                                state.push(Value::MiscBox(bn));
+                                            }else{
+                                                return Err(invalid_mutation_error("box altr", 
+                                                    "MiscBox", &bn.to_string(), &state.heap[bn].0, &v));
+                                            }
+                                        }else{
+                                            return Err(bad_box_error("box altr", "MiscBox", "NA", bn, usize::MAX, false));
+                                        }
+                                    },
+                                    (Some(a), Some(b)) => {
+                                        return Err(format!("Box altr error! Second to top of stack \
+                                            must be type MiscBox and top of stack type Value! \
+                                            Attempted values: {} and {}", &a, &b));
+                                    },
+                                    (None, Some(_)) => return Err(needs_n_args_only_n_provided("box altr", "Two", "only one")),
+                                    (None, None) => return Err(needs_n_args_only_n_provided("box altr", "Two", "none")),
+                                    _ => return Err(should_never_get_here_for_func("box altr")),
+                                }
+                            },
+                            o => {
+                                return Err(format!("Box error! Unrecognized box operation! \
+                                    Valid: free, null, make, open, altr . Attempted: {}", o));
+                            },
+                        }
                     },
                     _ => {},
                 }
