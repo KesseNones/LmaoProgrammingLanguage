@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.5.1
+//Version: 0.5.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4796,6 +4796,28 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     Attempted value: {}", &v));
                             },
                             None => return Err(needs_n_args_only_n_provided("if", "One", "none")),
+                        }
+                    },
+                    ASTNode::While(bod) => {
+                        loop {
+                            match state.pop(){
+                                Some(Value::Boolean(b)) => {
+                                    if b{
+                                        match run_program(&bod, state){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    }else{
+                                        break;
+                                    }
+                                },
+                                Some(v) => {
+                                    return Err(format!("While loop error! Top of stack needs \
+                                        to be of type Boolean to determine if loop needs \
+                                        to run/run again! Attempted value: {}", &v));
+                                },
+                                None => return Err(needs_n_args_only_n_provided("while", "One", "none")),
+                            }
                         }
                     },
                     _ => {},
