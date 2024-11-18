@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.5.0
+//Version: 0.6.0
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -252,6 +252,33 @@ impl fmt::Display for ASTNode{
             ASTNode::Variable{var_name: name, var_cmd: cmd} => write!(f, "Variable [name: {}, cmd: {}]", name, cmd),
             ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
+        }
+    }
+}
+
+impl Clone for ASTNode{
+    fn clone(&self) -> ASTNode{
+        match self{
+            ASTNode::Terminal(Token::V(val)) => ASTNode::Terminal(Token::V(val.clone())),
+            ASTNode::Terminal(Token::Word(w)) => ASTNode::Terminal(Token::Word(w.clone())),
+            ASTNode::If{if_true: true_branch, if_false: false_branch} => {
+                ASTNode::If{if_true: Box::new(*true_branch.clone()), 
+                    if_false: Box::new(*false_branch.clone())}
+            },
+            ASTNode::While(bod) => ASTNode::While(Box::new(*bod.clone())),
+            ASTNode::Expression(nodes) => {
+                let new_nodes: Vec<ASTNode> = nodes.iter().map(|n| n.clone()).collect();
+                ASTNode::Expression(new_nodes)
+            },
+            ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
+                ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
+                    func_bod: Box::new(*bod.clone())}
+            },
+            ASTNode::Variable{var_name: name, var_cmd: cmd} => {
+                ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone()}
+            },
+            ASTNode::LocVar{name: n, cmd: c} => ASTNode::LocVar{name: n.clone(), cmd: c.clone()},
+            ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
         }
     }
 }
@@ -4071,7 +4098,7 @@ impl State{
 
     //Returns a boolean based on whether or not the desired box number is valid.
     fn validate_box(&self, box_num: usize) -> bool{
-        box_num >= 0 && box_num < self.heap.len() && self.heap[box_num].1
+        box_num < self.heap.len() && self.heap[box_num].1
     }
 
     //Frees a cell in a heap or does nothing if it's invalid already.
@@ -4776,6 +4803,89 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             },
                         }
                     },
+                    ASTNode::If{if_true: true_branch, if_false: false_branch} => {
+                        match state.pop(){
+                            Some(Value::Boolean(b)) => {
+                                let res = match b{
+                                    true => run_program(&true_branch, state),
+                                    false => run_program(&false_branch, state),
+                                };
+
+                                match res{
+                                    Ok(_) => {},
+                                    Err(e) => return Err(e),
+                                }
+                            },
+                            Some(v) => {
+                                return Err(format!("If statement error! \
+                                    Top of stack needs to be type Boolean \
+                                    for effective branching to occur! \
+                                    Attempted value: {}", &v));
+                            },
+                            None => return Err(needs_n_args_only_n_provided("if", "One", "none")),
+                        }
+                    },
+                    ASTNode::While(bod) => {
+                        loop {
+                            match state.pop(){
+                                Some(Value::Boolean(b)) => {
+                                    if b{
+                                        match run_program(&bod, state){
+                                            Ok(_) => {},
+                                            Err(e) => return Err(e),
+                                        }
+                                    }else{
+                                        break;
+                                    }
+                                },
+                                Some(v) => {
+                                    return Err(format!("While loop error! Top of stack needs \
+                                        to be of type Boolean to determine if loop needs \
+                                        to run/run again! Attempted value: {}", &v));
+                                },
+                                None => return Err(needs_n_args_only_n_provided("while", "One", "none")),
+                            }
+                        }
+                    },
+                    ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
+                        match &cmd as &str{
+                            "def" => {
+                                match state.fns.get(name){
+                                    Some(_) => {
+                                        return Err(format!("Function definition (func def) error! \
+                                            Function \"{}\" is already defined!", &name));
+                                    },
+                                    None => {
+                                        state.fns.insert(name.clone(), (**bod).clone());
+                                    },
+                                }
+                            },
+                            "call" => {
+                                let func_body = match state.fns.get(name){
+                                    Some(b) => b,
+                                    None => {
+                                        return Err(format!("Function call (func call) error! \
+                                            Function \"{}\" is not defined! \
+                                            Try defining it using func def !", name));
+                                    }, 
+                                };
+
+                                //THIS WORKS BUT IS EXTREMELY JANKY AND I DON'T LIKE IT.
+                                // MAYBE TRY TO FIND A SAFER WAY.
+                                unsafe {
+                                    match run_program(func_body, &mut *(state as *const State as *mut State)){
+                                        Ok(_) => {},
+                                        Err(e) => return Err(e),
+                                    }
+                                }
+
+                            },
+                            c => {
+                                return Err(format!("Function error! Invalid function \
+                                    command given! Valid: def, call . Attempted: {}", c));
+                            },
+                        }
+                    },
                     _ => {},
                 }
             }
@@ -4811,51 +4921,17 @@ fn main(){
     let file_chars: Vec<char> = file_string.chars().collect();
     let tokens = tokenize(&file_chars);
 
-    for tok in tokens.iter(){
-        print!("{} | ", tok);
-    }
-    println!("\n\n\n\n\n");
-
     let lexed = lex_tokens(tokens);
 
-    for lxt in lexed.iter(){
-        println!("{}", lxt);
-    }
-    println!("\n\n\n\n\n");
-
     let ast: ASTNode = make_ast(lexed);
-
-    println!("{}\n\n\n\n", ast);
 
     let mut state = State::new();
 
     let result = run_program(&ast, &mut state);
 
-    //TEMPORARY STATUS MESSAGE FOR DEBUGGING
     match result{
-        Ok(_) => println!("\nThe program completed successfully!"),
-        Err(e) => println!("\nThe program failed with error: {}", e),
+        Ok(_) => {},
+        Err(e) => println!("{}", e),
     }
-
-    //TEMPORARY HEAP PRINT FOR DEBUGGING
-    println!("HEAP START");
-    let mut box_num = 0;
-    for el in state.heap.iter(){
-        println!("BOX NUM {} -> ({}, {})", box_num, el.0, el.1);
-        box_num += 1;
-    }
-    print!("[");
-    for el in state.free_list.iter(){
-        print!("{} ", el);
-    }
-    print!("]\n");
-    println!("HEAP END\n\n\n\n");
-
-    //TEMPORARY DEBUG STACK PRINTING FOR DEVELOPMENT PURPOSES. WILL BE DELETED LATER
-    println!("STACK START");
-    for el in state.stack.iter(){
-        println!("{}", el);
-    }
-    println!("STACK END");
 
 }
