@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.1.0
+//Version: 0.1.1
 
 use std::collections::HashMap;
 use std::env;
@@ -15,6 +15,7 @@ use std::cmp::Ordering;
 use std::convert::TryInto;
 use fmt::Display;
 use std::io;
+use std::process::Command;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -4609,26 +4610,71 @@ fn main(){
     }
 
     let file_path = Path::new(&argv[1]);
-    let file_name = file_path.display();
+    let file_name: String = file_path.display().to_string();
 
+    println!("Opening {}", file_name);
     let mut code_file = match File::open(&file_path){
         Ok(f) => f,
         Err(reason) => panic!("Unable to open Lmao file {} for parsing because {}", file_name, reason),
     };
 
+    println!("Reading in {}", file_name);
     let mut file_string = String::new();
     match code_file.read_to_string(&mut file_string){
         Ok(_) => {},
         Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
     }
 
+    println!("Tokenizing file String");
     let file_chars: Vec<char> = file_string.chars().collect();
     let tokens = tokenize(&file_chars);
 
+    println!("Lexing file tokens");
     let lexed = lex_tokens(tokens);
 
+    println!("Building Abstract Syntax Tree");
     let ast: ASTNode = make_ast(lexed);
 
+    let mut file_strings: Vec<String> = Vec::new();
+
+    let base = "
+        fn main(){
+            println!(\"Hello, World!\");
+        }
+    ";
+    file_strings.push(base.to_string());
+
+    let file_string: String = file_strings.join("\n");
+
+    //EDGE CASE MIGHT EXIST WHERE IF THE NAME IS NOTHING IT'LL FREAK OUT
+    let file_name_trimmed = file_name.clone()[0..file_name.len() - 5].to_string();
+    let rust_file_name = if file_name.ends_with(".lmao"){
+        format!("{}.rs", file_name_trimmed)
+    }else{
+        format!("{}.rs", file_name)
+    };
+    let rust_file_path = Path::new(&rust_file_name);
     
+    println!("Creating and opening {}", rust_file_name);
+    let mut rust_file = match OpenOptions::new().create(true).write(true).open(rust_file_path){
+        Ok(f) => f,
+        Err(e) => panic!("Failed to create and open Rust file {} because: {}", rust_file_name, e.to_string()),
+    };
+
+    println!("Writing to Rust file {}", rust_file_name);
+    match rust_file.write_all(file_string.as_bytes()){
+        Ok(_) => {},
+        Err(e) => panic!("Failed to write file string to Rust file {} because: {}", rust_file_name, e.to_string()),
+    }
+
+    println!("Compiling {}", rust_file_name);
+    let compilation_result = Command::new("rustc")
+        .args(&["-C", "opt-level=2", &rust_file_name])
+        .output();
+
+    match compilation_result{
+        Ok(_) => println!("Compilation complete!"),
+        Err(e) => panic!("Failed to compile {} because: {}", rust_file_name, e.to_string()),
+    }    
 
 }
