@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.5.4
+//Version: 0.5.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4861,6 +4861,23 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 }
                             },
                             "call" => {
+                                let func_body = match state.fns.get(name){
+                                    Some(b) => b,
+                                    None => {
+                                        return Err(format!("Function call (func call) error! \
+                                            Function \"{}\" is not defined! \
+                                            Try defining it using func def !", name));
+                                    }, 
+                                };
+
+                                //THIS WORKS BUT IS EXTREMELY JANKY AND I DON'T LIKE IT.
+                                // MAYBE TRY TO FIND A SAFER WAY.
+                                unsafe {
+                                    match run_program(func_body, &mut *(state as *const State as *mut State)){
+                                        Ok(_) => {},
+                                        Err(e) => return Err(e),
+                                    }
+                                }
 
                             },
                             c => {
