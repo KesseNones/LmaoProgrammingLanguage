@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.1.1
+//Version: 0.1.2
 
 use std::collections::HashMap;
 use std::env;
@@ -4637,16 +4637,311 @@ fn main(){
 
     let mut file_strings: Vec<String> = Vec::new();
 
+    //NEXT: ADD TO BASE STRING AND START TRANSLATION
+
     let base = "
-        fn main(){
-            println!(\"Hello, World!\");
+    use std::collections::HashMap;
+use std::env;
+use std::path::Path;
+use std::fs::File;
+use std::fs::remove_file;
+use std::fs::OpenOptions;
+use std::io::Read;
+use std::io::Write; 
+use std::fmt;
+use std::cmp::Ordering;
+use std::convert::TryInto;
+use fmt::Display;
+use std::io;
+use std::process::Command;
+
+#[derive(PartialEq, Eq)]
+enum IntSigned{
+    Int8(i8),
+    Int16(i16),
+    Int32(i32),
+    Int64(i64),
+    Int128(i128),
+    IntSize(isize)
+}
+
+impl fmt::Display for IntSigned{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            IntSigned::Int8(n) => write!(f, \"i8 {}\", n),
+            IntSigned::Int16(n) => write!(f, \"i16 {}\", n),
+            IntSigned::Int32(n) => write!(f, \"i32 {}\", n),
+            IntSigned::Int64(n) => write!(f, \"i64 {}\", n),
+            IntSigned::Int128(n) => write!(f, \"i128 {}\", n),
+            IntSigned::IntSize(n) => write!(f, \"isize {}\", n),
         }
+    }
+}
+
+impl Copy for IntSigned {}
+
+impl Clone for IntSigned{
+    fn clone(&self) -> IntSigned{
+        *self
+    }
+}
+
+#[derive(PartialEq, Eq)]
+enum IntUnsigned{
+    UInt8(u8),
+    UInt16(u16),
+    UInt32(u32),
+    UInt64(u64),
+    UInt128(u128),
+    UIntSize(usize)
+}
+
+impl fmt::Display for IntUnsigned{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            IntUnsigned::UInt8(n) => write!(f, \"u8 {}\", n),
+            IntUnsigned::UInt16(n) => write!(f, \"u16 {}\", n),
+            IntUnsigned::UInt32(n) => write!(f, \"u32 {}\", n),
+            IntUnsigned::UInt64(n) => write!(f, \"u64 {}\", n),
+            IntUnsigned::UInt128(n) => write!(f, \"u128 {}\", n),
+            IntUnsigned::UIntSize(n) => write!(f, \"usize {}\", n),
+        }
+    }
+}
+
+impl Copy for IntUnsigned {}
+
+impl Clone for IntUnsigned{
+    fn clone(&self) -> IntUnsigned{
+        *self
+    }
+}
+
+//This enum is used to contain all the possible data types of Lmao.
+enum Value{
+    //Specific signed integers found from type declarations. (coming soonTM)
+    Int(IntSigned),
+    //Speficic unsigned integers found from type declarations.
+    UInt(IntUnsigned),
+    //Specified float types
+    Float32(f32),
+    Float64(f64),
+    Char(char),
+    Boolean(bool),
+    //String and its equivalent box to live on the stack.
+    String(String),
+    StringBox(usize),
+    List(Vec<Value>),
+    ListBox(usize),
+    Object(HashMap<String, Value>),
+    ObjectBox(usize),
+    MiscBox(usize),
+    NULLBox,
+}
+
+impl Clone for Value{
+    fn clone(&self) -> Value{
+        match self{
+            Value::Int(i) => Value::Int(*i),
+            Value::UInt(i) => Value::UInt(*i),
+            Value::Float32(f) => Value::Float32(*f),
+            Value::Float64(f) => Value::Float64(*f),
+            Value::Char(c) => Value::Char(*c),
+            Value::Boolean(b) => Value::Boolean(*b),
+            Value::String(st) => Value::String((st).clone()),
+            Value::StringBox(sb) => Value::StringBox(*sb),
+            Value::List(l) => Value::List((l).clone()),
+            Value::ListBox(bn) => Value::ListBox(*bn),
+            Value::Object(o) => Value::Object(o.clone()),
+            Value::ObjectBox(bn) => Value::ObjectBox(*bn),
+            Value::MiscBox(bn) => Value::MiscBox(*bn),
+            Value::NULLBox => Value::NULLBox,
+        }
+    }
+}
+
+impl PartialEq for Value{
+    fn eq(&self, other: &Self) -> bool{
+        match(self, other){
+            (Value::Int(a), Value::Int(b)) => a == b,
+            (Value::UInt(a), Value::UInt(b)) => a == b,
+            (Value::Float32(a), Value::Float32(b)) => a == b,
+            (Value::Float64(a), Value::Float64(b)) => a == b,
+            (Value::Char(a), Value::Char(b)) => a == b,
+            (Value::Boolean(a), Value::Boolean(b)) => a == b,
+            (Value::String(a), Value::String(b)) => a == b,
+            (Value::StringBox(a), Value::StringBox(b)) => a == b,
+            (Value::List(a), Value::List(b)) => a == b,
+            (Value::ListBox(a), Value::ListBox(b)) => a == b,
+            (Value::Object(a), Value::Object(b)) => a == b,
+            (Value::ObjectBox(a), Value::ObjectBox(b)) => a == b,
+            (Value::MiscBox(a), Value::MiscBox(b)) => a == b,
+            (Value::NULLBox, Value::NULLBox) => true,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for Value {}
+
+impl fmt::Display for Value{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            Value::Int(int) => write!(f, \"{}\", int),
+            Value::UInt(uint) => write!(f, \"{}\", uint),
+            Value::Float32(flt32) => {
+                if flt32.abs() > 9999999999999999.0{
+                    write!(f, \"f32 {:e}\", flt32)
+                }else{
+                    write!(f, \"f32 {}\", flt32)
+                }
+            },
+            Value::Float64(flt64) => {
+                if flt64.abs() > 9999999999999999.0{
+                    write!(f, \"f64 {:e}\", flt64)
+                }else{
+                    write!(f, \"f64 {}\", flt64)
+                }
+            },
+            Value::Char(c) => write!(f, \"Char \'{}\'\", c.escape_default().collect::<String>()),
+            Value::Boolean(b) => write!(f, \"Boolean {}\", b),
+            Value::String(s) => write!(f, \"String {:?}\", s),
+            Value::StringBox(sb) => write!(f, \"StringBox {}\", sb),
+            Value::List(ls) => {
+                let ls_strs: Vec<String> = ls.iter().map(|el| format!(\"{}\", el)).collect();
+                write!(f, \"List [{}]\", ls_strs.join(\", \"))
+            },
+            Value::ListBox(lb) => write!(f, \"ListBox {}\", lb),
+            Value::Object(o) => {
+                let mut obj_strs: Vec<String> = Vec::new();
+                for (key, value) in o.iter(){
+                    obj_strs.push(format!(\"{}: {}\", key, value));
+                }
+                write!(f, \"Object {}{}{}\", \"{\", obj_strs.join(\", \"), \"}\")
+            },
+            Value::ObjectBox(ob) => write!(f, \"ObjectBox {}\", ob),
+            Value::MiscBox(bn) => write!(f, \"MiscBox {}\", bn),
+            Value::NULLBox => write!(f, \"NULLBox\"),
+        }
+    }
+}
+
+impl Default for Value{
+    fn default() -> Self{
+        Value::NULLBox
+    }
+}
+
+//Main mutable state
+struct State{
+    stack: Vec<Value>,
+    fns: HashMap<String, ()>, //NEED TO FIGURE OUT HOW FUNCTIONS WORK
+    vars: HashMap<String, Value>,
+    frames: Vec<HashMap<String, Value>>,
+    heap: Vec<(Value, bool)>,
+    free_list: Vec<usize>,
+}
+
+impl State{
+    //Creates a new state.
+    fn new() -> Self{
+        State {
+            stack: Vec::new(),
+            fns: HashMap::new(),
+            vars: HashMap::new(),
+            frames: vec![HashMap::new()],
+            heap: Vec::new(),
+            free_list: Vec::new(),
+        }
+    }
+
+    //Inserts an item into the heap, 
+    // returning an index to where it was inserted in the heap.
+    fn insert_to_heap(&mut self, ins_val: Value) -> usize{
+        if self.free_list.len() > 0{
+            let free_cell_num = self.free_list.pop().unwrap();
+            self.heap[free_cell_num] = (ins_val, true);
+            return free_cell_num;
+        }else{
+            self.heap.push((ins_val, true));
+            return self.heap.len() - 1;
+        }
+    }
+
+    //Returns a boolean based on whether or not the desired box number is valid.
+    fn validate_box(&self, box_num: usize) -> bool{
+        box_num < self.heap.len() && self.heap[box_num].1
+    }
+
+    //Frees a cell in a heap or does nothing if it's invalid already.
+    fn free_heap_cell(&mut self, box_num: usize){
+        if self.validate_box(box_num){
+            self.heap[box_num].1 = false;
+            self.free_list.push(box_num);
+        }
+    }
+
+    //Pushes a value to the stack and accounts for if the value 
+    // is a non-primitive type, allocating it on the heap if necessary.
+    fn push(&mut self, ins_val: Value){
+        match ins_val{
+            Value::String(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::StringBox(box_num));
+            },
+            Value::List(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::ListBox(box_num));
+            },
+            Value::Object(_) => {
+                let box_num = self.insert_to_heap(ins_val);
+                self.stack.push(Value::ObjectBox(box_num));
+            },
+            anything => self.stack.push(anything),
+        }
+    }
+
+    fn pop(&mut self) -> Option<Value>{
+        self.stack.pop()
+    }
+
+    fn pop2(&mut self) -> (Option<Value>, Option<Value>){
+        let top = self.pop();
+        let second_to_top = self.pop();
+        (second_to_top, top)
+    }
+
+    fn pop3(&mut self) -> (Option<Value>, Option<Value>, Option<Value>){
+        let top = self.pop();
+        let second_to_top = self.pop();
+        let third_to_top = self.pop();
+        (third_to_top, second_to_top, top)
+    }
+
+}
+
+fn program(state: &mut State) -> Result<(), String>{
+    Ok(())
     ";
     file_strings.push(base.to_string());
 
+    //ITERATE THROUGH AST AND BUILD CODE STRING HERE
+
+    let end_str = "
+}
+
+fn main(){
+    let mut state = State::new();
+    match program(&mut state){
+        Ok(_) => println!(\"Program completed successfully!\"),
+        Err(e) => println!(\"Program failed with error: {}\", e),
+    }
+}
+    ";
+    file_strings.push(end_str.to_string());
+
     let file_string: String = file_strings.join("\n");
 
-    //EDGE CASE MIGHT EXIST WHERE IF THE NAME IS NOTHING IT'LL FREAK OUT
     let file_name_trimmed = file_name.clone()[0..file_name.len() - 5].to_string();
     let rust_file_name = if file_name.ends_with(".lmao"){
         format!("{}.rs", file_name_trimmed)
