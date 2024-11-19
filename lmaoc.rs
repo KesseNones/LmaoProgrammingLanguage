@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.2.0
+//Version: 0.2.1
 
 use std::collections::HashMap;
 use std::env;
@@ -30,12 +30,12 @@ enum IntSigned{
 impl fmt::Display for IntSigned{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
         match self {
-            IntSigned::Int8(n) => write!(f, "i8 {}", n),
-            IntSigned::Int16(n) => write!(f, "i16 {}", n),
-            IntSigned::Int32(n) => write!(f, "i32 {}", n),
-            IntSigned::Int64(n) => write!(f, "i64 {}", n),
-            IntSigned::Int128(n) => write!(f, "i128 {}", n),
-            IntSigned::IntSize(n) => write!(f, "isize {}", n),
+            IntSigned::Int8(n) => write!(f, "Value::Int(IntSigned::Int8({}))", n),
+            IntSigned::Int16(n) => write!(f, "Value::Int(IntSigned::Int16({}))", n),
+            IntSigned::Int32(n) => write!(f, "Value::Int(IntSigned::Int32({}))", n),
+            IntSigned::Int64(n) => write!(f, "Value::Int(IntSigned::Int64({}))", n),
+            IntSigned::Int128(n) => write!(f, "Value::Int(IntSigned::Int128({}))", n),
+            IntSigned::IntSize(n) => write!(f, "Value::Int(IntSigned::IntSize({}))", n),
         }
     }
 }
@@ -61,12 +61,12 @@ enum IntUnsigned{
 impl fmt::Display for IntUnsigned{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
         match self {
-            IntUnsigned::UInt8(n) => write!(f, "u8 {}", n),
-            IntUnsigned::UInt16(n) => write!(f, "u16 {}", n),
-            IntUnsigned::UInt32(n) => write!(f, "u32 {}", n),
-            IntUnsigned::UInt64(n) => write!(f, "u64 {}", n),
-            IntUnsigned::UInt128(n) => write!(f, "u128 {}", n),
-            IntUnsigned::UIntSize(n) => write!(f, "usize {}", n),
+            IntUnsigned::UInt8(n) => write!(f, "Value::UInt(IntUnsigned::UInt8({}))", n),
+            IntUnsigned::UInt16(n) => write!(f, "Value::UInt(IntUnsigned::UInt16({}))", n),
+            IntUnsigned::UInt32(n) => write!(f, "Value::UInt(IntUnsigned::UInt32({}))", n),
+            IntUnsigned::UInt64(n) => write!(f, "Value::UInt(IntUnsigned::UInt64({}))", n),
+            IntUnsigned::UInt128(n) => write!(f, "Value::UInt(IntUnsigned::UInt128({}))", n),
+            IntUnsigned::UIntSize(n) => write!(f, "Value::UInt(IntUnsigned::UIntSize({}))", n),
         }
     }
 }
@@ -718,6 +718,26 @@ fn make_ast(tokens: Vec<Token>) -> ASTNode{
     ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, Vec::new()).0)
 }
 
+//Translates AST to rust code recursively.
+fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>){
+    match ast{
+        ASTNode::Expression(nodes) => {
+            for node in nodes.iter(){
+                match node{
+                    ASTNode::Terminal(Token::V(value)) => {
+                        code_strings.push(format!("state.push({});", value))
+                    },
+                    _ => {},
+                }
+            }
+        },
+        _ => panic!("SHOULD NEVER GET HERE FOR TRANSLATION!!!")
+    }
+
+    code_strings.push("return Ok(());".to_string())
+
+}
+
 fn main(){
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
@@ -1096,6 +1116,17 @@ fn push_val_or_err(r: Result<Value, String>, s: &mut State) -> Result<(), String
         },
         Err(e) => Err(e),
     }
+}
+
+
+fn replace_literals_with_escapes(s: &str) -> String{
+    s
+        .replace(\"\\\\n\", \"\\n\")
+        .replace(\"\\\\t\", \"\\t\")
+        .replace(\"\\\\r\", \"\\r\")
+        .replace(\"\\\\\\\"\", \"\\\"\")
+        .replace(\"\\\\\'\", \"\\\'\")
+        .replace(\"\\\\0\", \"\\0\")
 }
 
 //Adds two values of matching numerical types together, pusing the result to the stack.
@@ -3010,7 +3041,7 @@ fn add_field(s: &mut State) -> Result<(), String>{
                             Ok(Value::ObjectBox(a))
                         }else{
                             let ret = Err(format!(\"Operator (objAddField) error! \
-                                ObjectBox {} already contains field \"{}\"! \
+                                ObjectBox {} already contains field \\\"{}\\\"! \
                                 Try removing it first!\", a, st));
                             s.heap[a].0 = obj_to_mut;
                             ret
@@ -3043,7 +3074,7 @@ fn invalid_types_for_get_or_rem(op_type: &str, v1: &Value, v2: &Value) -> String
 }
 
 fn field_not_in_obj_err(op_type: &str, box_num: usize, field_name: &str) -> String{
-    format!(\"Operator ({}) error! Field \"{}\" doesn't exist \
+    format!(\"Operator ({}) error! Field \\\"{}\\\" doesn't exist \
         in ObjectBox {} ! Try adding it!\", op_type, field_name, box_num) 
 }
 
@@ -3850,7 +3881,7 @@ where
 
 fn string_cast_error(bn: usize, str_contents: &str, t: &str, reason: &str) -> String{
     format!(\"Operator (cast) error! Failed to cast \
-        StringBox {} (\"{}\") to type {} because: {}\", bn, str_contents, t, reason)
+        StringBox {} (\\\"{}\\\") to type {} because: {}\", bn, str_contents, t, reason)
 }
 
 //Performs all valid casts in existence wherein the top 
@@ -4674,11 +4705,10 @@ fn file_exists(s: &mut State) -> Result<(), String>{
 }
 
 fn program(state: &mut State) -> Result<(), String>{
-    Ok(())
     ";
     file_strings.push(base.to_string());
 
-    //ITERATE THROUGH AST AND BUILD CODE STRING HERE
+    translate_ast_to_rust_code(&ast, &mut file_strings);
 
     let end_str = "
 }
@@ -4689,6 +4719,12 @@ fn main(){
         Ok(_) => println!(\"Program completed successfully!\"),
         Err(e) => println!(\"Program failed with error: {}\", e),
     }
+    //TEMPORARY DEBUG PRINTING! REMOVE LATER!
+    println!(\"STACK START\");
+    for item in state.stack.iter(){
+        println!(\"{}\", item);
+    }
+    println!(\"STACK END\");
 }
     ";
     file_strings.push(end_str.to_string());
@@ -4704,7 +4740,7 @@ fn main(){
     let rust_file_path = Path::new(&rust_file_name);
     
     println!("Creating and opening {}", rust_file_name);
-    let mut rust_file = match OpenOptions::new().create(true).write(true).open(rust_file_path){
+    let mut rust_file = match OpenOptions::new().create(true).write(true).truncate(true).open(rust_file_path){
         Ok(f) => f,
         Err(e) => panic!("Failed to create and open Rust file {} because: {}", rust_file_name, e.to_string()),
     };
@@ -4718,11 +4754,14 @@ fn main(){
     println!("Compiling {}", rust_file_name);
     let compilation_result = Command::new("rustc")
         .args(&["-C", "opt-level=2", &rust_file_name])
-        .output();
+        .output()
+        .expect("FAILED TO COMPILE PROGRAM");
 
-    match compilation_result{
-        Ok(_) => println!("Compilation complete!"),
-        Err(e) => panic!("Failed to compile {} because: {}", rust_file_name, e.to_string()),
-    }    
+    if compilation_result.status.success(){
+        println!("Compilation complete!");
+    }else{
+        let err_message = String::from_utf8_lossy(&compilation_result.stderr);
+        panic!("Failed to compile {} because:\n{}", rust_file_name, err_message);
+    }  
 
 }
