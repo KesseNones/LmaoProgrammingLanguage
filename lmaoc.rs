@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.2.1
+//Version: 0.2.2
 
 use std::collections::HashMap;
 use std::env;
@@ -152,18 +152,24 @@ impl fmt::Display for Value{
             Value::Int(int) => write!(f, "{}", int),
             Value::UInt(uint) => write!(f, "{}", uint),
             Value::Float32(flt32) => {
-                if flt32.abs() > 9999999999999999.0{
-                    write!(f, "f32 {:e}", flt32)
-                }else{
-                    write!(f, "f32 {}", flt32)
+                let mut f32_str = flt32.to_string();
+                if f32_str != "inf" && !f32_str.contains("."){
+                    f32_str.push_str(".0");
                 }
+                if f32_str == "inf"{
+                    f32_str = "f32::INFINITY".to_string();
+                }
+                write!(f, "Value::Float32({})", f32_str)
             },
             Value::Float64(flt64) => {
-                if flt64.abs() > 9999999999999999.0{
-                    write!(f, "f64 {:e}", flt64)
-                }else{
-                    write!(f, "f64 {}", flt64)
+                let mut f64_str = flt64.to_string();
+                if f64_str != "inf" && !f64_str.contains("."){
+                    f64_str.push_str(".0");
                 }
+                if f64_str == "inf"{
+                    f64_str = "f64::INFINITY".to_string();
+                }
+                write!(f, "Value::Float64({})", f64_str)
             },
             Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Boolean {}", b),
