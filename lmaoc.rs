@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.2.8
+//Version: 0.3.0
 
 use std::collections::HashMap;
 use std::env;
@@ -179,8 +179,8 @@ impl fmt::Display for Value{
             Value::ListBox(lb) => write!(f, "Value::ListBox({})", lb),
             Value::Object(o) => write!(f, "Value::Object(HashMap::new())"),
             Value::ObjectBox(ob) => write!(f, "Value::ObjectBox({})", ob),
-            Value::MiscBox(bn) => write!(f, "MiscBox {}", bn),
-            Value::NULLBox => write!(f, "NULLBox"),
+            Value::MiscBox(bn) => write!(f, "Value::MiscBox({})", bn),
+            Value::NULLBox => write!(f, "Value::NULLBox"),
         }
     }
 }
