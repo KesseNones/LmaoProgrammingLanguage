@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.2.3
+//Version: 0.2.4
 
 use std::collections::HashMap;
 use std::env;
@@ -172,7 +172,7 @@ impl fmt::Display for Value{
                 write!(f, "Value::Float64({})", f64_str)
             },
             Value::Char(c) => write!(f, "Value::Char(\'{}\')", c.escape_default().collect::<String>()),
-            Value::Boolean(b) => write!(f, "Boolean {}", b),
+            Value::Boolean(b) => write!(f, "Value::Boolean({})", b),
             Value::String(s) => write!(f, "String {:?}", s),
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
             Value::List(ls) => {
