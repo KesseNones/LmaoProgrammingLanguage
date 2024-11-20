@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.2.5
+//Version: 0.2.6
 
 use std::collections::HashMap;
 use std::env;
@@ -174,7 +174,7 @@ impl fmt::Display for Value{
             Value::Char(c) => write!(f, "Value::Char(\'{}\')", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Value::Boolean({})", b),
             Value::String(s) => write!(f, "Value::String(replace_literals_with_escapes(\"{}\"))", s),
-            Value::StringBox(sb) => write!(f, "StringBox {}", sb),
+            Value::StringBox(sb) => write!(f, "Value::StringBox({})", sb),
             Value::List(ls) => {
                 let ls_strs: Vec<String> = ls.iter().map(|el| format!("{}", el)).collect();
                 write!(f, "List [{}]", ls_strs.join(", "))
