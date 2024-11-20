@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.2.7
+//Version: 0.2.8
 
 use std::collections::HashMap;
 use std::env;
@@ -177,14 +177,8 @@ impl fmt::Display for Value{
             Value::StringBox(sb) => write!(f, "Value::StringBox({})", sb),
             Value::List(ls) => write!(f, "Value::List(Vec::new())"),
             Value::ListBox(lb) => write!(f, "Value::ListBox({})", lb),
-            Value::Object(o) => {
-                let mut obj_strs: Vec<String> = Vec::new();
-                for (key, value) in o.iter(){
-                    obj_strs.push(format!("{}: {}", key, value));
-                }
-                write!(f, "Object {}{}{}", "{", obj_strs.join(", "), "}")
-            },
-            Value::ObjectBox(ob) => write!(f, "ObjectBox {}", ob),
+            Value::Object(o) => write!(f, "Value::Object(HashMap::new())"),
+            Value::ObjectBox(ob) => write!(f, "Value::ObjectBox({})", ob),
             Value::MiscBox(bn) => write!(f, "MiscBox {}", bn),
             Value::NULLBox => write!(f, "NULLBox"),
         }
