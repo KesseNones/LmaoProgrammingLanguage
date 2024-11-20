@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.2.4
+//Version: 0.2.5
 
 use std::collections::HashMap;
 use std::env;
@@ -173,7 +173,7 @@ impl fmt::Display for Value{
             },
             Value::Char(c) => write!(f, "Value::Char(\'{}\')", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Value::Boolean({})", b),
-            Value::String(s) => write!(f, "String {:?}", s),
+            Value::String(s) => write!(f, "Value::String(replace_literals_with_escapes(\"{}\"))", s),
             Value::StringBox(sb) => write!(f, "StringBox {}", sb),
             Value::List(ls) => {
                 let ls_strs: Vec<String> = ls.iter().map(|el| format!("{}", el)).collect();
@@ -4731,6 +4731,12 @@ fn main(){
         println!(\"{}\", item);
     }
     println!(\"STACK END\");
+
+    println!(\"HEAP START\");
+    for i in 0..(state.heap.len()){
+        println!(\"({}, {})\", state.heap[i].0, state.heap[i].1);
+    }
+    println!(\"HEAP END\");
 }
     ";
     file_strings.push(end_str.to_string());
