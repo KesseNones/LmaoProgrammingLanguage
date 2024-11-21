@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.2
+//Version: 0.3.3
 
 use std::collections::HashMap;
 use std::env;
@@ -4726,6 +4726,120 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("-"), String::from("sub"));
     ops_to_funcs.insert(String::from("*"), String::from("mult"));
     ops_to_funcs.insert(String::from("/"), String::from("div"));
+    ops_to_funcs.insert(String::from("%"), String::from("modulo"));
+    ops_to_funcs.insert(String::from("mod"), String::from("modulo"));
+    ops_to_funcs.insert(String::from("pow"), String::from("power"));
+
+    //DELETE LATER!!!
+        // //Basic math operators.
+        // ops_map.insert("+".to_string(), add);
+        // ops_map.insert("-".to_string(), sub);
+        // ops_map.insert("*".to_string(), mult);
+        // ops_map.insert("/".to_string(), div);
+        // ops_map.insert("%".to_string(), modulo);
+        // ops_map.insert("mod".to_string(), modulo);
+        // ops_map.insert("pow".to_string(), power);
+
+        // //Maximum values for each integer data type operators.
+        // ops_map.insert("isizeMax".to_string(), max_isize);
+        // ops_map.insert("usizeMax".to_string(), max_usize);
+        // ops_map.insert("i8Max".to_string(), max_i8);
+        // ops_map.insert("i16Max".to_string(), max_i16);
+        // ops_map.insert("i32Max".to_string(), max_i32);
+        // ops_map.insert("i64Max".to_string(), max_i64);
+        // ops_map.insert("i128Max".to_string(), max_i128);
+        // ops_map.insert("u8Max".to_string(), max_u8);
+        // ops_map.insert("u16Max".to_string(), max_u16);
+        // ops_map.insert("u32Max".to_string(), max_u32);
+        // ops_map.insert("u64Max".to_string(), max_u64);
+        // ops_map.insert("u128Max".to_string(), max_u128);
+
+        // //Stack operators.
+        // ops_map.insert("swap".to_string(), swap);
+        // ops_map.insert("drop".to_string(), drop);
+        // ops_map.insert("dropStack".to_string(), drop_stack);
+        // ops_map.insert("rot".to_string(), rot);
+        // ops_map.insert("dup".to_string(), dup);
+        // ops_map.insert("deepDup".to_string(), deep_dup);
+
+        // //Comparison operators.
+        // ops_map.insert("==".to_string(), is_equal);
+        // ops_map.insert("!=".to_string(), is_not_equal);
+        // ops_map.insert(">".to_string(), is_greater_than);
+        // ops_map.insert("<".to_string(), is_less_than);
+        // ops_map.insert(">=".to_string(), is_greater_than_equal_to);
+        // ops_map.insert("<=".to_string(), is_less_than_equal_to);
+        // ops_map.insert("stringCompare".to_string(), string_compare);
+
+        // //String concatenation operator.
+        // ops_map.insert("++".to_string(), concat);
+
+        // //Basic logical operators.
+        // ops_map.insert("and".to_string(), and);
+        // ops_map.insert("&&".to_string(), and);
+        // ops_map.insert("or".to_string(), or);
+        // ops_map.insert("||".to_string(), or);
+        // ops_map.insert("xor".to_string(), xor);
+        // ops_map.insert("not".to_string(), not);
+        // ops_map.insert("!".to_string(), not);
+
+        // //List/String operations.
+        // ops_map.insert("push".to_string(), list_push);
+        // ops_map.insert("p".to_string(), list_push);
+        // ops_map.insert("pop".to_string(), list_pop);
+        // ops_map.insert("po".to_string(), list_pop);
+        // ops_map.insert("fpush".to_string(), list_front_push);
+        // ops_map.insert("fp".to_string(), list_front_push);
+        // ops_map.insert("fpop".to_string(), list_front_pop);
+        // ops_map.insert("fpo".to_string(), list_front_pop);
+        // ops_map.insert("index".to_string(), index);
+        // ops_map.insert("length".to_string(), length);
+        // ops_map.insert("len".to_string(), length);
+        // ops_map.insert("isEmpty".to_string(), is_empty);
+        // ops_map.insert("clear".to_string(), list_clear);
+        // ops_map.insert("contains".to_string(), list_contains);
+        // ops_map.insert("changeItemAt".to_string(), change_item_at);
+
+        // //Character operators
+        // ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
+        // ops_map.insert("isAlphaChar".to_string(), alpha_char_detect);
+        // ops_map.insert("isNumChar".to_string(), num_char_detect);
+
+        // //Object operators
+        // ops_map.insert("objAddField".to_string(), add_field);
+        // ops_map.insert("objGetField".to_string(), get_field);
+        // ops_map.insert("objMutField".to_string(), mut_field);
+        // ops_map.insert("objRemField".to_string(), remove_field);
+
+        // //Bitwise operators
+        // ops_map.insert("bitOr".to_string(), bit_or);
+        // ops_map.insert("|".to_string(), bit_or);
+        // ops_map.insert("bitAnd".to_string(), bit_and);
+        // ops_map.insert("&".to_string(), bit_and);
+        // ops_map.insert("bitXor".to_string(), bit_xor);
+        // ops_map.insert("^".to_string(), bit_xor);
+        // ops_map.insert("bitNot".to_string(), bit_not);
+        // ops_map.insert("bitShift".to_string(), bit_shift);
+
+        // //Casting
+        // ops_map.insert("cast".to_string(), cast_stuff);
+        
+        // //IO operators
+        // ops_map.insert("printLine".to_string(), print_line);
+        // ops_map.insert("readLine".to_string(), read_line_from_in);
+        // ops_map.insert("printChar".to_string(), print_char);
+        // ops_map.insert("readChar".to_string(), read_char);
+        // ops_map.insert("print".to_string(), print_string);
+        // ops_map.insert("read".to_string(), read_from_in);
+        // ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
+        // ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
+        
+        // //File IO operators
+        // ops_map.insert("fileWrite".to_string(), write_data_to_file);
+        // ops_map.insert("fileRead".to_string(), read_data_from_file);
+        // ops_map.insert("fileCreate".to_string(), create_file_based_on_string);
+        // ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
+        // ops_map.insert("fileExists".to_string(), file_exists);
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
