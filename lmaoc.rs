@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.0
+//Version: 0.3.1
 
 use std::collections::HashMap;
 use std::env;
@@ -716,13 +716,29 @@ fn make_ast(tokens: Vec<Token>) -> ASTNode{
 }
 
 //Translates AST to rust code recursively.
-fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>){
+fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops_to_funcs: &HashMap<String, String>){
     match ast{
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
                 match node{
                     ASTNode::Terminal(Token::V(value)) => {
                         code_strings.push(format!("state.push({});", value))
+                    },
+                    ASTNode::Terminal(Token::Word(op)) => {
+                        match ops_to_funcs.get(op){
+                            Some(op_func) => {
+                                let code_str = format!("
+                                    match {}(state){{
+                                        Ok(_) => (),
+                                        Err(e) => return Err(e),
+                                    }}
+                                ", op_func);
+                                code_strings.push(code_str)
+                            },
+                            None => {
+                                code_strings.push(format!("return Err(String::from(\"Unrecognized Operator: {}\"));", op))
+                            },
+                        }
                     },
                     _ => {},
                 }
@@ -4705,7 +4721,10 @@ fn program(state: &mut State) -> Result<(), String>{
     ";
     file_strings.push(base.to_string());
 
-    translate_ast_to_rust_code(&ast, &mut file_strings);
+    let mut ops_to_funcs: HashMap<String, String> = HashMap::new();
+    ops_to_funcs.insert(String::from("+"), String::from("add"));
+
+    translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
     let end_str = "
 }
