@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.3
+//Version: 0.3.4
 
 use std::collections::HashMap;
 use std::env;
@@ -4722,6 +4722,7 @@ fn program(state: &mut State) -> Result<(), String>{
     file_strings.push(base.to_string());
 
     let mut ops_to_funcs: HashMap<String, String> = HashMap::new();
+    //Basic math operators
     ops_to_funcs.insert(String::from("+"), String::from("add"));
     ops_to_funcs.insert(String::from("-"), String::from("sub"));
     ops_to_funcs.insert(String::from("*"), String::from("mult"));
@@ -4730,30 +4731,22 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("mod"), String::from("modulo"));
     ops_to_funcs.insert(String::from("pow"), String::from("power"));
 
+    //Max values for each integer data type
+    ops_to_funcs.insert(String::from("isizeMax"), String::from("max_isize"));
+    ops_to_funcs.insert(String::from("usizeMax"), String::from("max_usize"));
+    ops_to_funcs.insert(String::from("i8Max"), String::from("max_i8"));
+    ops_to_funcs.insert(String::from("i16Max"), String::from("max_i16"));
+    ops_to_funcs.insert(String::from("i32Max"), String::from("max_i32"));
+    ops_to_funcs.insert(String::from("i64Max"), String::from("max_i64"));
+    ops_to_funcs.insert(String::from("i128Max"), String::from("max_i128"));
+    ops_to_funcs.insert(String::from("u8Max"), String::from("max_u8"));
+    ops_to_funcs.insert(String::from("u16Max"), String::from("max_u16"));
+    ops_to_funcs.insert(String::from("u32Max"), String::from("max_u32"));
+    ops_to_funcs.insert(String::from("u64Max"), String::from("max_u64"));
+    ops_to_funcs.insert(String::from("u128Max"), String::from("max_u128"));
+
+
     //DELETE LATER!!!
-        // //Basic math operators.
-        // ops_map.insert("+".to_string(), add);
-        // ops_map.insert("-".to_string(), sub);
-        // ops_map.insert("*".to_string(), mult);
-        // ops_map.insert("/".to_string(), div);
-        // ops_map.insert("%".to_string(), modulo);
-        // ops_map.insert("mod".to_string(), modulo);
-        // ops_map.insert("pow".to_string(), power);
-
-        // //Maximum values for each integer data type operators.
-        // ops_map.insert("isizeMax".to_string(), max_isize);
-        // ops_map.insert("usizeMax".to_string(), max_usize);
-        // ops_map.insert("i8Max".to_string(), max_i8);
-        // ops_map.insert("i16Max".to_string(), max_i16);
-        // ops_map.insert("i32Max".to_string(), max_i32);
-        // ops_map.insert("i64Max".to_string(), max_i64);
-        // ops_map.insert("i128Max".to_string(), max_i128);
-        // ops_map.insert("u8Max".to_string(), max_u8);
-        // ops_map.insert("u16Max".to_string(), max_u16);
-        // ops_map.insert("u32Max".to_string(), max_u32);
-        // ops_map.insert("u64Max".to_string(), max_u64);
-        // ops_map.insert("u128Max".to_string(), max_u128);
-
         // //Stack operators.
         // ops_map.insert("swap".to_string(), swap);
         // ops_map.insert("drop".to_string(), drop);
