@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.1
+//Version: 0.3.2
 
 use std::collections::HashMap;
 use std::env;
@@ -4723,6 +4723,9 @@ fn program(state: &mut State) -> Result<(), String>{
 
     let mut ops_to_funcs: HashMap<String, String> = HashMap::new();
     ops_to_funcs.insert(String::from("+"), String::from("add"));
+    ops_to_funcs.insert(String::from("-"), String::from("sub"));
+    ops_to_funcs.insert(String::from("*"), String::from("mult"));
+    ops_to_funcs.insert(String::from("/"), String::from("div"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
