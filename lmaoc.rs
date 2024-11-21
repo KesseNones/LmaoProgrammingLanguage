@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.4
+//Version: 0.3.5
 
 use std::collections::HashMap;
 use std::env;
@@ -4745,16 +4745,15 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("u64Max"), String::from("max_u64"));
     ops_to_funcs.insert(String::from("u128Max"), String::from("max_u128"));
 
+    //Stack operators.
+    ops_to_funcs.insert(String::from("swap"), String::from("swap"));
+    ops_to_funcs.insert(String::from("drop"), String::from("drop"));
+    ops_to_funcs.insert(String::from("dropStack"), String::from("drop_stack"));
+    ops_to_funcs.insert(String::from("rot"), String::from("rot"));
+    ops_to_funcs.insert(String::from("dup"), String::from("dup"));
+    ops_to_funcs.insert(String::from("deepDup"), String::from("deep_dup"));
 
     //DELETE LATER!!!
-        // //Stack operators.
-        // ops_map.insert("swap".to_string(), swap);
-        // ops_map.insert("drop".to_string(), drop);
-        // ops_map.insert("dropStack".to_string(), drop_stack);
-        // ops_map.insert("rot".to_string(), rot);
-        // ops_map.insert("dup".to_string(), dup);
-        // ops_map.insert("deepDup".to_string(), deep_dup);
-
         // //Comparison operators.
         // ops_map.insert("==".to_string(), is_equal);
         // ops_map.insert("!=".to_string(), is_not_equal);
