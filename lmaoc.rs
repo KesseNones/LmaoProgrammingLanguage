@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.6
+//Version: 0.3.7
 
 use std::collections::HashMap;
 use std::env;
@@ -4762,11 +4762,10 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("<="), String::from("is_less_than_equal_to"));
     ops_to_funcs.insert(String::from("stringCompare"), String::from("string_compare"));
 
+    //String concatenation operator
+    ops_to_funcs.insert(String::from("++"), String::from("concat"));
 
     //DELETE LATER!!!
-        // //String concatenation operator.
-        // ops_map.insert("++".to_string(), concat);
-
         // //Basic logical operators.
         // ops_map.insert("and".to_string(), and);
         // ops_map.insert("&&".to_string(), and);
