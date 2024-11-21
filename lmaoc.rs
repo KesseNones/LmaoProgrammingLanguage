@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.7
+//Version: 0.3.8
 
 use std::collections::HashMap;
 use std::env;
@@ -4765,16 +4765,16 @@ fn program(state: &mut State) -> Result<(), String>{
     //String concatenation operator
     ops_to_funcs.insert(String::from("++"), String::from("concat"));
 
-    //DELETE LATER!!!
-        // //Basic logical operators.
-        // ops_map.insert("and".to_string(), and);
-        // ops_map.insert("&&".to_string(), and);
-        // ops_map.insert("or".to_string(), or);
-        // ops_map.insert("||".to_string(), or);
-        // ops_map.insert("xor".to_string(), xor);
-        // ops_map.insert("not".to_string(), not);
-        // ops_map.insert("!".to_string(), not);
+    //Basic logical operators
+    ops_to_funcs.insert(String::from("and"), String::from("and"));
+    ops_to_funcs.insert(String::from("&&"), String::from("and"));
+    ops_to_funcs.insert(String::from("or"), String::from("or"));
+    ops_to_funcs.insert(String::from("||"), String::from("or"));
+    ops_to_funcs.insert(String::from("xor"), String::from("xor"));
+    ops_to_funcs.insert(String::from("not"), String::from("not"));
+    ops_to_funcs.insert(String::from("!"), String::from("not"));
 
+    //DELETE LATER!!!
         // //List/String operations.
         // ops_map.insert("push".to_string(), list_push);
         // ops_map.insert("p".to_string(), list_push);
