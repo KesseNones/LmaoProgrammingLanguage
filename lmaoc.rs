@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.5
+//Version: 0.3.6
 
 use std::collections::HashMap;
 use std::env;
@@ -4745,7 +4745,7 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("u64Max"), String::from("max_u64"));
     ops_to_funcs.insert(String::from("u128Max"), String::from("max_u128"));
 
-    //Stack operators.
+    //Stack operators
     ops_to_funcs.insert(String::from("swap"), String::from("swap"));
     ops_to_funcs.insert(String::from("drop"), String::from("drop"));
     ops_to_funcs.insert(String::from("dropStack"), String::from("drop_stack"));
@@ -4753,16 +4753,17 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("dup"), String::from("dup"));
     ops_to_funcs.insert(String::from("deepDup"), String::from("deep_dup"));
 
-    //DELETE LATER!!!
-        // //Comparison operators.
-        // ops_map.insert("==".to_string(), is_equal);
-        // ops_map.insert("!=".to_string(), is_not_equal);
-        // ops_map.insert(">".to_string(), is_greater_than);
-        // ops_map.insert("<".to_string(), is_less_than);
-        // ops_map.insert(">=".to_string(), is_greater_than_equal_to);
-        // ops_map.insert("<=".to_string(), is_less_than_equal_to);
-        // ops_map.insert("stringCompare".to_string(), string_compare);
+    //Comparison operators
+    ops_to_funcs.insert(String::from("=="), String::from("is_equal"));
+    ops_to_funcs.insert(String::from("!="), String::from("is_not_equal"));
+    ops_to_funcs.insert(String::from(">"), String::from("is_greater_than"));
+    ops_to_funcs.insert(String::from("<"), String::from("is_less_than"));
+    ops_to_funcs.insert(String::from(">="), String::from("is_greater_than_equal_to"));
+    ops_to_funcs.insert(String::from("<="), String::from("is_less_than_equal_to"));
+    ops_to_funcs.insert(String::from("stringCompare"), String::from("string_compare"));
 
+
+    //DELETE LATER!!!
         // //String concatenation operator.
         // ops_map.insert("++".to_string(), concat);
 
