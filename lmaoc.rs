@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.8
+//Version: 0.3.9
 
 use std::collections::HashMap;
 use std::env;
@@ -4774,24 +4774,24 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("not"), String::from("not"));
     ops_to_funcs.insert(String::from("!"), String::from("not"));
 
-    //DELETE LATER!!!
-        // //List/String operations.
-        // ops_map.insert("push".to_string(), list_push);
-        // ops_map.insert("p".to_string(), list_push);
-        // ops_map.insert("pop".to_string(), list_pop);
-        // ops_map.insert("po".to_string(), list_pop);
-        // ops_map.insert("fpush".to_string(), list_front_push);
-        // ops_map.insert("fp".to_string(), list_front_push);
-        // ops_map.insert("fpop".to_string(), list_front_pop);
-        // ops_map.insert("fpo".to_string(), list_front_pop);
-        // ops_map.insert("index".to_string(), index);
-        // ops_map.insert("length".to_string(), length);
-        // ops_map.insert("len".to_string(), length);
-        // ops_map.insert("isEmpty".to_string(), is_empty);
-        // ops_map.insert("clear".to_string(), list_clear);
-        // ops_map.insert("contains".to_string(), list_contains);
-        // ops_map.insert("changeItemAt".to_string(), change_item_at);
+    //List/String operators
+    ops_to_funcs.insert(String::from("push"), String::from("list_push"));
+    ops_to_funcs.insert(String::from("p"), String::from("list_push"));
+    ops_to_funcs.insert(String::from("pop"), String::from("list_pop"));
+    ops_to_funcs.insert(String::from("po"), String::from("list_pop"));
+    ops_to_funcs.insert(String::from("fpush"), String::from("list_front_push"));
+    ops_to_funcs.insert(String::from("fp"), String::from("list_front_push"));
+    ops_to_funcs.insert(String::from("fpop"), String::from("list_front_pop"));
+    ops_to_funcs.insert(String::from("fpo"), String::from("list_front_pop"));
+    ops_to_funcs.insert(String::from("index"), String::from("index"));
+    ops_to_funcs.insert(String::from("length"), String::from("length"));
+    ops_to_funcs.insert(String::from("len"), String::from("length"));
+    ops_to_funcs.insert(String::from("isEmpty"), String::from("is_empty"));
+    ops_to_funcs.insert(String::from("clear"), String::from("list_clear"));
+    ops_to_funcs.insert(String::from("contains"), String::from("list_contains"));
+    ops_to_funcs.insert(String::from("changeItemAt"), String::from("change_item_at"));
 
+    //DELETE LATER!!!
         // //Character operators
         // ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
         // ops_map.insert("isAlphaChar".to_string(), alpha_char_detect);
