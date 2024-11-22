@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.13
+//Version: 0.3.14
 
 use std::collections::HashMap;
 use std::env;
@@ -4815,18 +4815,18 @@ fn program(state: &mut State) -> Result<(), String>{
     //Casting
     ops_to_funcs.insert(String::from("cast"), String::from("cast_stuff"));
 
+    //IO operators
+    ops_to_funcs.insert(String::from("printLine"), String::from("print_line"));
+    ops_to_funcs.insert(String::from("readLine"), String::from("read_line_from_in"));
+    ops_to_funcs.insert(String::from("printChar"), String::from("print_char"));
+    ops_to_funcs.insert(String::from("readChar"), String::from("read_char"));
+    ops_to_funcs.insert(String::from("print"), String::from("print_string"));
+    ops_to_funcs.insert(String::from("read"), String::from("read_from_in"));
+    ops_to_funcs.insert(String::from("debugPrintStack"), String::from("debug_stack_print"));
+    ops_to_funcs.insert(String::from("debugPrintHeap"), String::from("debug_heap_print"));
+
     //DELETE LATER!!!
     //TEMPLATE: ops_to_funcs.insert(String::from(""), String::from(""));
-        // //IO operators
-        // ops_map.insert("printLine".to_string(), print_line);
-        // ops_map.insert("readLine".to_string(), read_line_from_in);
-        // ops_map.insert("printChar".to_string(), print_char);
-        // ops_map.insert("readChar".to_string(), read_char);
-        // ops_map.insert("print".to_string(), print_string);
-        // ops_map.insert("read".to_string(), read_from_in);
-        // ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
-        // ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
-        
         // //File IO operators
         // ops_map.insert("fileWrite".to_string(), write_data_to_file);
         // ops_map.insert("fileRead".to_string(), read_data_from_file);
