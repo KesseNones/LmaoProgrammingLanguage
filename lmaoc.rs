@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.10
+//Version: 0.3.11
 
 use std::collections::HashMap;
 use std::env;
@@ -4796,13 +4796,14 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("isAlphaChar"), String::from("alpha_char_detect"));
     ops_to_funcs.insert(String::from("isNumChar"), String::from("num_char_detect"));
 
-    //DELETE LATER!!!
-        // //Object operators
-        // ops_map.insert("objAddField".to_string(), add_field);
-        // ops_map.insert("objGetField".to_string(), get_field);
-        // ops_map.insert("objMutField".to_string(), mut_field);
-        // ops_map.insert("objRemField".to_string(), remove_field);
+    //Object operators
+    ops_to_funcs.insert(String::from("objAddField"), String::from("add_field"));
+    ops_to_funcs.insert(String::from("objGetField"), String::from("get_field"));
+    ops_to_funcs.insert(String::from("objMutField"), String::from("mut_field"));
+    ops_to_funcs.insert(String::from("objRemField"), String::from("remove_field"));
 
+    //DELETE LATER!!!
+    //TEMPLATE: ops_to_funcs.insert(String::from(""), String::from(""));
         // //Bitwise operators
         // ops_map.insert("bitOr".to_string(), bit_or);
         // ops_map.insert("|".to_string(), bit_or);
