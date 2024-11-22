@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.9
+//Version: 0.3.10
 
 use std::collections::HashMap;
 use std::env;
@@ -4791,12 +4791,12 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("contains"), String::from("list_contains"));
     ops_to_funcs.insert(String::from("changeItemAt"), String::from("change_item_at"));
 
-    //DELETE LATER!!!
-        // //Character operators
-        // ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
-        // ops_map.insert("isAlphaChar".to_string(), alpha_char_detect);
-        // ops_map.insert("isNumChar".to_string(), num_char_detect);
+    //Character operators
+    ops_to_funcs.insert(String::from("isWhitespaceChar"), String::from("whitespace_detect"));
+    ops_to_funcs.insert(String::from("isAlphaChar"), String::from("alpha_char_detect"));
+    ops_to_funcs.insert(String::from("isNumChar"), String::from("num_char_detect"));
 
+    //DELETE LATER!!!
         // //Object operators
         // ops_map.insert("objAddField".to_string(), add_field);
         // ops_map.insert("objGetField".to_string(), get_field);
