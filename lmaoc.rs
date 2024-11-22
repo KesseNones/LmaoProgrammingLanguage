@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.11
+//Version: 0.3.12
 
 use std::collections::HashMap;
 use std::env;
@@ -4802,18 +4802,18 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("objMutField"), String::from("mut_field"));
     ops_to_funcs.insert(String::from("objRemField"), String::from("remove_field"));
 
+    //Bitwise operators
+    ops_to_funcs.insert(String::from("bitOr"), String::from("bit_or"));
+    ops_to_funcs.insert(String::from("|"), String::from("bit_or"));
+    ops_to_funcs.insert(String::from("bitAnd"), String::from("bit_and"));
+    ops_to_funcs.insert(String::from("&"), String::from("bit_and"));
+    ops_to_funcs.insert(String::from("bitXor"), String::from("bit_xor"));
+    ops_to_funcs.insert(String::from("^"), String::from("bit_xor"));
+    ops_to_funcs.insert(String::from("bitNot"), String::from("bit_not"));
+    ops_to_funcs.insert(String::from("bitShift"), String::from("bit_shift"));
+
     //DELETE LATER!!!
     //TEMPLATE: ops_to_funcs.insert(String::from(""), String::from(""));
-        // //Bitwise operators
-        // ops_map.insert("bitOr".to_string(), bit_or);
-        // ops_map.insert("|".to_string(), bit_or);
-        // ops_map.insert("bitAnd".to_string(), bit_and);
-        // ops_map.insert("&".to_string(), bit_and);
-        // ops_map.insert("bitXor".to_string(), bit_xor);
-        // ops_map.insert("^".to_string(), bit_xor);
-        // ops_map.insert("bitNot".to_string(), bit_not);
-        // ops_map.insert("bitShift".to_string(), bit_shift);
-
         // //Casting
         // ops_map.insert("cast".to_string(), cast_stuff);
         
