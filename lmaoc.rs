@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.12
+//Version: 0.3.13
 
 use std::collections::HashMap;
 use std::env;
@@ -4812,11 +4812,11 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("bitNot"), String::from("bit_not"));
     ops_to_funcs.insert(String::from("bitShift"), String::from("bit_shift"));
 
+    //Casting
+    ops_to_funcs.insert(String::from("cast"), String::from("cast_stuff"));
+
     //DELETE LATER!!!
     //TEMPLATE: ops_to_funcs.insert(String::from(""), String::from(""));
-        // //Casting
-        // ops_map.insert("cast".to_string(), cast_stuff);
-        
         // //IO operators
         // ops_map.insert("printLine".to_string(), print_line);
         // ops_map.insert("readLine".to_string(), read_line_from_in);
