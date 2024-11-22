@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.3.14
+//Version: 0.4.0
 
 use std::collections::HashMap;
 use std::env;
@@ -4825,14 +4825,12 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("debugPrintStack"), String::from("debug_stack_print"));
     ops_to_funcs.insert(String::from("debugPrintHeap"), String::from("debug_heap_print"));
 
-    //DELETE LATER!!!
-    //TEMPLATE: ops_to_funcs.insert(String::from(""), String::from(""));
-        // //File IO operators
-        // ops_map.insert("fileWrite".to_string(), write_data_to_file);
-        // ops_map.insert("fileRead".to_string(), read_data_from_file);
-        // ops_map.insert("fileCreate".to_string(), create_file_based_on_string);
-        // ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
-        // ops_map.insert("fileExists".to_string(), file_exists);
+    //File IO operators
+    ops_to_funcs.insert(String::from("fileWrite"), String::from("write_data_to_file"));
+    ops_to_funcs.insert(String::from("fileRead"), String::from("read_data_from_file"));
+    ops_to_funcs.insert(String::from("fileCreate"), String::from("create_file_based_on_string"));
+    ops_to_funcs.insert(String::from("fileRemove"), String::from("delete_file_based_on_string"));
+    ops_to_funcs.insert(String::from("fileExists"), String::from("file_exists"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
