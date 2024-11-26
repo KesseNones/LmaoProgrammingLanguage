@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.2
+//Version: 0.4.3
 
 use std::collections::HashMap;
 use std::env;
@@ -4757,6 +4757,16 @@ fn var_action(s: &mut State, name: &str, act: &str) -> Result<(), String>{
             Ok(())
         },
         \"get\" => {
+            match s.vars.get(name){
+                Some(v) => {
+                    s.stack.push(v.clone());
+                },
+                None => {
+                    return Err(format!(\"Variable get (var get) error! Variable {} doesn't exist. \
+                        Try making it first using var mak!\", name));
+                },
+            }
+
             Ok(())
         },
         \"mut\" => {
