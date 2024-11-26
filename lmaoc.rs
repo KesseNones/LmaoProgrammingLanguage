@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.3
+//Version: 0.4.4
 
 use std::collections::HashMap;
 use std::env;
@@ -4770,6 +4770,25 @@ fn var_action(s: &mut State, name: &str, act: &str) -> Result<(), String>{
             Ok(())
         },
         \"mut\" => {
+            match s.vars.get_mut(name){
+                Some(v) => {
+                    match s.stack.pop(){
+                        Some(new_v) => {
+                            if is_valid_mutation(v, &new_v){
+                                *v = new_v;
+                            }else{
+                                return Err(invalid_mutation_error(\"var mut\", \"variable\", name, &v, &new_v));
+                            }
+                        },
+                        None => return Err(variable_lack_of_args_error(\"mutation (mut)\")),
+                    }
+                },
+                None => {
+                    return Err(format!(\"Variable mutation (var mut) error! Variable {} doesn't exist. \
+                        Try making it first using var mak!\", name));
+                },
+            }
+
             Ok(())
         },
         \"del\" => {
