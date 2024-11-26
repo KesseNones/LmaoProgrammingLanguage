@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.0
+//Version: 0.4.1
 
 use std::collections::HashMap;
 use std::env;
@@ -739,6 +739,15 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                                 code_strings.push(format!("return Err(String::from(\"Unrecognized Operator: {}\"));", op))
                             },
                         }
+                    },
+                    ASTNode::Variable{var_name: name, var_cmd: cmd} => {
+                        let code_str = format!("
+                            match var_action(state, \"{}\", \"{}\"){{
+                                Ok(_) => (),
+                                Err(e) => return Err(e),
+                            }}
+                        ", &name, &cmd);
+                        code_strings.push(code_str)
                     },
                     _ => {},
                 }
@@ -4714,6 +4723,28 @@ fn file_exists(s: &mut State) -> Result<(), String>{
         },
         Some(v) => Err(single_arg_file_io_type_error(\"fileExists\", &v)),
         None => Err(needs_n_args_only_n_provided(\"fileExists\", \"One\", \"none\")),
+    }
+}
+
+//Performs a variable action based on the prompted string literal and the top of the stack.
+fn var_action(s: &mut State, name: &str, act: &str) -> Result<(), String>{
+    match act{
+        \"mak\" => {
+            Ok(())
+        },
+        \"get\" => {
+            Ok(())
+        },
+        \"mut\" => {
+            Ok(())
+        },
+        \"del\" => {
+            Ok(())
+        },
+        c => {
+            Err(format!(\"Variable (var) error! Unrecognized variable command! \
+            Valid: mak, get, mut, del . Attempted: {}\", c))
+        },
     }
 }
 
