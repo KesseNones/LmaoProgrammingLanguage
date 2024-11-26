@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.5
+//Version: 0.4.6
 
 use std::collections::HashMap;
 use std::env;
@@ -747,6 +747,15 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                                 Err(e) => return Err(e),
                             }}
                         ", &name, &cmd);
+                        code_strings.push(code_str)
+                    },
+                    ASTNode::BoxOp(op) => {
+                        let code_str = format!("
+                            match box_action(state, \"{}\"){{
+                                Ok(_) => (),
+                                Err(e) => return Err(e),
+                            }}
+                        ", &op);
                         code_strings.push(code_str)
                     },
                     _ => {},
@@ -4806,6 +4815,31 @@ fn var_action(s: &mut State, name: &str, act: &str) -> Result<(), String>{
         c => {
             Err(format!(\"Variable (var) error! Unrecognized variable command! \
             Valid: mak, get, mut, del . Attempted: {}\", c))
+        },
+    }
+}
+
+//Performs box operations, altering the state's heap and any relevant boxes on the stack.
+fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
+    match cmd{
+        \"free\" => {
+            Ok(())
+        },
+        \"null\" => {
+            Ok(())
+        },
+        \"make\" => {
+            Ok(())
+        },
+        \"open\" => {
+            Ok(())
+        },
+        \"altr\" => {
+            Ok(())
+        },
+        c => {
+            return Err(format!(\"Box error! Unrecognized box operation! \
+                Valid: free, null, make, open, altr . Attempted: {}\", c));
         },
     }
 }
