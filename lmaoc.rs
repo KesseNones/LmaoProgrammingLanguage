@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.1
+//Version: 0.4.2
 
 use std::collections::HashMap;
 use std::env;
@@ -4726,10 +4726,34 @@ fn file_exists(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Error string for when var mak and var mut 
+// don't have anything on the stack for them.
+fn variable_lack_of_args_error(var_action: &str) -> String{
+    format!(\"Variable (var) error! Variable {} needs one \
+        item on the stack! None provided!\", var_action)
+}
+
 //Performs a variable action based on the prompted string literal and the top of the stack.
 fn var_action(s: &mut State, name: &str, act: &str) -> Result<(), String>{
     match act{
         \"mak\" => {
+            match s.vars.get(name){
+                Some(_) => {
+                    return Err(format!(\"Variable creation (var mak) error! Variable {} already exists! \
+                    Try deleting it using del!\", name));
+                },
+                None => {
+                    match s.pop(){
+                        Some(v) => {
+                            s.vars.insert(name.to_string(), v);
+                        },
+                        None => {
+                            return Err(variable_lack_of_args_error(\"creation (mak)\"));
+                        },
+                    }
+                },
+            }
+
             Ok(())
         },
         \"get\" => {
