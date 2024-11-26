@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.4
+//Version: 0.4.5
 
 use std::collections::HashMap;
 use std::env;
@@ -4792,6 +4792,15 @@ fn var_action(s: &mut State, name: &str, act: &str) -> Result<(), String>{
             Ok(())
         },
         \"del\" => {
+            match s.vars.remove(name){
+                Some(_) => (),
+                None => {
+                    return Err(format!(\"Variable deletion (var del) error! \
+                        Variable {} doesn't exist or was already deleted! \
+                        Try making it first using var mak!\", name));
+                },
+            }
+
             Ok(())
         },
         c => {
