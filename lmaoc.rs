@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.8
+//Version: 0.4.9
 
 use std::collections::HashMap;
 use std::env;
@@ -4877,6 +4877,14 @@ fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
             Ok(())
         },
         \"make\" => {
+            match s.stack.pop(){
+                Some(v) => {
+                    let new_bn = s.insert_to_heap(v);
+                    s.push(Value::MiscBox(new_bn));
+                },
+                None => return Err(needs_n_args_only_n_provided(\"box make\", \"One\", \"none\")),
+            }
+
             Ok(())
         },
         \"open\" => {
