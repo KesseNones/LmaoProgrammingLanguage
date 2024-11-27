@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.10
+//Version: 0.5.0
 
 use std::collections::HashMap;
 use std::env;
@@ -4907,6 +4907,30 @@ fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
             Ok(())
         },
         \"altr\" => {
+            match s.pop2(){
+                (Some(Value::MiscBox(bn)), Some(v)) => {
+                    if s.validate_box(bn){
+                        if is_valid_mutation(&s.heap[bn].0, &v){
+                            s.heap[bn].0 = v;
+                            s.push(Value::MiscBox(bn));
+                        }else{
+                            return Err(invalid_mutation_error(\"box altr\", 
+                                \"MiscBox\", &bn.to_string(), &s.heap[bn].0, &v));
+                        }
+                    }else{
+                        return Err(bad_box_error(\"box altr\", \"MiscBox\", \"NA\", bn, usize::MAX, false));
+                    }
+                },
+                (Some(a), Some(b)) => {
+                    return Err(format!(\"Box altr error! Second to top of stack \
+                        must be type MiscBox and top of stack type Value! \
+                        Attempted values: {} and {}\", &a, &b));
+                },
+                (None, Some(_)) => return Err(needs_n_args_only_n_provided(\"box altr\", \"Two\", \"only one\")),
+                (None, None) => return Err(needs_n_args_only_n_provided(\"box altr\", \"Two\", \"none\")),
+                _ => return Err(should_never_get_here_for_func(\"box altr\")),
+            }
+
             Ok(())
         },
         c => {
