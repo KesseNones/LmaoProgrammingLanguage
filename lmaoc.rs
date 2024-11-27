@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.5.0
+//Version: 0.5.1
 
 use std::collections::HashMap;
 use std::env;
@@ -715,6 +715,13 @@ fn make_ast(tokens: Vec<Token>) -> ASTNode{
     ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, Vec::new()).0)
 }
 
+//Creates a singular cohesive code string for a given AST expression.
+fn make_code_str_from_ast(ast: &ASTNode, ops_to_funcs: &HashMap<String, String>) -> String{
+    let mut code_lines: Vec<String> = Vec::new();
+    translate_ast_to_rust_code(ast, &mut code_lines, ops_to_funcs);
+    code_lines.join("\n")
+}
+
 //Translates AST to rust code recursively.
 fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops_to_funcs: &HashMap<String, String>){
     match ast{
@@ -758,6 +765,38 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                         ", &op);
                         code_strings.push(code_str)
                     },
+                    ASTNode::If{if_true: true_branch, if_false: false_branch} => {
+                        let true_code = make_code_str_from_ast(&true_branch, ops_to_funcs);
+                        let false_code = make_code_str_from_ast(&false_branch, ops_to_funcs);
+                        
+                        let code_str = format!("
+                            let res: Result<(), String> = match state.stack.pop(){{
+                                Some(Value::Boolean(b)) => {{
+                                    if b{{
+                                        {}
+                                    }}else{{
+                                        {}
+                                    }}
+                                }},
+                                Some(v) => {{
+                                    return Err(format!(\"If statement error! \
+                                        Top of stack needs to be type Boolean \
+                                        for effective branching to occur! \
+                                        Attempted value: {{}}\", &v));
+                                }},
+                                None => {{
+                                    return Err(needs_n_args_only_n_provided(\"If\", \"One\", \"none\"));
+                                }},
+                            }};
+                            match res{{
+                                Ok(_) => (),
+                                Err(e) => return Err(e),
+                            }}
+                        ", &true_code, &false_code);
+
+                        code_strings.push(code_str)
+
+                    },
                     _ => {},
                 }
             }
@@ -765,7 +804,7 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
         _ => panic!("SHOULD NEVER GET HERE FOR TRANSLATION!!!")
     }
 
-    code_strings.push("return Ok(());".to_string())
+    code_strings.push("Ok(())".to_string())
 
 }
 
