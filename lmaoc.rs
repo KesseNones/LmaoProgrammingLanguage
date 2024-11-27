@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.5.1
+//Version: 0.5.2
 
 use std::collections::HashMap;
 use std::env;
@@ -796,6 +796,37 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
 
                         code_strings.push(code_str)
 
+                    },
+                    ASTNode::While(loop_body) => {
+                        let loop_code = make_code_str_from_ast(&loop_body, ops_to_funcs);
+
+                        let code_str = format!("
+                            loop {{
+                                let res: Result<(), String> = match state.stack.pop(){{
+                                    Some(Value::Boolean(b)) => {{
+                                        if b {{
+                                            {}
+                                        }}else{{
+                                            break;
+                                        }}
+                                    }},
+                                    Some(v) => {{
+                                        return Err(format!(\"While loop error! Top of stack needs \
+                                            to be of type Boolean to determine if loop needs \
+                                            to run/run again! Attempted value: {{}}\", &v));
+                                    }},
+                                    None => {{
+                                        return Err(needs_n_args_only_n_provided(\"while\", \"One\", \"none\"));
+                                    }},
+                                }};
+                                match res{{
+                                    Ok(_) => (),
+                                    Err(e) => return Err(e),
+                                }}
+                            }}
+                        ", &loop_code);
+
+                        code_strings.push(code_str)
                     },
                     _ => {},
                 }
@@ -5105,18 +5136,6 @@ fn main(){
         Ok(_) => println!(\"Program completed successfully!\"),
         Err(e) => println!(\"Program failed with error: {}\", e),
     }
-    //TEMPORARY DEBUG PRINTING! REMOVE LATER!
-    println!(\"STACK START\");
-    for item in state.stack.iter(){
-        println!(\"{}\", item);
-    }
-    println!(\"STACK END\");
-
-    println!(\"HEAP START\");
-    for i in 0..(state.heap.len()){
-        println!(\"({}, {})\", state.heap[i].0, state.heap[i].1);
-    }
-    println!(\"HEAP END\");
 }
     ";
     file_strings.push(end_str.to_string());
