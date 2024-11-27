@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.7
+//Version: 0.4.8
 
 use std::collections::HashMap;
 use std::env;
@@ -4873,6 +4873,7 @@ fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
             Ok(())
         },
         \"null\" => {
+            s.push(Value::NULLBox);
             Ok(())
         },
         \"make\" => {
