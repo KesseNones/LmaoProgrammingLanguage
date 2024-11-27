@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.4.6
+//Version: 0.4.7
 
 use std::collections::HashMap;
 use std::env;
@@ -4819,10 +4819,57 @@ fn var_action(s: &mut State, name: &str, act: &str) -> Result<(), String>{
     }
 }
 
+//Frees a box on the heap or kicks back an error.
+fn box_free_func(s: &mut State, v: Value, box_num: usize) -> Result<(), String>{
+    if s.validate_box(box_num){
+        s.free_heap_cell(box_num);
+        Ok(())
+    }else{
+        Err(format!(\"Box free error! {} is invalid due \
+            to having already been free'd!\", &v))
+    }
+}
+
 //Performs box operations, altering the state's heap and any relevant boxes on the stack.
 fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
     match cmd{
         \"free\" => {
+            match s.stack.pop(){
+                Some(Value::StringBox(bn)) => {
+                    match box_free_func(s, Value::StringBox(bn), bn){
+                        Ok(_) => (),
+                        Err(e) => return Err(e),
+                    }
+                },
+                Some(Value::ListBox(bn)) => {
+                    match box_free_func(s, Value::ListBox(bn), bn){
+                        Ok(_) => (),
+                        Err(e) => return Err(e),
+                    }
+                },
+                Some(Value::ObjectBox(bn)) => {
+                    match box_free_func(s, Value::ObjectBox(bn), bn){
+                        Ok(_) => (),
+                        Err(e) => return Err(e),
+                    }
+                },
+                Some(Value::MiscBox(bn)) => {
+                    match box_free_func(s, Value::MiscBox(bn), bn){
+                        Ok(_) => (),
+                        Err(e) => return Err(e),
+                    }
+                },
+                Some(v) => {
+                    return Err(format!(\"Box free error! Top of stack must be of type StringBox, \
+                        ListBox, ObjectBox, or MiscBox! Attempted value: {}\", &v));
+                },
+
+                None => {
+                    return Err(needs_n_args_only_n_provided(\"box free\", \"One\", \"none\"));
+                },
+
+            }
+
             Ok(())
         },
         \"null\" => {
