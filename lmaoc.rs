@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.5.3
+//Version: 0.6.0
 
 use std::collections::HashMap;
 use std::env;
@@ -851,7 +851,25 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                                 code_strings.push(code_str);
                             },
                             "call" => {
+                                let code_str = format!("
+                                    match state.fns.get(\"{}\"){{
+                                        Some(func) => {{
+                                            unsafe {{
+                                                match func(&mut *(state as *const State as *mut State)){{
+                                                    Ok(_) => (),
+                                                    Err(e) => return Err(e),
+                                                }}
+                                            }}
+                                        }},
+                                        None => {{
+                                            return Err(format!(\"Function call (func call) error! \
+                                                Function \\\"{}\\\" is not defined! \
+                                                Try defining it using func def !\"));
+                                        }},
+                                    }}
+                                ", &name, &name);
 
+                                code_strings.push(code_str);
                             },
                             c => {
                                 let err_str = format!("return Err(format!(\"Function error! Invalid function \
