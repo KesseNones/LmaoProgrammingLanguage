@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.5.2
+//Version: 0.5.3
 
 use std::collections::HashMap;
 use std::env;
@@ -828,6 +828,38 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
 
                         code_strings.push(code_str)
                     },
+                    ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: body} => {
+                        match cmd as &str{
+                            "def" => {
+                                let func_code = make_code_str_from_ast(&body, ops_to_funcs);
+
+                                let code_str = format!("
+                                    match state.fns.get(\"{}\"){{
+                                        Some(_) => {{
+                                            return Err(format!(\"Function definition (func def) error! \
+                                                Function \\\"{}\\\" is already defined!\"));
+                                        }},
+                                        None => {{
+                                            let func = |state: &mut State| -> Result<(), String>{{
+                                                {}
+                                            }};
+                                            state.fns.insert(\"{}\".to_string(), Box::new(func));
+                                        }},
+                                    }}
+                                ", &name, &name, &func_code, &name);
+
+                                code_strings.push(code_str);
+                            },
+                            "call" => {
+
+                            },
+                            c => {
+                                let err_str = format!("return Err(format!(\"Function error! Invalid function \
+                                    command given! Valid: def, call . Attempted: {{}}\", \"{}\"));", c);
+                                code_strings.push(err_str);
+                            },
+                        }
+                    },
                     _ => {},
                 }
             }
@@ -1068,10 +1100,12 @@ impl Default for Value{
     }
 }
 
+type FuncFunc = fn(&mut State) -> Result<(), String>;
+
 //Main mutable state
 struct State{
     stack: Vec<Value>,
-    fns: HashMap<String, ()>, //NEED TO FIGURE OUT HOW FUNCTIONS WORK
+    fns: HashMap<String, Box<FuncFunc>>,
     vars: HashMap<String, Value>,
     frames: Vec<HashMap<String, Value>>,
     heap: Vec<(Value, bool)>,
