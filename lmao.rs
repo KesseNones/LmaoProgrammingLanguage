@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.0
+//Version: 0.6.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3630,7 +3630,11 @@ fn print_string(s: &mut State) -> Result<(), String>{
             if s.validate_box(bn){
                 if let Value::String(ref st) = &s.heap[bn].0{
                     print!("{}", st);
-                    Ok(())
+                    match io::stdout().flush(){
+                        Ok(_) => Ok(()),
+                        Err(e) => Err(format!("Operator (print) error! Failed \
+                            to flush buffer after printing because: {}", e.to_string())),
+                    }
                 }else{
                     Err(should_never_get_here_for_func("print_string"))
                 }

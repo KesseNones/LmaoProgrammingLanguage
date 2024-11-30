@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.6.0
+//Version: 0.6.1
 
 use std::collections::HashMap;
 use std::env;
@@ -4530,7 +4530,11 @@ fn print_string(s: &mut State) -> Result<(), String>{
             if s.validate_box(bn){
                 if let Value::String(ref st) = &s.heap[bn].0{
                     print!(\"{}\", st);
-                    Ok(())
+                    match io::stdout().flush(){
+                        Ok(_) => Ok(()),
+                        Err(e) => Err(format!(\"Operator (print) error! Failed \
+                            to flush buffer after printing because: {}\", e.to_string())),
+                    }
                 }else{
                     Err(should_never_get_here_for_func(\"print_string\"))
                 }
