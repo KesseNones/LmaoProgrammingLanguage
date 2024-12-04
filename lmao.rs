@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.2
+//Version: 0.6.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4626,6 +4626,27 @@ fn box_free_func(s: &mut State, v: Value, box_num: usize) -> Result<(), String>{
     }
 }
 
+//Adds one to the current frame count. 
+// This means that any local variables would be created a frame deeper than before.
+fn add_frame(s: &mut State){
+    s.curr_frame += 1
+}
+
+//Removes hashmap for local variables in current frame before leaving, 
+// unless at global scope where nothing happens.
+fn remove_frame(s: &mut State){
+    if s.curr_frame > 0{
+        s.frames.remove(&s.curr_frame);
+        s.curr_frame -= 1;
+    }
+}
+
+//Removes the stack frame before then creating the appropriate error string.
+fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
+    remove_frame(s);
+    Err(err)
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
     match ast{
@@ -4638,11 +4659,11 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             Some(func) => {
                                 match func(state){
                                     Ok(_) => {},
-                                    Err(e) => return Err(e),
+                                    Err(e) => return error_and_remove_frame(state, e),
                                 }
                             },
                             None => {
-                                return Err(format!("Unrecognized Operator: {}", op));
+                                return error_and_remove_frame(state, format!("Unrecognized Operator: {}", op));
                             },
                         } 
                     },
@@ -4652,7 +4673,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             "mak" => {
                                 match state.vars.get(name){
                                     Some(_) => {
-                                        return Err(format!("Variable creation (var mak) error! Variable {} already exists! \
+                                        return error_and_remove_frame(state, format!("Variable creation (var mak) \
+                                            error! Variable {} already exists! \
                                             Try deleting it using del!", &name));
                                     },
                                     None => {
@@ -4661,7 +4683,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                 state.vars.insert(name.clone(), v);
                                             },
                                             None => {
-                                                return Err(variable_lack_of_args_error("creation (mak)"));
+                                                return error_and_remove_frame(state, 
+                                                    variable_lack_of_args_error("creation (mak)"));
                                             },
                                         }
                                     },
@@ -4673,7 +4696,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                         state.stack.push(v.clone());
                                     },
                                     None => {
-                                        return Err(format!("Variable get (var get) error! Variable {} doesn't exist. \
+                                        return error_and_remove_frame(state, format!("Variable get (var get) error! \
+                                            Variable {} doesn't exist. \
                                             Try making it first using var mak!", &name));
                                     },
                                 }
@@ -4686,14 +4710,18 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                 if is_valid_mutation(v, &new_v){
                                                     *v = new_v;
                                                 }else{
-                                                    return Err(invalid_mutation_error("var mut", "variable", name, &v, &new_v));
+                                                    let mut_err = invalid_mutation_error("var mut", 
+                                                        "variable", name, &v, &new_v); 
+                                                    return error_and_remove_frame(state, mut_err);
                                                 }
                                             },
-                                            None => return Err(variable_lack_of_args_error("mutation (mut)")),
+                                            None => return error_and_remove_frame(state, 
+                                                variable_lack_of_args_error("mutation (mut)")),
                                         }
                                     },
                                     None => {
-                                        return Err(format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
+                                        return error_and_remove_frame(state, 
+                                            format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
                                             Try making it first using var mak!", &name));
                                     },
                                 }
@@ -4702,14 +4730,15 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 match state.vars.remove(name){
                                     Some(_) => {},
                                     None => {
-                                        return Err(format!("Variable deletion (var del) error! \
+                                        return error_and_remove_frame(state, 
+                                            format!("Variable deletion (var del) error! \
                                             Variable {} doesn't exist or was already deleted! \
                                             Try making it first using var mak!", &name));
                                     },
                                 }
                             },
                             c => {
-                                return Err(format!("Variable (var) error! \
+                                return error_and_remove_frame(state, format!("Variable (var) error! \
                                     Unrecognized variable command! Valid: mak, get, mut, del . \
                                     Attempted: {}", c));
                             },
@@ -4722,34 +4751,36 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     Some(Value::StringBox(bn)) => {
                                         match box_free_func(state, Value::StringBox(bn), bn){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     },
                                     Some(Value::ListBox(bn)) => {
                                         match box_free_func(state, Value::ListBox(bn), bn){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     },
                                     Some(Value::ObjectBox(bn)) => {
                                         match box_free_func(state, Value::ObjectBox(bn), bn){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     },
                                     Some(Value::MiscBox(bn)) => {
                                         match box_free_func(state, Value::MiscBox(bn), bn){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     },
                                     Some(v) => {
-                                        return Err(format!("Box free error! Top of stack must be of type StringBox, \
+                                        return error_and_remove_frame(state, 
+                                            format!("Box free error! Top of stack must be of type StringBox, \
                                             ListBox, ObjectBox, or MiscBox! Attempted value: {}", &v));
                                     },
 
                                     None => {
-                                        return Err(needs_n_args_only_n_provided("box free", "One", "none"));
+                                        return error_and_remove_frame(state, 
+                                            needs_n_args_only_n_provided("box free", "One", "none"));
                                     },
 
                                 }
@@ -4763,7 +4794,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                         let new_bn = state.insert_to_heap(v);
                                         state.push(Value::MiscBox(new_bn));
                                     },
-                                    None => return Err(needs_n_args_only_n_provided("box make", "One", "none")),
+                                    None => return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided("box make", "One", "none")),
                                 }
                             },
                             "open" => {
@@ -4773,14 +4805,19 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                             let val_to_push = state.heap[bn].0.clone();
                                             state.push(val_to_push);
                                         }else{
-                                            return Err(bad_box_error("box open", "MiscBox", "NA", bn, usize::MAX, false));
+                                            return error_and_remove_frame(state, 
+                                                bad_box_error("box open", "MiscBox", "NA", 
+                                                    bn, usize::MAX, false));
                                         }
                                     },
                                     Some(v) => {
-                                        return Err(format!("Box open error! Top of stack must be type MiscBox! \
+                                        return error_and_remove_frame(state, 
+                                            format!("Box open error!\
+                                             Top of stack must be type MiscBox! \
                                             Attempted value: {}", &v));
                                     },
-                                    None => return Err(needs_n_args_only_n_provided("box open", "One", "none")),
+                                    None => return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided("box open", "One", "none")),
                                 }
                             },
                             "altr" => {
@@ -4791,25 +4828,33 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                 state.heap[bn].0 = v;
                                                 state.push(Value::MiscBox(bn));
                                             }else{
-                                                return Err(invalid_mutation_error("box altr", 
+                                                return error_and_remove_frame(state, 
+                                                    invalid_mutation_error("box altr", 
                                                     "MiscBox", &bn.to_string(), &state.heap[bn].0, &v));
                                             }
                                         }else{
-                                            return Err(bad_box_error("box altr", "MiscBox", "NA", bn, usize::MAX, false));
+                                            return error_and_remove_frame(state, 
+                                                bad_box_error("box altr", "MiscBox", 
+                                                    "NA", bn, usize::MAX, false));
                                         }
                                     },
                                     (Some(a), Some(b)) => {
-                                        return Err(format!("Box altr error! Second to top of stack \
+                                        return error_and_remove_frame(state, 
+                                            format!("Box altr error! Second to top of stack \
                                             must be type MiscBox and top of stack type Value! \
                                             Attempted values: {} and {}", &a, &b));
                                     },
-                                    (None, Some(_)) => return Err(needs_n_args_only_n_provided("box altr", "Two", "only one")),
-                                    (None, None) => return Err(needs_n_args_only_n_provided("box altr", "Two", "none")),
-                                    _ => return Err(should_never_get_here_for_func("box altr")),
+                                    (None, Some(_)) => return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided("box altr", "Two", "only one")),
+                                    (None, None) => return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided("box altr", "Two", "none")),
+                                    _ => return error_and_remove_frame(state, 
+                                        should_never_get_here_for_func("box altr")),
                                 }
                             },
                             o => {
-                                return Err(format!("Box error! Unrecognized box operation! \
+                                return error_and_remove_frame(state, 
+                                    format!("Box error! Unrecognized box operation! \
                                     Valid: free, null, make, open, altr . Attempted: {}", o));
                             },
                         }
@@ -4817,6 +4862,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                     ASTNode::If{if_true: true_branch, if_false: false_branch} => {
                         match state.pop(){
                             Some(Value::Boolean(b)) => {
+                                add_frame(state);
                                 let res = match b{
                                     true => run_program(&true_branch, state),
                                     false => run_program(&false_branch, state),
@@ -4824,16 +4870,17 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
 
                                 match res{
                                     Ok(_) => {},
-                                    Err(e) => return Err(e),
+                                    Err(e) => return error_and_remove_frame(state, e),
                                 }
                             },
                             Some(v) => {
-                                return Err(format!("If statement error! \
+                                return error_and_remove_frame(state, format!("If statement error! \
                                     Top of stack needs to be type Boolean \
                                     for effective branching to occur! \
                                     Attempted value: {}", &v));
                             },
-                            None => return Err(needs_n_args_only_n_provided("if", "One", "none")),
+                            None => return error_and_remove_frame(state, 
+                                needs_n_args_only_n_provided("if", "One", "none")),
                         }
                     },
                     ASTNode::While(bod) => {
@@ -4841,20 +4888,23 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             match state.pop(){
                                 Some(Value::Boolean(b)) => {
                                     if b{
+                                        add_frame(state);
                                         match run_program(&bod, state){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     }else{
                                         break;
                                     }
                                 },
                                 Some(v) => {
-                                    return Err(format!("While loop error! Top of stack needs \
+                                    return error_and_remove_frame(state, 
+                                        format!("While loop error! Top of stack needs \
                                         to be of type Boolean to determine if loop needs \
                                         to run/run again! Attempted value: {}", &v));
                                 },
-                                None => return Err(needs_n_args_only_n_provided("while", "One", "none")),
+                                None => return error_and_remove_frame(state, 
+                                    needs_n_args_only_n_provided("while", "One", "none")),
                             }
                         }
                     },
@@ -4863,7 +4913,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             "def" => {
                                 match state.fns.get(name){
                                     Some(_) => {
-                                        return Err(format!("Function definition (func def) error! \
+                                        return error_and_remove_frame(state, 
+                                            format!("Function definition (func def) error! \
                                             Function \"{}\" is already defined!", &name));
                                     },
                                     None => {
@@ -4875,7 +4926,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 let func_body = match state.fns.get(name){
                                     Some(b) => b,
                                     None => {
-                                        return Err(format!("Function call (func call) error! \
+                                        return error_and_remove_frame(state, 
+                                            format!("Function call (func call) error! \
                                             Function \"{}\" is not defined! \
                                             Try defining it using func def !", name));
                                     }, 
@@ -4884,15 +4936,17 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 //THIS WORKS BUT IS EXTREMELY JANKY AND I DON'T LIKE IT.
                                 // MAYBE TRY TO FIND A SAFER WAY.
                                 unsafe {
+                                    add_frame(&mut *(state as *const State as *mut State));
                                     match run_program(func_body, &mut *(state as *const State as *mut State)){
                                         Ok(_) => {},
-                                        Err(e) => return Err(e),
+                                        Err(e) => return error_and_remove_frame(state, e),
                                     }
                                 }
 
                             },
                             c => {
-                                return Err(format!("Function error! Invalid function \
+                                return error_and_remove_frame(state, 
+                                    format!("Function error! Invalid function \
                                     command given! Valid: def, call . Attempted: {}", c));
                             },
                         }
@@ -4904,6 +4958,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
         _ => {return Err("Should never get to this point!".to_string());},
     }
 
+    remove_frame(state);
     Ok(())
 }
 
