@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.4
+//Version: 0.6.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4962,8 +4962,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                             }else{
                                                 return error_and_remove_frame(state, format!("Local Variable \
                                                     creation (loc mak) \
-                                                    error! Local Variable {} already exists! \
-                                                    Try deleting it using del!", &n));
+                                                    error! Local Variable {} already exists in given scope!", &n));
                                             }
                                         }else{
                                             let mut new_frame: HashMap<String, Value> = HashMap::new();
