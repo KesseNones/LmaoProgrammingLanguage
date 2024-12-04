@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.3
+//Version: 0.6.4
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4948,6 +4948,43 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 return error_and_remove_frame(state, 
                                     format!("Function error! Invalid function \
                                     command given! Valid: def, call . Attempted: {}", c));
+                            },
+                        }
+                    },
+                    ASTNode::LocVar{name: n, cmd: c} => {
+                        match c as &str{
+                            "mak" => {
+                                match state.pop(){
+                                    Some(v) => {
+                                        if let Some(ref mut frame) = state.frames.get_mut(&state.curr_frame){
+                                            if !frame.contains_key(n){
+                                                frame.insert(n.clone(), v);
+                                            }else{
+                                                return error_and_remove_frame(state, format!("Local Variable \
+                                                    creation (loc mak) \
+                                                    error! Local Variable {} already exists! \
+                                                    Try deleting it using del!", &n));
+                                            }
+                                        }else{
+                                            let mut new_frame: HashMap<String, Value> = HashMap::new();
+                                            new_frame.insert(n.clone(), v);  
+                                            state.frames.insert(state.curr_frame, new_frame);
+
+                                        }
+                                    },
+                                    None => {
+                                        //MAKE THIS AN ORIGINAL ERROR LATER!
+                                        return error_and_remove_frame(state, 
+                                            variable_lack_of_args_error("creation (mak)"));
+                                    },
+                                }
+                            },
+                            "get" => {},
+                            "mut" => {},
+                            misc => {
+                                return error_and_remove_frame(state, format!("Local Variable (loc) error! \
+                                    Unrecognized local variable command! Valid: mak, get, mut . \
+                                    Attempted: {}", misc));
                             },
                         }
                     },
