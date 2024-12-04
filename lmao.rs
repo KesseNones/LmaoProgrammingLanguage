@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.1
+//Version: 0.6.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -290,10 +290,11 @@ struct State{
     stack: Vec<Value>,
     fns: HashMap<String, ASTNode>,
     vars: HashMap<String, Value>,
-    frames: Vec<HashMap<String, Value>>,
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
-    ops: HashMap<String, OpFunc>
+    ops: HashMap<String, OpFunc>,
+    frames: HashMap<usize, HashMap<String, Value>>,
+    curr_frame: usize,
 }
 
 fn type_to_string(v: &Value) -> String{
@@ -4076,14 +4077,20 @@ impl State{
         ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
         ops_map.insert("fileExists".to_string(), file_exists);
 
+        //Creates hashmap that tracks local variable 
+        // stack frames and inserts global scope frame.
+        let mut stack_frames = HashMap::new();
+        stack_frames.insert(0, HashMap::new());
+
         State {
             stack: Vec::new(),
             fns: HashMap::new(),
             vars: HashMap::new(),
-            frames: vec![HashMap::new()],
             heap: Vec::new(),
             free_list: Vec::new(),
-            ops: ops_map 
+            ops: ops_map, 
+            frames: stack_frames,
+            curr_frame: 0,
         }
     }
 
