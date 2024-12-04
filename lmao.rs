@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.5
+//Version: 0.6.6
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -295,6 +295,7 @@ struct State{
     ops: HashMap<String, OpFunc>,
     frames: HashMap<usize, HashMap<String, Value>>,
     curr_frame: usize,
+    frame_pool: Vec<HashMap<String, Value>>,
 }
 
 fn type_to_string(v: &Value) -> String{
@@ -4091,6 +4092,7 @@ impl State{
             ops: ops_map, 
             frames: stack_frames,
             curr_frame: 0,
+            frame_pool: Vec::new(),
         }
     }
 
@@ -4636,7 +4638,10 @@ fn add_frame(s: &mut State){
 // unless at global scope where nothing happens.
 fn remove_frame(s: &mut State){
     if s.curr_frame > 0{
-        s.frames.remove(&s.curr_frame);
+        //Adds to pool of used frames to be recycled in future variable operations.
+        if let Some(frame) = s.frames.remove(&s.curr_frame){
+            s.frame_pool.push(frame);
+        }
         s.curr_frame -= 1;
     }
 }
@@ -4965,7 +4970,13 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                     error! Local Variable {} already exists in given scope!", &n));
                                             }
                                         }else{
-                                            let mut new_frame: HashMap<String, Value> = HashMap::new();
+                                            let mut new_frame: HashMap<String, Value> = if state.frame_pool.len() > 0{
+                                                let mut new = state.frame_pool.pop().unwrap();
+                                                new.clear();
+                                                new
+                                            }else{
+                                                HashMap::new()    
+                                            };
                                             new_frame.insert(n.clone(), v);  
                                             state.frames.insert(state.curr_frame, new_frame);
 
