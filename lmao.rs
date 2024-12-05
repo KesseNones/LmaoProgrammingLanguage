@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.6
+//Version: 0.6.7
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4617,6 +4617,13 @@ fn variable_lack_of_args_error(var_action: &str) -> String{
         item on the stack! None provided!", var_action)
 }
 
+//Error string for when loc mak and loc mut 
+// don't have anything on the stack for them.
+fn local_variable_lack_of_args_error(var_action: &str) -> String{
+    format!("Local Variable (loc) error! Local variable {} needs one \
+        item on the stack! None provided!", var_action)
+}
+
 //Frees a box on the heap or kicks back an error.
 fn box_free_func(s: &mut State, v: Value, box_num: usize) -> Result<(), String>{
     if s.validate_box(box_num){
@@ -4983,14 +4990,17 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                         }
                                     },
                                     None => {
-                                        //MAKE THIS AN ORIGINAL ERROR LATER!
                                         return error_and_remove_frame(state, 
-                                            variable_lack_of_args_error("creation (mak)"));
+                                            local_variable_lack_of_args_error("creation (mak)"));
                                     },
                                 }
                             },
-                            "get" => {},
-                            "mut" => {},
+                            "get" => {
+
+                            },
+                            "mut" => {
+
+                            },
                             misc => {
                                 return error_and_remove_frame(state, format!("Local Variable (loc) error! \
                                     Unrecognized local variable command! Valid: mak, get, mut . \
