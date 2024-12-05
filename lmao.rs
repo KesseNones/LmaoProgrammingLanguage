@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.7
+//Version: 0.6.8
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4659,6 +4659,27 @@ fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
     Err(err)
 }
 
+//Finds frame number that variable lives in if it exists or none otherwise.
+fn find_var(s: &mut State, name: &str) -> Option<usize>{
+    //Attempts to see if variable with desired name exists at current frame.
+    if let Some(frame) = s.frames.get(&s.curr_frame){
+        if frame.contains_key(name){
+            return Some(s.curr_frame);
+        }
+    }
+
+    //If variable doesn't exist at current frame, search the rest from bottom to top.
+    let mut frame_nums: Vec<usize> = s.frames.keys().map(|n| *n).collect();
+    frame_nums.sort();
+    for i in (0..frame_nums.len()).rev(){
+        if s.frames.get(&frame_nums[i]).unwrap().contains_key(name){
+            return Some(frame_nums[i]);
+        }
+    }
+    
+    None
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
     match ast{
@@ -4996,7 +5017,16 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 }
                             },
                             "get" => {
-
+                                match find_var(state, n){
+                                    Some(frame_num) => {
+                                        state.stack.push(state.frames.get(&frame_num).unwrap().get(n).unwrap().clone());
+                                    },
+                                    None => {
+                                        return error_and_remove_frame(state, format!("Local Variable (loc) error! \
+                                            Local variable {} doesn't exist in any scope! \
+                                            Try making it using loc mak!", n));
+                                    },
+                                }
                             },
                             "mut" => {
 
