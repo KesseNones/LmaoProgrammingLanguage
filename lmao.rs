@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.8
+//Version: 0.7.0
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5022,14 +5022,46 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                         state.stack.push(state.frames.get(&frame_num).unwrap().get(n).unwrap().clone());
                                     },
                                     None => {
-                                        return error_and_remove_frame(state, format!("Local Variable (loc) error! \
+                                        return error_and_remove_frame(state, format!("\
+                                            Local Variable get (loc get) error! \
                                             Local variable {} doesn't exist in any scope! \
                                             Try making it using loc mak!", n));
                                     },
                                 }
                             },
                             "mut" => {
+                                match state.stack.pop(){
+                                    Some(v) => {
+                                        match find_var(state, n){
+                                            Some(frame_num) => {
+                                                let old_v = state.frames
+                                                    .get_mut(&frame_num)
+                                                    .unwrap()
+                                                    .get_mut(n)
+                                                    .unwrap();
 
+                                                if is_valid_mutation(old_v, &v){
+                                                    *old_v = v;
+                                                }else{
+                                                    let mut_err = invalid_mutation_error("loc mut", 
+                                                        "local variable", n, &old_v, &v); 
+                                                    return error_and_remove_frame(state, mut_err);
+                                                }
+
+                                            },
+                                            None => {
+                                                return error_and_remove_frame(state, format!("\
+                                                    Local Variable mutation (loc mut) error! \
+                                                    Local variable {} doesn't exist in any scope! \
+                                                    Try making it using loc mak!", n));
+                                            },
+                                        }
+                                    },
+                                    None => {
+                                        return error_and_remove_frame(state, 
+                                            local_variable_lack_of_args_error("mutation (mut)"))
+                                    },
+                                }
                             },
                             misc => {
                                 return error_and_remove_frame(state, format!("Local Variable (loc) error! \
