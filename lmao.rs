@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.0
+//Version: 0.7.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4668,16 +4668,25 @@ fn find_var(s: &mut State, name: &str) -> Option<usize>{
         }
     }
 
-    //If variable doesn't exist at current frame, search the rest from bottom to top.
-    let mut frame_nums: Vec<usize> = s.frames.keys().map(|n| *n).collect();
-    frame_nums.sort();
-    for i in (0..frame_nums.len()).rev(){
-        if s.frames.get(&frame_nums[i]).unwrap().contains_key(name){
-            return Some(frame_nums[i]);
+    //If not immediately found, searches through all existing frames 
+    // to find the highest frame number that contains the variable.
+    let mut max_frame: i128 = -1;
+    for frame_num in s.frames.keys(){
+        if s.frames.get(frame_num).unwrap().contains_key(name){
+            let curr_frame_num = *frame_num as i128;
+            if curr_frame_num > max_frame{
+                max_frame = curr_frame_num;
+            } 
         }
     }
+
+    //If a frame was found, kick it back, otherwise nothing.
+    if max_frame >= 0{
+        Some(max_frame as usize)
+    }else{
+        None
+    }
     
-    None
 }
 
 //Iterates recursively through the AST and effectively runs the program doing so.
