@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.1
+//Version: 0.7.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -293,7 +293,7 @@ struct State{
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
     ops: HashMap<String, OpFunc>,
-    frames: HashMap<usize, HashMap<String, Value>>,
+    frames: Vec<(usize, HashMap<String, Value>)>,
     curr_frame: usize,
     frame_pool: Vec<HashMap<String, Value>>,
 }
@@ -4078,11 +4078,6 @@ impl State{
         ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
         ops_map.insert("fileExists".to_string(), file_exists);
 
-        //Creates hashmap that tracks local variable 
-        // stack frames and inserts global scope frame.
-        let mut stack_frames = HashMap::new();
-        stack_frames.insert(0, HashMap::new());
-
         State {
             stack: Vec::new(),
             fns: HashMap::new(),
@@ -4090,7 +4085,7 @@ impl State{
             heap: Vec::new(),
             free_list: Vec::new(),
             ops: ops_map, 
-            frames: stack_frames,
+            frames: vec![(0, HashMap::new())],
             curr_frame: 0,
             frame_pool: Vec::new(),
         }
@@ -4645,9 +4640,9 @@ fn add_frame(s: &mut State){
 // unless at global scope where nothing happens.
 fn remove_frame(s: &mut State){
     if s.curr_frame > 0{
-        //Adds to pool of used frames to be recycled in future variable operations.
-        if let Some(frame) = s.frames.remove(&s.curr_frame){
-            s.frame_pool.push(frame);
+        if s.frames[s.frames.len() - 1].0 == s.curr_frame{
+            let mut popped = s.frames.pop().unwrap();
+            s.frame_pool.push(std::mem::take(&mut popped.1));
         }
         s.curr_frame -= 1;
     }
@@ -4659,31 +4654,17 @@ fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
     Err(err)
 }
 
-//Finds frame number that variable lives in if it exists or none otherwise.
+//Finds frame number that the variable lives in if it exists or none otherwise.
 fn find_var(s: &mut State, name: &str) -> Option<usize>{
-    //Attempts to see if variable with desired name exists at current frame.
-    if let Some(frame) = s.frames.get(&s.curr_frame){
-        if frame.contains_key(name){
-            return Some(s.curr_frame);
-        }
-    }
-
-    //If not immediately found, searches through all existing frames 
-    // to find the highest frame number that contains the variable.
-    let mut max_frame: i128 = -1;
-    for frame_num in s.frames.keys(){
-        if s.frames.get(frame_num).unwrap().contains_key(name){
-            let curr_frame_num = *frame_num as i128;
-            if curr_frame_num > max_frame{
-                max_frame = curr_frame_num;
-            } 
-        }
-    }
-
-    //If a frame was found, kick it back, otherwise nothing.
-    if max_frame >= 0{
-        Some(max_frame as usize)
+    if s.frames[s.frames.len() - 1].0 == s.curr_frame && s.frames[s.frames.len() - 1].1.contains_key(name){
+        Some(s.frames.len() - 1)
     }else{
+        for i in (0..(s.frames.len())).rev(){
+            if s.frames[i].1.contains_key(name){
+                return Some(i);
+            }
+        }
+
         None
     }
     
@@ -4998,9 +4979,10 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             "mak" => {
                                 match state.pop(){
                                     Some(v) => {
-                                        if let Some(ref mut frame) = state.frames.get_mut(&state.curr_frame){
-                                            if !frame.contains_key(n){
-                                                frame.insert(n.clone(), v);
+                                        let last_index: usize = state.frames.len() - 1;
+                                        if state.frames[last_index].0 == state.curr_frame{
+                                            if !state.frames[last_index].1.contains_key(n){
+                                                state.frames[last_index].1.insert(n.clone(), v);
                                             }else{
                                                 return error_and_remove_frame(state, format!("Local Variable \
                                                     creation (loc mak) \
@@ -5014,8 +4996,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                             }else{
                                                 HashMap::new()    
                                             };
-                                            new_frame.insert(n.clone(), v);  
-                                            state.frames.insert(state.curr_frame, new_frame);
+                                            new_frame.insert(n.clone(), v);
+                                            state.frames.push((state.curr_frame, new_frame));
 
                                         }
                                     },
@@ -5027,8 +5009,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             },
                             "get" => {
                                 match find_var(state, n){
-                                    Some(frame_num) => {
-                                        state.stack.push(state.frames.get(&frame_num).unwrap().get(n).unwrap().clone());
+                                    Some(frame_index) => {
+                                        state.stack.push(state.frames[frame_index].1.get(n).unwrap().clone());
                                     },
                                     None => {
                                         return error_and_remove_frame(state, format!("\
@@ -5042,12 +5024,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 match state.stack.pop(){
                                     Some(v) => {
                                         match find_var(state, n){
-                                            Some(frame_num) => {
-                                                let old_v = state.frames
-                                                    .get_mut(&frame_num)
-                                                    .unwrap()
-                                                    .get_mut(n)
-                                                    .unwrap();
+                                            Some(frame_index) => {
+                                                let old_v = state.frames[frame_index].1.get_mut(n).unwrap(); 
 
                                                 if is_valid_mutation(old_v, &v){
                                                     *old_v = v;
