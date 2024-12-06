@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.2
+//Version: 0.7.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -200,7 +200,7 @@ impl Default for Value{
 #[derive(PartialEq, Eq)]
 enum Token{
     V(Value),
-    Word(String)
+    Word((String, usize))
 }
 
 impl Default for Token{
@@ -213,7 +213,7 @@ impl fmt::Display for Token{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
         match self {
             Token::V(val) => write!(f, "{}", val),
-            Token::Word(w) => write!(f, "Word {}", w),
+            Token::Word((w, _)) => write!(f, "Word {}", w),
         }
     }
 }
@@ -292,7 +292,7 @@ struct State{
     vars: HashMap<String, Value>,
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
-    ops: HashMap<String, OpFunc>,
+    ops: Vec<OpFunc>,
     frames: Vec<(usize, HashMap<String, Value>)>,
     curr_frame: usize,
     frame_pool: Vec<HashMap<String, Value>>,
@@ -3966,117 +3966,107 @@ fn file_exists(s: &mut State) -> Result<(), String>{
 impl State{
     //Creates a new state.
     fn new() -> Self{
-        //Creates lookup table for operator functions.
-        let mut ops_map: HashMap<String, OpFunc> = HashMap::new();
+        //Fills out vec of function pointers for rapid indexing in operator function calling.
+        
+        let mut ops_vec: Vec<OpFunc> = Vec::with_capacity(72);
+        
         //Basic math operators.
-        ops_map.insert("+".to_string(), add);
-        ops_map.insert("-".to_string(), sub);
-        ops_map.insert("*".to_string(), mult);
-        ops_map.insert("/".to_string(), div);
-        ops_map.insert("%".to_string(), modulo);
-        ops_map.insert("mod".to_string(), modulo);
-        ops_map.insert("pow".to_string(), power);
+        ops_vec.push(add);
+        ops_vec.push(sub);
+        ops_vec.push(mult);
+        ops_vec.push(div);
+        ops_vec.push(modulo);
+        ops_vec.push(power);
 
         //Maximum values for each integer data type operators.
-        ops_map.insert("isizeMax".to_string(), max_isize);
-        ops_map.insert("usizeMax".to_string(), max_usize);
-        ops_map.insert("i8Max".to_string(), max_i8);
-        ops_map.insert("i16Max".to_string(), max_i16);
-        ops_map.insert("i32Max".to_string(), max_i32);
-        ops_map.insert("i64Max".to_string(), max_i64);
-        ops_map.insert("i128Max".to_string(), max_i128);
-        ops_map.insert("u8Max".to_string(), max_u8);
-        ops_map.insert("u16Max".to_string(), max_u16);
-        ops_map.insert("u32Max".to_string(), max_u32);
-        ops_map.insert("u64Max".to_string(), max_u64);
-        ops_map.insert("u128Max".to_string(), max_u128);
+        ops_vec.push(max_isize);
+        ops_vec.push(max_usize);
+        ops_vec.push(max_i8);
+        ops_vec.push(max_i16);
+        ops_vec.push(max_i32);
+        ops_vec.push(max_i64);
+        ops_vec.push(max_i128);
+        ops_vec.push(max_u8);
+        ops_vec.push(max_u16);
+        ops_vec.push(max_u32);
+        ops_vec.push(max_u64);
+        ops_vec.push(max_u128);
 
         //Stack operators.
-        ops_map.insert("swap".to_string(), swap);
-        ops_map.insert("drop".to_string(), drop);
-        ops_map.insert("dropStack".to_string(), drop_stack);
-        ops_map.insert("rot".to_string(), rot);
-        ops_map.insert("dup".to_string(), dup);
-        ops_map.insert("deepDup".to_string(), deep_dup);
+        ops_vec.push(swap);
+        ops_vec.push(drop);
+        ops_vec.push(drop_stack);
+        ops_vec.push(rot);
+        ops_vec.push(dup);
+        ops_vec.push(deep_dup);
 
         //Comparison operators.
-        ops_map.insert("==".to_string(), is_equal);
-        ops_map.insert("!=".to_string(), is_not_equal);
-        ops_map.insert(">".to_string(), is_greater_than);
-        ops_map.insert("<".to_string(), is_less_than);
-        ops_map.insert(">=".to_string(), is_greater_than_equal_to);
-        ops_map.insert("<=".to_string(), is_less_than_equal_to);
-        ops_map.insert("stringCompare".to_string(), string_compare);
+        ops_vec.push(is_equal);
+        ops_vec.push(is_not_equal);
+        ops_vec.push(is_greater_than);
+        ops_vec.push(is_less_than);
+        ops_vec.push(is_greater_than_equal_to);
+        ops_vec.push(is_less_than_equal_to);
+        ops_vec.push(string_compare);
 
         //String concatenation operator.
-        ops_map.insert("++".to_string(), concat);
-
+        ops_vec.push(concat);
+        
         //Basic logical operators.
-        ops_map.insert("and".to_string(), and);
-        ops_map.insert("&&".to_string(), and);
-        ops_map.insert("or".to_string(), or);
-        ops_map.insert("||".to_string(), or);
-        ops_map.insert("xor".to_string(), xor);
-        ops_map.insert("not".to_string(), not);
-        ops_map.insert("!".to_string(), not);
+        ops_vec.push(and);
+        ops_vec.push(or);
+        ops_vec.push(xor);
+        ops_vec.push(not);
 
         //List/String operations.
-        ops_map.insert("push".to_string(), list_push);
-        ops_map.insert("p".to_string(), list_push);
-        ops_map.insert("pop".to_string(), list_pop);
-        ops_map.insert("po".to_string(), list_pop);
-        ops_map.insert("fpush".to_string(), list_front_push);
-        ops_map.insert("fp".to_string(), list_front_push);
-        ops_map.insert("fpop".to_string(), list_front_pop);
-        ops_map.insert("fpo".to_string(), list_front_pop);
-        ops_map.insert("index".to_string(), index);
-        ops_map.insert("length".to_string(), length);
-        ops_map.insert("len".to_string(), length);
-        ops_map.insert("isEmpty".to_string(), is_empty);
-        ops_map.insert("clear".to_string(), list_clear);
-        ops_map.insert("contains".to_string(), list_contains);
-        ops_map.insert("changeItemAt".to_string(), change_item_at);
+        ops_vec.push(list_push);
+        ops_vec.push(list_pop);
+        ops_vec.push(list_front_push);
+        ops_vec.push(list_front_pop);
+        ops_vec.push(index);
+        ops_vec.push(length);
+        ops_vec.push(is_empty);
+        ops_vec.push(list_clear);
+        ops_vec.push(list_contains);
+        ops_vec.push(change_item_at);
 
         //Character operators
-        ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
-        ops_map.insert("isAlphaChar".to_string(), alpha_char_detect);
-        ops_map.insert("isNumChar".to_string(), num_char_detect);
+        ops_vec.push(whitespace_detect);
+        ops_vec.push(alpha_char_detect);
+        ops_vec.push(num_char_detect);
 
         //Object operators
-        ops_map.insert("objAddField".to_string(), add_field);
-        ops_map.insert("objGetField".to_string(), get_field);
-        ops_map.insert("objMutField".to_string(), mut_field);
-        ops_map.insert("objRemField".to_string(), remove_field);
+        ops_vec.push(add_field);
+        ops_vec.push(get_field);
+        ops_vec.push(mut_field);
+        ops_vec.push(remove_field);
 
         //Bitwise operators
-        ops_map.insert("bitOr".to_string(), bit_or);
-        ops_map.insert("|".to_string(), bit_or);
-        ops_map.insert("bitAnd".to_string(), bit_and);
-        ops_map.insert("&".to_string(), bit_and);
-        ops_map.insert("bitXor".to_string(), bit_xor);
-        ops_map.insert("^".to_string(), bit_xor);
-        ops_map.insert("bitNot".to_string(), bit_not);
-        ops_map.insert("bitShift".to_string(), bit_shift);
+        ops_vec.push(bit_or);
+        ops_vec.push(bit_and);
+        ops_vec.push(bit_xor);
+        ops_vec.push(bit_not);
+        ops_vec.push(bit_shift);
 
         //Casting
-        ops_map.insert("cast".to_string(), cast_stuff);
+        ops_vec.push(cast_stuff);
         
         //IO operators
-        ops_map.insert("printLine".to_string(), print_line);
-        ops_map.insert("readLine".to_string(), read_line_from_in);
-        ops_map.insert("printChar".to_string(), print_char);
-        ops_map.insert("readChar".to_string(), read_char);
-        ops_map.insert("print".to_string(), print_string);
-        ops_map.insert("read".to_string(), read_from_in);
-        ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
-        ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
-        
+        ops_vec.push(print_line);
+        ops_vec.push(read_line_from_in);
+        ops_vec.push(print_char);
+        ops_vec.push(read_char);
+        ops_vec.push(print_string);
+        ops_vec.push(read_from_in);
+        ops_vec.push(debug_stack_print);
+        ops_vec.push(debug_heap_print);
+
         //File IO operators
-        ops_map.insert("fileWrite".to_string(), write_data_to_file);
-        ops_map.insert("fileRead".to_string(), read_data_from_file);
-        ops_map.insert("fileCreate".to_string(), create_file_based_on_string);
-        ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
-        ops_map.insert("fileExists".to_string(), file_exists);
+        ops_vec.push(write_data_to_file);
+        ops_vec.push(read_data_from_file);
+        ops_vec.push(create_file_based_on_string);
+        ops_vec.push(delete_file_based_on_string);
+        ops_vec.push(file_exists);
 
         State {
             stack: Vec::new(),
@@ -4084,7 +4074,7 @@ impl State{
             vars: HashMap::new(),
             heap: Vec::new(),
             free_list: Vec::new(),
-            ops: ops_map, 
+            ops: ops_vec, 
             frames: vec![(0, HashMap::new())],
             curr_frame: 0,
             frame_pool: Vec::new(),
@@ -4272,6 +4262,103 @@ fn replace_literals_with_escapes(s: &str) -> String{
 fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
     let mut lexed: Vec<Token> = Vec::new();
 
+    let mut ops_map: HashMap<String, usize> = HashMap::new();
+    ops_map.insert("+".to_string(), 1);
+    ops_map.insert("-".to_string(), 2);
+    ops_map.insert("*".to_string(), 3);
+    ops_map.insert("/".to_string(), 4);
+    ops_map.insert("%".to_string(), 5);
+    ops_map.insert("mod".to_string(), 5);
+    ops_map.insert("pow".to_string(), 6);
+
+    ops_map.insert("isizeMax".to_string(), 7);
+    ops_map.insert("usizeMax".to_string(), 8);
+    ops_map.insert("i8Max".to_string(), 9);
+    ops_map.insert("i16Max".to_string(), 10);
+    ops_map.insert("i32Max".to_string(), 11);
+    ops_map.insert("i64Max".to_string(), 12);
+    ops_map.insert("i128Max".to_string(), 13);
+    ops_map.insert("u8Max".to_string(), 14);
+    ops_map.insert("u16Max".to_string(), 15);
+    ops_map.insert("u32Max".to_string(), 16);
+    ops_map.insert("u64Max".to_string(), 17);
+    ops_map.insert("u128Max".to_string(), 18);
+
+    ops_map.insert("swap".to_string(), 19);
+    ops_map.insert("drop".to_string(), 20);
+    ops_map.insert("dropStack".to_string(), 21);
+    ops_map.insert("rot".to_string(), 22);
+    ops_map.insert("dup".to_string(), 23);
+    ops_map.insert("deepDup".to_string(), 24);
+
+    ops_map.insert("==".to_string(), 25);
+    ops_map.insert("!=".to_string(), 26);
+    ops_map.insert(">".to_string(), 27);
+    ops_map.insert("<".to_string(), 28);
+    ops_map.insert(">=".to_string(), 29);
+    ops_map.insert("<=".to_string(), 30);
+    ops_map.insert("stringCompare".to_string(), 31);
+    ops_map.insert("++".to_string(), 32);
+
+    ops_map.insert("and".to_string(), 33);
+    ops_map.insert("&&".to_string(), 33);
+    ops_map.insert("or".to_string(), 34);
+    ops_map.insert("||".to_string(), 34);
+    ops_map.insert("xor".to_string(), 35);
+    ops_map.insert("not".to_string(), 36);
+    ops_map.insert("!".to_string(), 36);
+
+    ops_map.insert("push".to_string(), 37);
+    ops_map.insert("p".to_string(), 37);
+    ops_map.insert("pop".to_string(), 38);
+    ops_map.insert("po".to_string(), 38);
+    ops_map.insert("fpush".to_string(), 39);
+    ops_map.insert("fp".to_string(), 39);
+    ops_map.insert("fpop".to_string(), 40);
+    ops_map.insert("fpo".to_string(), 40);
+    ops_map.insert("index".to_string(), 41);
+    ops_map.insert("length".to_string(), 42);
+    ops_map.insert("len".to_string(), 42);
+    ops_map.insert("isEmpty".to_string(), 43);
+    ops_map.insert("clear".to_string(), 44);
+    ops_map.insert("contains".to_string(), 45);
+    ops_map.insert("changeItemAt".to_string(), 46);
+
+    ops_map.insert("isWhitespaceChar".to_string(), 47);
+    ops_map.insert("isAlphaChar".to_string(), 48);
+    ops_map.insert("isNumChar".to_string(), 49);
+
+    ops_map.insert("objAddField".to_string(), 50);
+    ops_map.insert("objGetField".to_string(), 51);
+    ops_map.insert("objMutField".to_string(), 52);
+    ops_map.insert("objRemField".to_string(), 53);
+
+    ops_map.insert("bitOr".to_string(), 54);
+    ops_map.insert("|".to_string(), 54);
+    ops_map.insert("bitAnd".to_string(), 55);
+    ops_map.insert("&".to_string(), 55);
+    ops_map.insert("bitXor".to_string(), 56);
+    ops_map.insert("^".to_string(), 56);
+    ops_map.insert("bitNot".to_string(), 57);
+    ops_map.insert("bitShift".to_string(), 58);
+
+    ops_map.insert("cast".to_string(), 59);
+
+    ops_map.insert("printLine".to_string(), 60);
+    ops_map.insert("readLine".to_string(), 61);
+    ops_map.insert("printChar".to_string(), 62);
+    ops_map.insert("readChar".to_string(), 63);
+    ops_map.insert("print".to_string(), 64);
+    ops_map.insert("read".to_string(), 65);
+    ops_map.insert("debugPrintStack".to_string(), 66);
+    ops_map.insert("debugPrintHeap".to_string(), 67);
+
+    ops_map.insert("fileWrite".to_string(), 68);
+    ops_map.insert("fileRead".to_string(), 69);
+    ops_map.insert("fileCreate".to_string(), 70);
+    ops_map.insert("fileRemove".to_string(), 71);
+    ops_map.insert("fileExists".to_string(), 72);
+
     for tok in tokens.into_iter(){
         match tok{
             //Boolean lexing cases.
@@ -4419,7 +4506,10 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             },
 
             //General catch-all case mostly meant for operators.
-            _ => lexed.push(Token::Word(tok)),
+            _ => {
+                let n: usize = *ops_map.get(&tok).unwrap_or(&0);
+                lexed.push(Token::Word((tok, n)));
+            }, 
         }
     }
 
@@ -4447,23 +4537,23 @@ fn make_ast_prime(
     //If still tokens to parse, converts the tokens into an ASTNode.
     }else{
         match tokens[token_index]{
-            //Stop on terminator case.
+            //Stop on terminator case. (THIS MIGHT EXPLODE DUE TO THE RECONFIGURED WORD TOKENS)
             ref tok if terminators.contains(tok) => (already_parsed, tokens, token_index + 1, Some(token_index)),
             //Parse if statement case.
-            Token::Word(ref cmd) if cmd == "if" => {
+            Token::Word(ref cmd) if cmd.0 == "if" => {
                 let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1);
                 already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators) 
             },
             //While loop parsing case.
-            Token::Word(ref cmd) if cmd == "while" => {
+            Token::Word(ref cmd) if cmd.0 == "while" => {
                 let (loop_body, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word((";".to_string(), 0))]);
                 already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
             },
             //Function case.
-            Token::Word(ref cmd) if cmd == "func" => {
+            Token::Word(ref cmd) if cmd.0 == "func" => {
                 //Makes sure there's enough stuff to look to parse the function.
                 if token_index + 2 > tokens.len(){
                     panic!("Insufficient tokens left for function to be parsed!");
@@ -4473,12 +4563,12 @@ fn make_ast_prime(
                 let command = std::mem::take(&mut toks[token_index + 1]);
                 let name = std::mem::take(&mut toks[token_index + 2]);
                 let (command_str, name_str) = match (command, name){
-                    (Token::Word(c), Token::Word(n)) => (c, n),
+                    (Token::Word(c), Token::Word(n)) => (c.0, n.0),
                     (_, _) => panic!("SHOULD NEVER GET HERE!!!"),
                 };
 
                 let (fbod, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), toks, token_index + 3, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), toks, token_index + 3, vec![Token::Word((";".to_string(), 0))]);
 
                 let fbod_ast = Box::new(ASTNode::Expression(fbod));
 
@@ -4488,12 +4578,12 @@ fn make_ast_prime(
 
             },
             //Var command parsing case.
-            Token::Word(ref cmd) if cmd == "var" => {
+            Token::Word(ref cmd) if cmd.0 == "var" => {
                 let (mut var_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word((";".to_string(), 0))]);
                 if var_data.len() >= 2{
                     let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
-                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c, n),
+                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
                         (_, _) => {panic!("Malformed variable command Error! \
                             Insufficient parameters given for variable command!")},
                     };
@@ -4507,12 +4597,12 @@ fn make_ast_prime(
                 }
             },
             //Loc command parsing case.
-            Token::Word(ref cmd) if cmd == "loc" => {
+            Token::Word(ref cmd) if cmd.0 == "loc" => {
                 let (mut var_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word((";".to_string(), 0))]);
                 if var_data.len() >= 2{
                     let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
-                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c, n),
+                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
                         (_, _) => {panic!("Malformed local variable command Error! \
                             Insufficient parameters given for local variable command!")},
                     };
@@ -4526,12 +4616,12 @@ fn make_ast_prime(
                 }
             },
             //Box command case.
-            Token::Word(ref cmd) if cmd == "box" => {
+            Token::Word(ref cmd) if cmd.0 == "box" => {
                 let (mut box_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word((";".to_string(), 0))]);
                 if box_data.len() >= 1{
                     let box_cmd = match std::mem::take(&mut box_data[0]){
-                        ASTNode::Terminal(Token::Word(c)) => c,
+                        ASTNode::Terminal(Token::Word(c)) => c.0,
                         _ => panic!("Malformed box command!"),
                     };
 
@@ -4557,12 +4647,12 @@ fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<To
             Vec::new(), 
             tokens, 
             token_index, 
-            vec![Token::Word("else".to_string()), Token::Word(";".to_string())]
+            vec![Token::Word(("else".to_string(), 0)), Token::Word((";".to_string(), 0))]
         );
     match terminator_index{
         Some(i) => {
             match tokens_prime[i]{
-                Token::Word(ref cmd) if cmd == "else" => {
+                Token::Word(ref cmd) if cmd.0 == "else" => {
                     let (false_branch, tokens_prime_prime, token_index_prime_prime) = 
                         parse_else(tokens_prime, token_index_prime);
                     (ASTNode::Expression(true_branch), false_branch, 
@@ -4581,7 +4671,7 @@ fn parse_else(tokens: Vec<Token>, token_index: usize) -> (ASTNode, Vec<Token>, u
             Vec::new(),
             tokens, 
             token_index,
-            vec![Token::Word(";".to_string())]
+            vec![Token::Word((";".to_string(), 0))]
         );
     (ASTNode::Expression(if_false), tokens_prime, token_index_prime)
 }
@@ -4677,17 +4767,14 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
             for node in nodes.iter(){
                 match node{
                     ASTNode::Terminal(Token::V(v)) => state.push((*v).clone()),
-                    ASTNode::Terminal(Token::Word(ref op)) => {
-                        match state.ops.get(op){
-                            Some(func) => {
-                                match func(state){
-                                    Ok(_) => {},
-                                    Err(e) => return error_and_remove_frame(state, e),
-                                }
-                            },
-                            None => {
-                                return error_and_remove_frame(state, format!("Unrecognized Operator: {}", op));
-                            },
+                    ASTNode::Terminal(Token::Word((ref op, ref n))) => {
+                        if *n > 0{
+                            match state.ops[n - 1](state){
+                                Ok(_) => (),
+                                Err(e) => return error_and_remove_frame(state, e),
+                            }
+                        }else{
+                            return error_and_remove_frame(state, format!("Unrecognized Operator: {}", op));
                         } 
                     },
                     ASTNode::Variable{var_name: name, var_cmd: cmd} => {
