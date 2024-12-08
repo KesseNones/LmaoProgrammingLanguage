@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.6
+//Version: 0.7.7
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4631,20 +4631,14 @@ fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
     Err(err)
 }
 
-//Finds frame number that the variable lives in if it exists or none otherwise.
+//Finds frame index of frame containing variable of name if found.
 fn find_var(s: &mut State, name: &str) -> Option<usize>{
-    if s.frames[s.frames.len() - 1].0 == s.curr_frame && s.frames[s.frames.len() - 1].1.contains_key(name){
-        Some(s.frames.len() - 1)
-    }else{
-        for i in (0..(s.frames.len())).rev(){
-            if s.frames[i].1.contains_key(name){
-                return Some(i);
-            }
+    for i in (0..(s.frames.len())).rev(){
+        if s.frames[i].1.contains_key(name){
+            return Some(i);
         }
-
-        None
     }
-    
+    None
 }
 
 //Iterates recursively through the AST and effectively runs the program doing so.
