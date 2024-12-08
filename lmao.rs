@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.5
+//Version: 0.7.6
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4227,24 +4227,24 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
     // of the appropriate previously inserted operation.
 
     //Alias for mod
-    ops_map.insert("%".to_string(), 5);
+    ops_map.insert("%".to_string(), *(ops_map.get("mod").unwrap()));
 
     //Alises for logical AND, OR, and NOT
-    ops_map.insert("&&".to_string(), 33);
-    ops_map.insert("||".to_string(), 34);
-    ops_map.insert("!".to_string(), 36);
+    ops_map.insert("&&".to_string(), *(ops_map.get("and").unwrap()));
+    ops_map.insert("||".to_string(), *(ops_map.get("or").unwrap()));
+    ops_map.insert("!".to_string(), *(ops_map.get("not").unwrap()));
 
     //Aliases for push, pop, fpush, fpop, and length
-    ops_map.insert("p".to_string(), 37);
-    ops_map.insert("po".to_string(), 38);
-    ops_map.insert("fp".to_string(), 39);
-    ops_map.insert("fpo".to_string(), 40);
-    ops_map.insert("len".to_string(), 42);
+    ops_map.insert("p".to_string(), *(ops_map.get("push").unwrap()));
+    ops_map.insert("po".to_string(), *(ops_map.get("pop").unwrap()));
+    ops_map.insert("fp".to_string(), *(ops_map.get("fpush").unwrap()));
+    ops_map.insert("fpo".to_string(), *(ops_map.get("fpop").unwrap()));
+    ops_map.insert("len".to_string(), *(ops_map.get("length").unwrap()));
 
     //Aliases for bitOr, bitAnd, and bitXor
-    ops_map.insert("|".to_string(), 54);
-    ops_map.insert("&".to_string(), 55);
-    ops_map.insert("^".to_string(), 56);
+    ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
+    ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
+    ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
 
     for tok in tokens.into_iter(){
         match tok{
