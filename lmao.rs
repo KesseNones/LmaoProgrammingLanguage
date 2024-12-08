@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.3
+//Version: 0.7.4
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4262,102 +4262,55 @@ fn replace_literals_with_escapes(s: &str) -> String{
 fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
     let mut lexed: Vec<Token> = Vec::new();
 
+    //Creates and fills out the ops map with the operators, 
+    // ignoring the existing aliases for some of the operators.
     let mut ops_map: HashMap<String, usize> = HashMap::new();
-    ops_map.insert("+".to_string(), 1);
-    ops_map.insert("-".to_string(), 2);
-    ops_map.insert("*".to_string(), 3);
-    ops_map.insert("/".to_string(), 4);
+    let mut i: usize = 1;
+    let unique_strs = [
+        "+", "-", "*", "/", "mod", "pow",
+        "isizeMax", "usizeMax", 
+        "i8Max", "i16Max", "i32Max", "i64Max", "i128Max",
+        "u8Max", "u16Max", "u32Max", "u64Max", "u128Max", 
+        "swap", "drop", "dropStack", "rot", "dup", "deepDup",
+        "==", "!=", ">", "<", ">=", "<=", "stringCompare", "++",
+        "and", "or", "xor", "not",
+        "push", "pop", "fpush", "fpop", "index", "length", 
+        "isEmpty", "clear", "contains", "changeItemAt",
+        "isWhitespaceChar", "isAlphaChar", "isNumChar",
+        "objAddField", "objGetField", "objMutField", "objRemField",
+        "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
+        "printLine", "readLine", "printChar", "readChar", "print", 
+        "read", "debugPrintStack", "debugPrintHeap",
+        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists"
+    ];
+    for s in unique_strs.iter(){
+        ops_map.insert(s.to_string(), i);
+        i += 1;
+    }
+
+    //The following inserts add all the aliases that exist for some of the operators. 
+    // The numbers given match the operation number 
+    // of the appropriate previously inserted operation.
+
+    //Alias for mod
     ops_map.insert("%".to_string(), 5);
-    ops_map.insert("mod".to_string(), 5);
-    ops_map.insert("pow".to_string(), 6);
 
-    ops_map.insert("isizeMax".to_string(), 7);
-    ops_map.insert("usizeMax".to_string(), 8);
-    ops_map.insert("i8Max".to_string(), 9);
-    ops_map.insert("i16Max".to_string(), 10);
-    ops_map.insert("i32Max".to_string(), 11);
-    ops_map.insert("i64Max".to_string(), 12);
-    ops_map.insert("i128Max".to_string(), 13);
-    ops_map.insert("u8Max".to_string(), 14);
-    ops_map.insert("u16Max".to_string(), 15);
-    ops_map.insert("u32Max".to_string(), 16);
-    ops_map.insert("u64Max".to_string(), 17);
-    ops_map.insert("u128Max".to_string(), 18);
-
-    ops_map.insert("swap".to_string(), 19);
-    ops_map.insert("drop".to_string(), 20);
-    ops_map.insert("dropStack".to_string(), 21);
-    ops_map.insert("rot".to_string(), 22);
-    ops_map.insert("dup".to_string(), 23);
-    ops_map.insert("deepDup".to_string(), 24);
-
-    ops_map.insert("==".to_string(), 25);
-    ops_map.insert("!=".to_string(), 26);
-    ops_map.insert(">".to_string(), 27);
-    ops_map.insert("<".to_string(), 28);
-    ops_map.insert(">=".to_string(), 29);
-    ops_map.insert("<=".to_string(), 30);
-    ops_map.insert("stringCompare".to_string(), 31);
-    ops_map.insert("++".to_string(), 32);
-
-    ops_map.insert("and".to_string(), 33);
+    //Alises for logical AND, OR, and NOT
     ops_map.insert("&&".to_string(), 33);
-    ops_map.insert("or".to_string(), 34);
     ops_map.insert("||".to_string(), 34);
-    ops_map.insert("xor".to_string(), 35);
-    ops_map.insert("not".to_string(), 36);
     ops_map.insert("!".to_string(), 36);
 
-    ops_map.insert("push".to_string(), 37);
+    //Aliases for push, pop, fpush, fpop, and length
     ops_map.insert("p".to_string(), 37);
-    ops_map.insert("pop".to_string(), 38);
     ops_map.insert("po".to_string(), 38);
-    ops_map.insert("fpush".to_string(), 39);
     ops_map.insert("fp".to_string(), 39);
-    ops_map.insert("fpop".to_string(), 40);
     ops_map.insert("fpo".to_string(), 40);
-    ops_map.insert("index".to_string(), 41);
-    ops_map.insert("length".to_string(), 42);
     ops_map.insert("len".to_string(), 42);
-    ops_map.insert("isEmpty".to_string(), 43);
-    ops_map.insert("clear".to_string(), 44);
-    ops_map.insert("contains".to_string(), 45);
-    ops_map.insert("changeItemAt".to_string(), 46);
 
-    ops_map.insert("isWhitespaceChar".to_string(), 47);
-    ops_map.insert("isAlphaChar".to_string(), 48);
-    ops_map.insert("isNumChar".to_string(), 49);
-
-    ops_map.insert("objAddField".to_string(), 50);
-    ops_map.insert("objGetField".to_string(), 51);
-    ops_map.insert("objMutField".to_string(), 52);
-    ops_map.insert("objRemField".to_string(), 53);
-
-    ops_map.insert("bitOr".to_string(), 54);
+    //Aliases for bitOr, bitAnd, and bitXor
     ops_map.insert("|".to_string(), 54);
-    ops_map.insert("bitAnd".to_string(), 55);
     ops_map.insert("&".to_string(), 55);
-    ops_map.insert("bitXor".to_string(), 56);
     ops_map.insert("^".to_string(), 56);
-    ops_map.insert("bitNot".to_string(), 57);
-    ops_map.insert("bitShift".to_string(), 58);
-
-    ops_map.insert("cast".to_string(), 59);
-
-    ops_map.insert("printLine".to_string(), 60);
-    ops_map.insert("readLine".to_string(), 61);
-    ops_map.insert("printChar".to_string(), 62);
-    ops_map.insert("readChar".to_string(), 63);
-    ops_map.insert("print".to_string(), 64);
-    ops_map.insert("read".to_string(), 65);
-    ops_map.insert("debugPrintStack".to_string(), 66);
-    ops_map.insert("debugPrintHeap".to_string(), 67);
-
-    ops_map.insert("fileWrite".to_string(), 68);
-    ops_map.insert("fileRead".to_string(), 69);
-    ops_map.insert("fileCreate".to_string(), 70);
-    ops_map.insert("fileRemove".to_string(), 71);
-    ops_map.insert("fileExists".to_string(), 72);
 
     for tok in tokens.into_iter(){
         match tok{
