@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.4
+//Version: 0.7.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3967,107 +3967,41 @@ impl State{
     //Creates a new state.
     fn new() -> Self{
         //Fills out vec of function pointers for rapid indexing in operator function calling.
+        let ops_vec: Vec<OpFunc> = vec![
+            //Basic math operators.
+            add, sub, mult, div, modulo, power,
+            //Maximum values for each integer data type operators.
+            max_isize, max_usize, 
+            max_i8, max_i16, max_i32, max_i64, max_i128,
+            max_u8, max_u16, max_u32, max_u64, max_u128,             
+            //Stack operators.
+            swap, drop, drop_stack, rot, dup, deep_dup,
+            //Comparison operators.
+            is_equal, is_not_equal, is_greater_than, is_less_than, is_greater_than_equal_to, 
+            is_less_than_equal_to, string_compare,
+            //String concatenation operator.
+            concat,
+            //Basic logical operators.
+            and, or, xor, not,
+            //List/String operations.
+            list_push, list_pop, list_front_push, list_front_pop, index, length,
+            is_empty, list_clear, list_contains, change_item_at,
+            //Character operators
+            whitespace_detect, alpha_char_detect, num_char_detect,
+            //Object operators
+            add_field, get_field, mut_field, remove_field,
+            //Bitwise operators
+            bit_or, bit_and, bit_xor, bit_not, bit_shift,
+            //Casting operator
+            cast_stuff,
+            //IO operators
+            print_line, read_line_from_in, print_char, read_char, print_string, 
+            read_from_in, debug_stack_print, debug_heap_print,
+            //File IO operators
+            write_data_to_file, read_data_from_file, 
+            create_file_based_on_string, delete_file_based_on_string, file_exists
+        ];
         
-        let mut ops_vec: Vec<OpFunc> = Vec::with_capacity(72);
-        
-        //Basic math operators.
-        ops_vec.push(add);
-        ops_vec.push(sub);
-        ops_vec.push(mult);
-        ops_vec.push(div);
-        ops_vec.push(modulo);
-        ops_vec.push(power);
-
-        //Maximum values for each integer data type operators.
-        ops_vec.push(max_isize);
-        ops_vec.push(max_usize);
-        ops_vec.push(max_i8);
-        ops_vec.push(max_i16);
-        ops_vec.push(max_i32);
-        ops_vec.push(max_i64);
-        ops_vec.push(max_i128);
-        ops_vec.push(max_u8);
-        ops_vec.push(max_u16);
-        ops_vec.push(max_u32);
-        ops_vec.push(max_u64);
-        ops_vec.push(max_u128);
-
-        //Stack operators.
-        ops_vec.push(swap);
-        ops_vec.push(drop);
-        ops_vec.push(drop_stack);
-        ops_vec.push(rot);
-        ops_vec.push(dup);
-        ops_vec.push(deep_dup);
-
-        //Comparison operators.
-        ops_vec.push(is_equal);
-        ops_vec.push(is_not_equal);
-        ops_vec.push(is_greater_than);
-        ops_vec.push(is_less_than);
-        ops_vec.push(is_greater_than_equal_to);
-        ops_vec.push(is_less_than_equal_to);
-        ops_vec.push(string_compare);
-
-        //String concatenation operator.
-        ops_vec.push(concat);
-        
-        //Basic logical operators.
-        ops_vec.push(and);
-        ops_vec.push(or);
-        ops_vec.push(xor);
-        ops_vec.push(not);
-
-        //List/String operations.
-        ops_vec.push(list_push);
-        ops_vec.push(list_pop);
-        ops_vec.push(list_front_push);
-        ops_vec.push(list_front_pop);
-        ops_vec.push(index);
-        ops_vec.push(length);
-        ops_vec.push(is_empty);
-        ops_vec.push(list_clear);
-        ops_vec.push(list_contains);
-        ops_vec.push(change_item_at);
-
-        //Character operators
-        ops_vec.push(whitespace_detect);
-        ops_vec.push(alpha_char_detect);
-        ops_vec.push(num_char_detect);
-
-        //Object operators
-        ops_vec.push(add_field);
-        ops_vec.push(get_field);
-        ops_vec.push(mut_field);
-        ops_vec.push(remove_field);
-
-        //Bitwise operators
-        ops_vec.push(bit_or);
-        ops_vec.push(bit_and);
-        ops_vec.push(bit_xor);
-        ops_vec.push(bit_not);
-        ops_vec.push(bit_shift);
-
-        //Casting
-        ops_vec.push(cast_stuff);
-        
-        //IO operators
-        ops_vec.push(print_line);
-        ops_vec.push(read_line_from_in);
-        ops_vec.push(print_char);
-        ops_vec.push(read_char);
-        ops_vec.push(print_string);
-        ops_vec.push(read_from_in);
-        ops_vec.push(debug_stack_print);
-        ops_vec.push(debug_heap_print);
-
-        //File IO operators
-        ops_vec.push(write_data_to_file);
-        ops_vec.push(read_data_from_file);
-        ops_vec.push(create_file_based_on_string);
-        ops_vec.push(delete_file_based_on_string);
-        ops_vec.push(file_exists);
-
         State {
             stack: Vec::new(),
             fns: HashMap::new(),
