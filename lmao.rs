@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.8
+//Version: 0.7.9
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -293,9 +293,10 @@ struct State{
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
     ops: Vec<OpFunc>,
-    frames: Vec<(usize, HashMap<usize, Value>)>,
+    frames: Vec<(usize, Vec<(Value, bool)>)>,
     curr_frame: usize,
-    frame_pool: Vec<HashMap<usize, Value>>,
+    frame_pool: Vec<Vec<(Value, bool)>>,
+    unique_loc_var_count: usize,
 }
 
 fn type_to_string(v: &Value) -> String{
@@ -3963,9 +3964,26 @@ fn file_exists(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Creates a frame for local variables to use.
+fn create_frame(size: usize) -> Vec<(Value, bool)>{
+    let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
+    for _ in 0..size{
+        frame.push((Value::NULLBox, false));
+    }
+    frame
+}
+
+//Sets all validity booleans to false, allowing frame 
+// to be reused with reletively low cost.
+fn recycle_frame(frame: &mut Vec<(Value, bool)>){
+    for i in 0..frame.len(){
+        frame[i].1 = false;
+    }
+}
+
 impl State{
     //Creates a new state.
-    fn new() -> Self{
+    fn new(num_unique_loc: usize) -> Self{
         //Fills out vec of function pointers for rapid indexing in operator function calling.
         let ops_vec: Vec<OpFunc> = vec![
             //Basic math operators.
@@ -4009,9 +4027,10 @@ impl State{
             heap: Vec::new(),
             free_list: Vec::new(),
             ops: ops_vec, 
-            frames: vec![(0, HashMap::new())],
+            frames: vec![(0, create_frame(num_unique_loc))],
             curr_frame: 0,
             frame_pool: Vec::new(),
+            unique_loc_var_count: num_unique_loc,
         }
     }
 
@@ -4582,11 +4601,13 @@ fn parse_else(
 }
 
 //Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
-// returning it for the program to then run.
-fn make_ast(tokens: Vec<Token>) -> ASTNode{
+// returning it for the program to then run. 
+// It also returns the number of unique local variable names for later use in running the program. 
+fn make_ast(tokens: Vec<Token>) -> (ASTNode, usize){
     let mut loc_nums: HashMap<String, usize> = HashMap::new();
     let mut curr_loc_num: usize = 0;
-    ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, &mut loc_nums, &mut curr_loc_num, Vec::new()).0)
+    (ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0,
+     &mut loc_nums, &mut curr_loc_num, Vec::new()).0), curr_loc_num)
 }
 
 //DELETE LATER
@@ -4651,10 +4672,10 @@ fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
     Err(err)
 }
 
-//Finds frame index of frame containing variable of name if found.
+//Finds frame index of frame containing desired variable if found.
 fn find_var(s: &mut State, num: usize) -> Option<usize>{
     for i in (0..(s.frames.len())).rev(){
-        if s.frames[i].1.contains_key(&num){
+        if s.frames[i].1[num].1{
             return Some(i);
         }
     }
@@ -4969,24 +4990,30 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     Some(v) => {
                                         let last_index: usize = state.frames.len() - 1;
                                         if state.frames[last_index].0 == state.curr_frame{
-                                            if !state.frames[last_index].1.contains_key(n){
-                                                state.frames[last_index].1.insert(*n, v);
+                                            //If not valid Overwrites garbage value held at memory cell 
+                                            // with value from stack and sets it to valid, 
+                                            // making it an accessable variable.
+                                            //Otherwise, throws error because cell is already taken, 
+                                            // meaning variable exists.
+                                            if !state.frames[last_index].1[*n].1{
+                                                state.frames[last_index].1[*n].0 = v;
+                                                state.frames[last_index].1[*n].1 = true;
                                             }else{
                                                 return error_and_remove_frame(state, format!("Local Variable \
                                                     creation (loc mak) \
                                                     error! Local Variable {} already exists in given scope!", &nam));
                                             }
                                         }else{
-                                            let mut new_frame: HashMap<usize, Value> = if state.frame_pool.len() > 0{
+                                            let mut new_frame: Vec<(Value, bool)> = if state.frame_pool.len() > 0{
                                                 let mut new = state.frame_pool.pop().unwrap();
-                                                new.clear();
+                                                recycle_frame(&mut new);
                                                 new
                                             }else{
-                                                HashMap::new()    
+                                                create_frame(state.unique_loc_var_count)    
                                             };
-                                            new_frame.insert(*n, v);
+                                            new_frame[*n].0 = v;
+                                            new_frame[*n].1 = true;
                                             state.frames.push((state.curr_frame, new_frame));
-
                                         }
                                     },
                                     None => {
@@ -4998,7 +5025,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             "get" => {
                                 match find_var(state, *n){
                                     Some(frame_index) => {
-                                        state.stack.push(state.frames[frame_index].1.get(n).unwrap().clone());
+                                        state.push(state.frames[frame_index].1[*n].0.clone());
                                     },
                                     None => {
                                         return error_and_remove_frame(state, format!("\
@@ -5013,8 +5040,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     Some(v) => {
                                         match find_var(state, *n){
                                             Some(frame_index) => {
-                                                let old_v = state.frames[frame_index].1.get_mut(n).unwrap(); 
-
+                                                let old_v: &mut Value = &mut state.frames[frame_index].1[*n].0;
                                                 if is_valid_mutation(old_v, &v){
                                                     *old_v = v;
                                                 }else{
@@ -5022,7 +5048,6 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                         "local variable", nam, &old_v, &v); 
                                                     return error_and_remove_frame(state, mut_err);
                                                 }
-
                                             },
                                             None => {
                                                 return error_and_remove_frame(state, format!("\
@@ -5083,9 +5108,9 @@ fn main(){
 
     let lexed = lex_tokens(tokens);
 
-    let ast: ASTNode = make_ast(lexed);
+    let (ast, num_unique_loc_vars) = make_ast(lexed);
 
-    let mut state = State::new();
+    let mut state = State::new(num_unique_loc_vars);
 
     let result = run_program(&ast, &mut state);
 
