@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.9
+//Version: 0.7.10
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -225,7 +225,7 @@ enum ASTNode{
     While(Box<ASTNode>),
     Expression(Vec<ASTNode>),
     Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
-    Variable{var_name: String, var_cmd: String},
+    Variable{var_name: String, var_cmd: String, var_num: usize},
     LocVar{name: String, cmd: String, num: usize},
     BoxOp(String)
 }
@@ -249,7 +249,7 @@ impl fmt::Display for ASTNode{
             ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: body} => {
                 write!(f, "Function [cmd: {}, name: {}, body: {}]", cmd, name, body)
             },
-            ASTNode::Variable{var_name: name, var_cmd: cmd} => write!(f, "Variable [name: {}, cmd: {}]", name, cmd),
+            ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => write!(f, "Variable [name: {}, cmd: {}, num: {}]", name, cmd, n),
             ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
         }
@@ -274,8 +274,8 @@ impl Clone for ASTNode{
                 ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
                     func_bod: Box::new(*bod.clone())}
             },
-            ASTNode::Variable{var_name: name, var_cmd: cmd} => {
-                ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone()}
+            ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
+                ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone(), var_num: *n}
             },
             ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
@@ -289,14 +289,14 @@ type OpFunc = fn(&mut State) -> Result<(), String>;
 struct State{
     stack: Vec<Value>,
     fns: HashMap<String, ASTNode>,
-    vars: HashMap<String, Value>,
+    vars: Vec<(Value, bool)>,
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
     ops: Vec<OpFunc>,
     frames: Vec<(usize, Vec<(Value, bool)>)>,
     curr_frame: usize,
     frame_pool: Vec<Vec<(Value, bool)>>,
-    unique_loc_var_count: usize,
+    unique_var_name_count: usize,
 }
 
 fn type_to_string(v: &Value) -> String{
@@ -3983,7 +3983,7 @@ fn recycle_frame(frame: &mut Vec<(Value, bool)>){
 
 impl State{
     //Creates a new state.
-    fn new(num_unique_loc: usize) -> Self{
+    fn new(num_unique_var_names: usize) -> Self{
         //Fills out vec of function pointers for rapid indexing in operator function calling.
         let ops_vec: Vec<OpFunc> = vec![
             //Basic math operators.
@@ -4023,14 +4023,14 @@ impl State{
         State {
             stack: Vec::new(),
             fns: HashMap::new(),
-            vars: HashMap::new(),
+            vars: create_frame(num_unique_var_names),
             heap: Vec::new(),
             free_list: Vec::new(),
             ops: ops_vec, 
-            frames: vec![(0, create_frame(num_unique_loc))],
+            frames: vec![(0, create_frame(num_unique_var_names))],
             curr_frame: 0,
             frame_pool: Vec::new(),
-            unique_loc_var_count: num_unique_loc,
+            unique_var_name_count: num_unique_var_names,
         }
     }
 
@@ -4495,8 +4495,16 @@ fn make_ast_prime(
                         (_, _) => {panic!("Malformed variable command Error! \
                             Insufficient parameters given for variable command!")},
                     };
-
-                    already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd});
+                    let vn: usize = match loc_nums.get(&name){
+                        Some(n) => *n,
+                        None => {
+                            loc_nums.insert(name.clone(), *curr_loc_num);
+                            let ret = *curr_loc_num;
+                            *curr_loc_num += 1;
+                            ret
+                        },
+                    };
+                    already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: vn});
                     make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
                 }else{
@@ -4699,74 +4707,68 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             return error_and_remove_frame(state, format!("Unrecognized Operator: {}", op));
                         } 
                     },
-                    ASTNode::Variable{var_name: name, var_cmd: cmd} => {
-                        let varcmd: &str = &cmd;
-                        match varcmd{
+                    ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: num} => {
+                        match cmd as &str{
                             "mak" => {
-                                match state.vars.get(name){
-                                    Some(_) => {
-                                        return error_and_remove_frame(state, format!("Variable creation (var mak) \
-                                            error! Variable {} already exists! \
-                                            Try deleting it using del!", &name));
-                                    },
-                                    None => {
-                                        match state.pop(){
-                                            Some(v) => {
-                                                state.vars.insert(name.clone(), v);
-                                            },
-                                            None => {
-                                                return error_and_remove_frame(state, 
-                                                    variable_lack_of_args_error("creation (mak)"));
-                                            },
-                                        }
-                                    },
+                                if !state.vars[*num].1{
+                                    match state.pop(){
+                                        Some(v) => {
+                                            state.vars[*num].0 = v;
+                                            state.vars[*num].1 = true;
+                                        },
+                                        None => {
+                                            return error_and_remove_frame(state, 
+                                                variable_lack_of_args_error("creation (mak)"));
+                                        },
+                                    }
+                                }else{
+                                    return error_and_remove_frame(state, format!("Variable creation (var mak) \
+                                        error! Variable {} already exists! \
+                                        Try deleting it using del!", &name));
                                 }
                             },
                             "get" => {
-                                match state.vars.get(name){
-                                    Some(v) => {
-                                        state.stack.push(v.clone());
-                                    },
-                                    None => {
-                                        return error_and_remove_frame(state, format!("Variable get (var get) error! \
-                                            Variable {} doesn't exist. \
-                                            Try making it first using var mak!", &name));
-                                    },
+                                if state.vars[*num].1{
+                                    state.push(state.vars[*num].0.clone());
+                                }else{
+                                    return error_and_remove_frame(state, format!("Variable get (var get) error! \
+                                        Variable {} doesn't exist. \
+                                        Try making it first using var mak!", &name));
                                 }
                             },
                             "mut" => {
-                                match state.vars.get_mut(name){
-                                    Some(v) => {
-                                        match state.stack.pop(){
-                                            Some(new_v) => {
-                                                if is_valid_mutation(v, &new_v){
-                                                    *v = new_v;
-                                                }else{
-                                                    let mut_err = invalid_mutation_error("var mut", 
-                                                        "variable", name, &v, &new_v); 
-                                                    return error_and_remove_frame(state, mut_err);
-                                                }
-                                            },
-                                            None => return error_and_remove_frame(state, 
-                                                variable_lack_of_args_error("mutation (mut)")),
-                                        }
-                                    },
-                                    None => {
-                                        return error_and_remove_frame(state, 
-                                            format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
-                                            Try making it first using var mak!", &name));
-                                    },
+                                if state.vars[*num].1{
+                                    match state.pop(){
+                                        Some(new_v) => {
+                                            let old_v: &mut Value = &mut state.vars[*num].0;
+                                            if is_valid_mutation(old_v, &new_v){
+                                                *old_v = new_v;
+                                            }else{
+                                                let mut_err = invalid_mutation_error("var mut", 
+                                                    "variable", name, &new_v, &new_v); 
+                                                return error_and_remove_frame(state, mut_err);
+                                            }
+                                        },
+                                        None => return error_and_remove_frame(state, 
+                                            variable_lack_of_args_error("mutation (mut)")),
+                                    }
+                                }else{
+                                    return error_and_remove_frame(state, 
+                                        format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
+                                        Try making it first using var mak!", &name));
                                 }
                             },
                             "del" => {
-                                match state.vars.remove(name){
-                                    Some(_) => {},
-                                    None => {
-                                        return error_and_remove_frame(state, 
-                                            format!("Variable deletion (var del) error! \
-                                            Variable {} doesn't exist or was already deleted! \
-                                            Try making it first using var mak!", &name));
-                                    },
+                                //Marks given variable as invalid, allowing slot 
+                                // to be reused by var of the same number. 
+                                //Otherwise, throws error.
+                                if state.vars[*num].1{
+                                    state.vars[*num].1 = false;
+                                }else{ 
+                                    return error_and_remove_frame(state, 
+                                        format!("Variable deletion (var del) error! \
+                                        Variable {} doesn't exist or was already deleted! \
+                                        Try making it first using var mak!", &name));
                                 }
                             },
                             c => {
@@ -5009,7 +5011,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                 recycle_frame(&mut new);
                                                 new
                                             }else{
-                                                create_frame(state.unique_loc_var_count)    
+                                                create_frame(state.unique_var_name_count)    
                                             };
                                             new_frame[*n].0 = v;
                                             new_frame[*n].1 = true;
