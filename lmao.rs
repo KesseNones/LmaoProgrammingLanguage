@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.7.7
+//Version: 0.7.8
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -226,7 +226,7 @@ enum ASTNode{
     Expression(Vec<ASTNode>),
     Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
     Variable{var_name: String, var_cmd: String},
-    LocVar{name: String, cmd: String},
+    LocVar{name: String, cmd: String, num: usize},
     BoxOp(String)
 }
 
@@ -250,7 +250,7 @@ impl fmt::Display for ASTNode{
                 write!(f, "Function [cmd: {}, name: {}, body: {}]", cmd, name, body)
             },
             ASTNode::Variable{var_name: name, var_cmd: cmd} => write!(f, "Variable [name: {}, cmd: {}]", name, cmd),
-            ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
+            ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
         }
     }
@@ -277,7 +277,7 @@ impl Clone for ASTNode{
             ASTNode::Variable{var_name: name, var_cmd: cmd} => {
                 ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone()}
             },
-            ASTNode::LocVar{name: n, cmd: c} => ASTNode::LocVar{name: n.clone(), cmd: c.clone()},
+            ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
         }
     }
@@ -293,9 +293,9 @@ struct State{
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
     ops: Vec<OpFunc>,
-    frames: Vec<(usize, HashMap<String, Value>)>,
+    frames: Vec<(usize, HashMap<usize, Value>)>,
     curr_frame: usize,
-    frame_pool: Vec<HashMap<String, Value>>,
+    frame_pool: Vec<HashMap<usize, Value>>,
 }
 
 fn type_to_string(v: &Value) -> String{
@@ -4407,7 +4407,9 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
 fn make_ast_prime(
     mut already_parsed: Vec<ASTNode>, 
     tokens: Vec<Token>, 
-    token_index: usize, 
+    token_index: usize,
+    loc_nums: &mut HashMap<String, usize>,
+    curr_loc_num: &mut usize, 
     terminators: Vec<Token>
 ) -> (Vec<ASTNode>, Vec<Token>, usize, Option<usize>){
     //If out of tokens to parse, end or throw error if there were terminators to look for.
@@ -4428,16 +4430,16 @@ fn make_ast_prime(
             ref tok if terminators.contains(tok) => (already_parsed, tokens, token_index + 1, Some(token_index)),
             //Parse if statement case.
             Token::Word(ref cmd) if cmd.0 == "if" => {
-                let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1);
+                let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1, loc_nums, curr_loc_num);
                 already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators) 
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators) 
             },
             //While loop parsing case.
             Token::Word(ref cmd) if cmd.0 == "while" => {
                 let (loop_body, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word((";".to_string(), 0))]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
                 already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
             },
             //Function case.
             Token::Word(ref cmd) if cmd.0 == "func" => {
@@ -4455,19 +4457,19 @@ fn make_ast_prime(
                 };
 
                 let (fbod, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), toks, token_index + 3, vec![Token::Word((";".to_string(), 0))]);
+                    make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
 
                 let fbod_ast = Box::new(ASTNode::Expression(fbod));
 
                 already_parsed.push(
                     ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
             },
             //Var command parsing case.
             Token::Word(ref cmd) if cmd.0 == "var" => {
                 let (mut var_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word((";".to_string(), 0))]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
                 if var_data.len() >= 2{
                     let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
                         (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
@@ -4476,7 +4478,7 @@ fn make_ast_prime(
                     };
 
                     already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd});
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
                 }else{
                     panic!("Malformed variable command Error! \
@@ -4486,16 +4488,24 @@ fn make_ast_prime(
             //Loc command parsing case.
             Token::Word(ref cmd) if cmd.0 == "loc" => {
                 let (mut var_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word((";".to_string(), 0))]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
                 if var_data.len() >= 2{
                     let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
                         (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
                         (_, _) => {panic!("Malformed local variable command Error! \
                             Insufficient parameters given for local variable command!")},
                     };
-
-                    already_parsed.push(ASTNode::LocVar{name: name, cmd: cmd});
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                    let var_num: usize = match loc_nums.get(&name){
+                        Some(n) => *n,
+                        None => {
+                            loc_nums.insert(name.clone(), *curr_loc_num);
+                            let ret = *curr_loc_num;
+                            *curr_loc_num += 1;
+                            ret
+                        },
+                    };
+                    already_parsed.push(ASTNode::LocVar{name: name, cmd: cmd, num: var_num});
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
                 }else{
                     panic!("Malformed local variable command Error! \
@@ -4505,7 +4515,7 @@ fn make_ast_prime(
             //Box command case.
             Token::Word(ref cmd) if cmd.0 == "box" => {
                 let (mut box_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word((";".to_string(), 0))]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
                 if box_data.len() >= 1{
                     let box_cmd = match std::mem::take(&mut box_data[0]){
                         ASTNode::Terminal(Token::Word(c)) => c.0,
@@ -4513,7 +4523,7 @@ fn make_ast_prime(
                     };
 
                     already_parsed.push(ASTNode::BoxOp(box_cmd));
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
                 }else{
                     panic!("Malformed box command! No box command token given!")
                 }
@@ -4521,19 +4531,23 @@ fn make_ast_prime(
             _ => {
                 let mut toks = tokens;
                 already_parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
-                make_ast_prime(already_parsed, toks, token_index + 1, terminators)
+                make_ast_prime(already_parsed, toks, token_index + 1, loc_nums, curr_loc_num, terminators)
             },
         }
     }
 
 }
 
-fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<Token>, usize){
+fn parse_if(
+    tokens: Vec<Token>, 
+    token_index: usize, 
+    loc_nums: &mut HashMap<String, usize>, 
+    curr_loc_num: &mut usize) -> (ASTNode, ASTNode, Vec<Token>, usize){
     let (true_branch, tokens_prime, token_index_prime, terminator_index) = 
         make_ast_prime(
             Vec::new(), 
             tokens, 
-            token_index, 
+            token_index, loc_nums, curr_loc_num, 
             vec![Token::Word(("else".to_string(), 0)), Token::Word((";".to_string(), 0))]
         );
     match terminator_index{
@@ -4541,7 +4555,7 @@ fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<To
             match tokens_prime[i]{
                 Token::Word(ref cmd) if cmd.0 == "else" => {
                     let (false_branch, tokens_prime_prime, token_index_prime_prime) = 
-                        parse_else(tokens_prime, token_index_prime);
+                        parse_else(tokens_prime, token_index_prime, loc_nums, curr_loc_num);
                     (ASTNode::Expression(true_branch), false_branch, 
                         tokens_prime_prime, token_index_prime_prime)
                 },
@@ -4552,12 +4566,16 @@ fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<To
     }
 }
 
-fn parse_else(tokens: Vec<Token>, token_index: usize) -> (ASTNode, Vec<Token>, usize){
+fn parse_else(
+    tokens: Vec<Token>, 
+    token_index: usize, 
+    loc_nums: &mut HashMap<String, usize>,
+    curr_loc_num: &mut usize) -> (ASTNode, Vec<Token>, usize){
     let (if_false, tokens_prime, token_index_prime, _) = 
         make_ast_prime(
             Vec::new(),
             tokens, 
-            token_index,
+            token_index, loc_nums, curr_loc_num,
             vec![Token::Word((";".to_string(), 0))]
         );
     (ASTNode::Expression(if_false), tokens_prime, token_index_prime)
@@ -4566,7 +4584,9 @@ fn parse_else(tokens: Vec<Token>, token_index: usize) -> (ASTNode, Vec<Token>, u
 //Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
 // returning it for the program to then run.
 fn make_ast(tokens: Vec<Token>) -> ASTNode{
-    ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, Vec::new()).0)
+    let mut loc_nums: HashMap<String, usize> = HashMap::new();
+    let mut curr_loc_num: usize = 0;
+    ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, &mut loc_nums, &mut curr_loc_num, Vec::new()).0)
 }
 
 //DELETE LATER
@@ -4632,9 +4652,9 @@ fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
 }
 
 //Finds frame index of frame containing variable of name if found.
-fn find_var(s: &mut State, name: &str) -> Option<usize>{
+fn find_var(s: &mut State, num: usize) -> Option<usize>{
     for i in (0..(s.frames.len())).rev(){
-        if s.frames[i].1.contains_key(name){
+        if s.frames[i].1.contains_key(&num){
             return Some(i);
         }
     }
@@ -4942,7 +4962,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             },
                         }
                     },
-                    ASTNode::LocVar{name: n, cmd: c} => {
+                    ASTNode::LocVar{name: nam, cmd: c, num: n} => {
                         match c as &str{
                             "mak" => {
                                 match state.pop(){
@@ -4950,21 +4970,21 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                         let last_index: usize = state.frames.len() - 1;
                                         if state.frames[last_index].0 == state.curr_frame{
                                             if !state.frames[last_index].1.contains_key(n){
-                                                state.frames[last_index].1.insert(n.clone(), v);
+                                                state.frames[last_index].1.insert(*n, v);
                                             }else{
                                                 return error_and_remove_frame(state, format!("Local Variable \
                                                     creation (loc mak) \
-                                                    error! Local Variable {} already exists in given scope!", &n));
+                                                    error! Local Variable {} already exists in given scope!", &nam));
                                             }
                                         }else{
-                                            let mut new_frame: HashMap<String, Value> = if state.frame_pool.len() > 0{
+                                            let mut new_frame: HashMap<usize, Value> = if state.frame_pool.len() > 0{
                                                 let mut new = state.frame_pool.pop().unwrap();
                                                 new.clear();
                                                 new
                                             }else{
                                                 HashMap::new()    
                                             };
-                                            new_frame.insert(n.clone(), v);
+                                            new_frame.insert(*n, v);
                                             state.frames.push((state.curr_frame, new_frame));
 
                                         }
@@ -4976,7 +4996,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 }
                             },
                             "get" => {
-                                match find_var(state, n){
+                                match find_var(state, *n){
                                     Some(frame_index) => {
                                         state.stack.push(state.frames[frame_index].1.get(n).unwrap().clone());
                                     },
@@ -4984,14 +5004,14 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                         return error_and_remove_frame(state, format!("\
                                             Local Variable get (loc get) error! \
                                             Local variable {} doesn't exist in any scope! \
-                                            Try making it using loc mak!", n));
+                                            Try making it using loc mak!", nam));
                                     },
                                 }
                             },
                             "mut" => {
                                 match state.stack.pop(){
                                     Some(v) => {
-                                        match find_var(state, n){
+                                        match find_var(state, *n){
                                             Some(frame_index) => {
                                                 let old_v = state.frames[frame_index].1.get_mut(n).unwrap(); 
 
@@ -4999,7 +5019,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                     *old_v = v;
                                                 }else{
                                                     let mut_err = invalid_mutation_error("loc mut", 
-                                                        "local variable", n, &old_v, &v); 
+                                                        "local variable", nam, &old_v, &v); 
                                                     return error_and_remove_frame(state, mut_err);
                                                 }
 
@@ -5008,7 +5028,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                 return error_and_remove_frame(state, format!("\
                                                     Local Variable mutation (loc mut) error! \
                                                     Local variable {} doesn't exist in any scope! \
-                                                    Try making it using loc mak!", n));
+                                                    Try making it using loc mak!", nam));
                                             },
                                         }
                                     },
