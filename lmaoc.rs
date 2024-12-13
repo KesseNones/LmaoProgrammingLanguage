@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.7.1
+//Version: 0.7.2
 
 use std::collections::HashMap;
 use std::env;
@@ -831,11 +831,11 @@ fn translate_ast_to_rust_code(
                     },
                     ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
                         let code_str = format!("
-                            match var_action(state, \"{}\", \"{}\"){{
+                            match var_action(state, \"{}\", \"{}\", {}){{
                                 Ok(_) => (),
                                 Err(e) => return Err(e),
                             }}
-                        ", &name, &cmd);
+                        ", &name, &cmd, n);
                         code_strings.push(code_str)
                     },
                     ASTNode::BoxOp(op) => {
@@ -1221,7 +1221,7 @@ type FuncFunc = fn(&mut State) -> Result<(), String>;
 struct State{
     stack: Vec<Value>,
     fns: HashMap<String, Box<FuncFunc>>,
-    vars: HashMap<String, Value>,
+    vars: Vec<(Value, bool)>,
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
     frames: Vec<(usize, Vec<(Value, bool)>)>,
@@ -1253,7 +1253,7 @@ impl State{
         State {
             stack: Vec::new(),
             fns: HashMap::new(),
-            vars: HashMap::new(),
+            vars: create_frame(num_unique_var_names),
             heap: Vec::new(),
             free_list: Vec::new(),
             frames: vec![(0, create_frame(num_unique_var_names))],
@@ -4990,80 +4990,73 @@ fn variable_lack_of_args_error(var_action: &str) -> String{
 }
 
 //Performs a variable action based on the prompted string literal and the top of the stack.
-fn var_action(s: &mut State, name: &str, act: &str) -> Result<(), String>{
+fn var_action(state: &mut State, name: &str, act: &str, num: usize) -> Result<(), String>{
     match act{
         \"mak\" => {
-            match s.vars.get(name){
-                Some(_) => {
-                    return Err(format!(\"Variable creation (var mak) error! Variable {} already exists! \
-                    Try deleting it using del!\", name));
-                },
-                None => {
-                    match s.pop(){
-                        Some(v) => {
-                            s.vars.insert(name.to_string(), v);
-                        },
-                        None => {
-                            return Err(variable_lack_of_args_error(\"creation (mak)\"));
-                        },
-                    }
-                },
+            if !state.vars[num].1{
+                match state.pop(){
+                    Some(v) => {
+                        state.vars[num].0 = v;
+                        state.vars[num].1 = true;
+                    },
+                    None => {
+                        return Err(variable_lack_of_args_error(\"creation (mak)\"));
+                    },
+                }
+            }else{
+                return Err(format!(\"Variable creation (var mak) \
+                    error! Variable {} already exists! \
+                    Try deleting it using del!\", &name));
             }
-
-            Ok(())
         },
         \"get\" => {
-            match s.vars.get(name){
-                Some(v) => {
-                    s.stack.push(v.clone());
-                },
-                None => {
-                    return Err(format!(\"Variable get (var get) error! Variable {} doesn't exist. \
-                        Try making it first using var mak!\", name));
-                },
+            if state.vars[num].1{
+                state.push(state.vars[num].0.clone());
+            }else{
+                return Err(format!(\"Variable get (var get) error! \
+                    Variable {} doesn't exist. \
+                    Try making it first using var mak!\", &name));
             }
-
-            Ok(())
         },
         \"mut\" => {
-            match s.vars.get_mut(name){
-                Some(v) => {
-                    match s.stack.pop(){
-                        Some(new_v) => {
-                            if is_valid_mutation(v, &new_v){
-                                *v = new_v;
-                            }else{
-                                return Err(invalid_mutation_error(\"var mut\", \"variable\", name, &v, &new_v));
-                            }
-                        },
-                        None => return Err(variable_lack_of_args_error(\"mutation (mut)\")),
-                    }
-                },
-                None => {
-                    return Err(format!(\"Variable mutation (var mut) error! Variable {} doesn't exist. \
-                        Try making it first using var mak!\", name));
-                },
+            if state.vars[num].1{
+                match state.pop(){
+                    Some(new_v) => {
+                        let old_v: &mut Value = &mut state.vars[num].0;
+                        if is_valid_mutation(old_v, &new_v){
+                            *old_v = new_v;
+                        }else{
+                            let mut_err = invalid_mutation_error(\"var mut\", 
+                                \"variable\", name, &new_v, &new_v); 
+                            return Err(mut_err);
+                        }
+                    },
+                    None => return Err(variable_lack_of_args_error(\"mutation (mut)\")),
+                }
+            }else{
+                return Err(format!(\"Variable mutation (var mut) error! Variable {} doesn't exist. \
+                    Try making it first using var mak!\", &name));
             }
-
-            Ok(())
         },
         \"del\" => {
-            match s.vars.remove(name){
-                Some(_) => (),
-                None => {
-                    return Err(format!(\"Variable deletion (var del) error! \
-                        Variable {} doesn't exist or was already deleted! \
-                        Try making it first using var mak!\", name));
-                },
+            //Marks given variable as invalid, allowing slot 
+            // to be reused by var of the same number. 
+            //Otherwise, throws error.
+            if state.vars[num].1{
+                state.vars[num].1 = false;
+            }else{ 
+                return Err(format!(\"Variable deletion (var del) error! \
+                    Variable {} doesn't exist or was already deleted! \
+                    Try making it first using var mak!\", &name));
             }
-
-            Ok(())
         },
         c => {
-            Err(format!(\"Variable (var) error! Unrecognized variable command! \
-            Valid: mak, get, mut, del . Attempted: {}\", c))
+            return Err(format!(\"Variable (var) error! \
+                Unrecognized variable command! Valid: mak, get, mut, del . \
+                Attempted: {}\", c));
         },
     }
+    Ok(())
 }
 
 //Frees a box on the heap or kicks back an error.
