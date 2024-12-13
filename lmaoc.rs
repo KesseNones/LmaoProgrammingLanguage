@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.6.6
+//Version: 0.7.0
 
 use std::collections::HashMap;
 use std::env;
@@ -964,6 +964,15 @@ fn translate_ast_to_rust_code(
                                 code_strings.push(err_str);
                             },
                         }
+                    },
+                    ASTNode::LocVar{name: nm, cmd: c, num: n} => {
+                        let code_str = format!("
+                            match loc_action(state, \"{}\", \"{}\", {}){{
+                                Ok(_) => (),
+                                Err(e) => return Err(e),
+                            }}
+                        ", &nm, &c, n);
+                        code_strings.push(code_str)
                     },
                     _ => {},
                 }
@@ -5202,10 +5211,109 @@ fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
     Err(err)
 }
 
-//Function that performs a local variable action when needed.
-//fn loc_action(s: &mut State, name: &str, act: &str, num: usize) -> Result<(), String>{
+//Finds frame index of frame containing desired variable if found.
+fn find_var(s: &mut State, num: usize) -> Option<usize>{
+    for i in (0..(s.frames.len())).rev(){
+        if s.frames[i].1[num].1{
+            return Some(i);
+        }
+    }
+    None
+}
 
-//}
+//Error string for when loc mak and loc mut 
+// don't have anything on the stack for them.
+fn local_variable_lack_of_args_error(var_action: &str) -> String{
+    format!(\"Local Variable (loc) error! Local variable {} needs one \
+        item on the stack! None provided!\", var_action)
+}
+
+//Function that performs a local variable action when needed.
+fn loc_action(s: &mut State, name: &str, act: &str, n: usize) -> Result<(), String>{
+    match act{
+        \"mak\" => {
+            match s.pop(){
+                Some(v) => {
+                    let last_index: usize = s.frames.len() - 1;
+                    if s.frames[last_index].0 == s.curr_frame{
+                        //If not valid Overwrites garbage value held at memory cell 
+                        // with value from stack and sets it to valid, 
+                        // making it an accessable variable.
+                        //Otherwise, throws error because cell is already taken, 
+                        // meaning variable exists.
+                        if !s.frames[last_index].1[n].1{
+                            s.frames[last_index].1[n].0 = v;
+                            s.frames[last_index].1[n].1 = true;
+                        }else{
+                            return Err(format!(\"Local Variable \
+                                creation (loc mak) \
+                                error! Local Variable {} already exists in given scope!\", &name));
+                        }
+                    }else{
+                        let mut new_frame: Vec<(Value, bool)> = if s.frame_pool.len() > 0{
+                            let mut new = s.frame_pool.pop().unwrap();
+                            recycle_frame(&mut new);
+                            new
+                        }else{
+                            create_frame(s.unique_var_name_count)    
+                        };
+                        new_frame[n].0 = v;
+                        new_frame[n].1 = true;
+                        s.frames.push((s.curr_frame, new_frame));
+                    }
+                },
+                None => {
+                    return Err(local_variable_lack_of_args_error(\"creation (mak)\"));
+                },
+            }
+        },
+        \"get\" => {
+            match find_var(s, n){
+                Some(frame_index) => {
+                    s.push(s.frames[frame_index].1[n].0.clone());
+                },
+                None => {
+                    return Err(format!(\"Local Variable get (loc get) error! \
+                        Local variable {} doesn't exist in any scope! \
+                        Try making it using loc mak!\", name));
+                },
+            }
+        },
+        \"mut\" => {
+            match s.stack.pop(){
+                Some(v) => {
+                    match find_var(s, n){
+                        Some(frame_index) => {
+                            let old_v: &mut Value = &mut s.frames[frame_index].1[n].0;
+                            if is_valid_mutation(old_v, &v){
+                                *old_v = v;
+                            }else{
+                                let mut_err = invalid_mutation_error(\"loc mut\", 
+                                    \"local variable\", name, &old_v, &v); 
+                                return Err(mut_err);
+                            }
+                        },
+                        None => {
+                            return Err(format!(\"Local Variable mutation (loc mut) error! \
+                                Local variable {} doesn't exist in any scope! \
+                                Try making it using loc mak!\", name));
+                        },
+                    }
+                },
+                None => {
+                    return Err(local_variable_lack_of_args_error(\"mutation (mut)\"))
+                },
+            }
+        },
+        misc => {
+            return Err(format!(\"Local Variable (loc) error! \
+                Unrecognized local variable command! Valid: mak, get, mut . \
+                Attempted: {}\", misc));
+        },
+    }
+
+    Ok(())
+}
 
 fn program(state: &mut State) -> Result<(), String>{
     ";
@@ -5330,8 +5438,8 @@ fn program(state: &mut State) -> Result<(), String>{
 fn main(){{
     let mut state = State::new({});
     match program(&mut state){{
-        Ok(_) => println!(\"Program completed successfully!\"),
-        Err(e) => println!(\"Program failed with error: {{}}\", e),
+        Ok(_) => (),
+        Err(e) => println!(\"{{}}\", e),
     }}
 }}
     ", num_unique_var_names);
