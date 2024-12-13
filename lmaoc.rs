@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.6.5
+//Version: 0.6.6
 
 use std::collections::HashMap;
 use std::env;
@@ -888,20 +888,19 @@ fn translate_ast_to_rust_code(
                                 let res: Result<(), String> = match state.stack.pop(){{
                                     Some(Value::Boolean(b)) => {{
                                         if b {{
+                                            add_frame(state);
                                             {}
                                         }}else{{
                                             break;
                                         }}
                                     }},
                                     Some(v) => {{
-                                        return error_and_remove_frame(state, 
-                                            format!(\"While loop error! Top of stack needs \
+                                        return Err(format!(\"While loop error! Top of stack needs \
                                             to be of type Boolean to determine if loop needs \
-                                            to run/run again! Attempted value: {{}}\", &v));
+                                            to run/run again! Attempted value: {{}}\", &v))
                                     }},
                                     None => {{
-                                        return error_and_remove_frame(state, 
-                                        needs_n_args_only_n_provided(\"while\", \"One\", \"none\"));
+                                        Err(needs_n_args_only_n_provided(\"while\", \"One\", \"none\"))
                                     }},
                                 }};
                                 match res{{
