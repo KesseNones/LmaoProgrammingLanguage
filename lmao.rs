@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.6.1
+//Version: 0.7.10
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -200,7 +200,7 @@ impl Default for Value{
 #[derive(PartialEq, Eq)]
 enum Token{
     V(Value),
-    Word(String)
+    Word((String, usize))
 }
 
 impl Default for Token{
@@ -213,7 +213,7 @@ impl fmt::Display for Token{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
         match self {
             Token::V(val) => write!(f, "{}", val),
-            Token::Word(w) => write!(f, "Word {}", w),
+            Token::Word((w, _)) => write!(f, "Word {}", w),
         }
     }
 }
@@ -225,8 +225,8 @@ enum ASTNode{
     While(Box<ASTNode>),
     Expression(Vec<ASTNode>),
     Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
-    Variable{var_name: String, var_cmd: String},
-    LocVar{name: String, cmd: String},
+    Variable{var_name: String, var_cmd: String, var_num: usize},
+    LocVar{name: String, cmd: String, num: usize},
     BoxOp(String)
 }
 
@@ -249,8 +249,8 @@ impl fmt::Display for ASTNode{
             ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: body} => {
                 write!(f, "Function [cmd: {}, name: {}, body: {}]", cmd, name, body)
             },
-            ASTNode::Variable{var_name: name, var_cmd: cmd} => write!(f, "Variable [name: {}, cmd: {}]", name, cmd),
-            ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
+            ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => write!(f, "Variable [name: {}, cmd: {}, num: {}]", name, cmd, n),
+            ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
         }
     }
@@ -274,10 +274,10 @@ impl Clone for ASTNode{
                 ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
                     func_bod: Box::new(*bod.clone())}
             },
-            ASTNode::Variable{var_name: name, var_cmd: cmd} => {
-                ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone()}
+            ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
+                ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone(), var_num: *n}
             },
-            ASTNode::LocVar{name: n, cmd: c} => ASTNode::LocVar{name: n.clone(), cmd: c.clone()},
+            ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
         }
     }
@@ -289,11 +289,14 @@ type OpFunc = fn(&mut State) -> Result<(), String>;
 struct State{
     stack: Vec<Value>,
     fns: HashMap<String, ASTNode>,
-    vars: HashMap<String, Value>,
-    frames: Vec<HashMap<String, Value>>,
+    vars: Vec<(Value, bool)>,
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
-    ops: HashMap<String, OpFunc>
+    ops: Vec<OpFunc>,
+    frames: Vec<(usize, Vec<(Value, bool)>)>,
+    curr_frame: usize,
+    frame_pool: Vec<Vec<(Value, bool)>>,
+    unique_var_name_count: usize,
 }
 
 fn type_to_string(v: &Value) -> String{
@@ -3961,129 +3964,73 @@ fn file_exists(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Creates a frame for local variables to use.
+fn create_frame(size: usize) -> Vec<(Value, bool)>{
+    let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
+    for _ in 0..size{
+        frame.push((Value::NULLBox, false));
+    }
+    frame
+}
+
+//Sets all validity booleans to false, allowing frame 
+// to be reused with reletively low cost.
+fn recycle_frame(frame: &mut Vec<(Value, bool)>){
+    for i in 0..frame.len(){
+        frame[i].1 = false;
+    }
+}
+
 impl State{
     //Creates a new state.
-    fn new() -> Self{
-        //Creates lookup table for operator functions.
-        let mut ops_map: HashMap<String, OpFunc> = HashMap::new();
-        //Basic math operators.
-        ops_map.insert("+".to_string(), add);
-        ops_map.insert("-".to_string(), sub);
-        ops_map.insert("*".to_string(), mult);
-        ops_map.insert("/".to_string(), div);
-        ops_map.insert("%".to_string(), modulo);
-        ops_map.insert("mod".to_string(), modulo);
-        ops_map.insert("pow".to_string(), power);
-
-        //Maximum values for each integer data type operators.
-        ops_map.insert("isizeMax".to_string(), max_isize);
-        ops_map.insert("usizeMax".to_string(), max_usize);
-        ops_map.insert("i8Max".to_string(), max_i8);
-        ops_map.insert("i16Max".to_string(), max_i16);
-        ops_map.insert("i32Max".to_string(), max_i32);
-        ops_map.insert("i64Max".to_string(), max_i64);
-        ops_map.insert("i128Max".to_string(), max_i128);
-        ops_map.insert("u8Max".to_string(), max_u8);
-        ops_map.insert("u16Max".to_string(), max_u16);
-        ops_map.insert("u32Max".to_string(), max_u32);
-        ops_map.insert("u64Max".to_string(), max_u64);
-        ops_map.insert("u128Max".to_string(), max_u128);
-
-        //Stack operators.
-        ops_map.insert("swap".to_string(), swap);
-        ops_map.insert("drop".to_string(), drop);
-        ops_map.insert("dropStack".to_string(), drop_stack);
-        ops_map.insert("rot".to_string(), rot);
-        ops_map.insert("dup".to_string(), dup);
-        ops_map.insert("deepDup".to_string(), deep_dup);
-
-        //Comparison operators.
-        ops_map.insert("==".to_string(), is_equal);
-        ops_map.insert("!=".to_string(), is_not_equal);
-        ops_map.insert(">".to_string(), is_greater_than);
-        ops_map.insert("<".to_string(), is_less_than);
-        ops_map.insert(">=".to_string(), is_greater_than_equal_to);
-        ops_map.insert("<=".to_string(), is_less_than_equal_to);
-        ops_map.insert("stringCompare".to_string(), string_compare);
-
-        //String concatenation operator.
-        ops_map.insert("++".to_string(), concat);
-
-        //Basic logical operators.
-        ops_map.insert("and".to_string(), and);
-        ops_map.insert("&&".to_string(), and);
-        ops_map.insert("or".to_string(), or);
-        ops_map.insert("||".to_string(), or);
-        ops_map.insert("xor".to_string(), xor);
-        ops_map.insert("not".to_string(), not);
-        ops_map.insert("!".to_string(), not);
-
-        //List/String operations.
-        ops_map.insert("push".to_string(), list_push);
-        ops_map.insert("p".to_string(), list_push);
-        ops_map.insert("pop".to_string(), list_pop);
-        ops_map.insert("po".to_string(), list_pop);
-        ops_map.insert("fpush".to_string(), list_front_push);
-        ops_map.insert("fp".to_string(), list_front_push);
-        ops_map.insert("fpop".to_string(), list_front_pop);
-        ops_map.insert("fpo".to_string(), list_front_pop);
-        ops_map.insert("index".to_string(), index);
-        ops_map.insert("length".to_string(), length);
-        ops_map.insert("len".to_string(), length);
-        ops_map.insert("isEmpty".to_string(), is_empty);
-        ops_map.insert("clear".to_string(), list_clear);
-        ops_map.insert("contains".to_string(), list_contains);
-        ops_map.insert("changeItemAt".to_string(), change_item_at);
-
-        //Character operators
-        ops_map.insert("isWhitespaceChar".to_string(), whitespace_detect);
-        ops_map.insert("isAlphaChar".to_string(), alpha_char_detect);
-        ops_map.insert("isNumChar".to_string(), num_char_detect);
-
-        //Object operators
-        ops_map.insert("objAddField".to_string(), add_field);
-        ops_map.insert("objGetField".to_string(), get_field);
-        ops_map.insert("objMutField".to_string(), mut_field);
-        ops_map.insert("objRemField".to_string(), remove_field);
-
-        //Bitwise operators
-        ops_map.insert("bitOr".to_string(), bit_or);
-        ops_map.insert("|".to_string(), bit_or);
-        ops_map.insert("bitAnd".to_string(), bit_and);
-        ops_map.insert("&".to_string(), bit_and);
-        ops_map.insert("bitXor".to_string(), bit_xor);
-        ops_map.insert("^".to_string(), bit_xor);
-        ops_map.insert("bitNot".to_string(), bit_not);
-        ops_map.insert("bitShift".to_string(), bit_shift);
-
-        //Casting
-        ops_map.insert("cast".to_string(), cast_stuff);
+    fn new(num_unique_var_names: usize) -> Self{
+        //Fills out vec of function pointers for rapid indexing in operator function calling.
+        let ops_vec: Vec<OpFunc> = vec![
+            //Basic math operators.
+            add, sub, mult, div, modulo, power,
+            //Maximum values for each integer data type operators.
+            max_isize, max_usize, 
+            max_i8, max_i16, max_i32, max_i64, max_i128,
+            max_u8, max_u16, max_u32, max_u64, max_u128,             
+            //Stack operators.
+            swap, drop, drop_stack, rot, dup, deep_dup,
+            //Comparison operators.
+            is_equal, is_not_equal, is_greater_than, is_less_than, is_greater_than_equal_to, 
+            is_less_than_equal_to, string_compare,
+            //String concatenation operator.
+            concat,
+            //Basic logical operators.
+            and, or, xor, not,
+            //List/String operations.
+            list_push, list_pop, list_front_push, list_front_pop, index, length,
+            is_empty, list_clear, list_contains, change_item_at,
+            //Character operators
+            whitespace_detect, alpha_char_detect, num_char_detect,
+            //Object operators
+            add_field, get_field, mut_field, remove_field,
+            //Bitwise operators
+            bit_or, bit_and, bit_xor, bit_not, bit_shift,
+            //Casting operator
+            cast_stuff,
+            //IO operators
+            print_line, read_line_from_in, print_char, read_char, print_string, 
+            read_from_in, debug_stack_print, debug_heap_print,
+            //File IO operators
+            write_data_to_file, read_data_from_file, 
+            create_file_based_on_string, delete_file_based_on_string, file_exists
+        ];
         
-        //IO operators
-        ops_map.insert("printLine".to_string(), print_line);
-        ops_map.insert("readLine".to_string(), read_line_from_in);
-        ops_map.insert("printChar".to_string(), print_char);
-        ops_map.insert("readChar".to_string(), read_char);
-        ops_map.insert("print".to_string(), print_string);
-        ops_map.insert("read".to_string(), read_from_in);
-        ops_map.insert("debugPrintStack".to_string(), debug_stack_print);
-        ops_map.insert("debugPrintHeap".to_string(), debug_heap_print);
-        
-        //File IO operators
-        ops_map.insert("fileWrite".to_string(), write_data_to_file);
-        ops_map.insert("fileRead".to_string(), read_data_from_file);
-        ops_map.insert("fileCreate".to_string(), create_file_based_on_string);
-        ops_map.insert("fileRemove".to_string(), delete_file_based_on_string);
-        ops_map.insert("fileExists".to_string(), file_exists);
-
         State {
             stack: Vec::new(),
             fns: HashMap::new(),
-            vars: HashMap::new(),
-            frames: vec![HashMap::new()],
+            vars: create_frame(num_unique_var_names),
             heap: Vec::new(),
             free_list: Vec::new(),
-            ops: ops_map 
+            ops: ops_vec, 
+            frames: vec![(0, create_frame(num_unique_var_names))],
+            curr_frame: 0,
+            frame_pool: Vec::new(),
+            unique_var_name_count: num_unique_var_names,
         }
     }
 
@@ -4268,6 +4215,56 @@ fn replace_literals_with_escapes(s: &str) -> String{
 fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
     let mut lexed: Vec<Token> = Vec::new();
 
+    //Creates and fills out the ops map with the operators, 
+    // ignoring the existing aliases for some of the operators.
+    let mut ops_map: HashMap<String, usize> = HashMap::new();
+    let mut i: usize = 1;
+    let unique_strs = [
+        "+", "-", "*", "/", "mod", "pow",
+        "isizeMax", "usizeMax", 
+        "i8Max", "i16Max", "i32Max", "i64Max", "i128Max",
+        "u8Max", "u16Max", "u32Max", "u64Max", "u128Max", 
+        "swap", "drop", "dropStack", "rot", "dup", "deepDup",
+        "==", "!=", ">", "<", ">=", "<=", "stringCompare", "++",
+        "and", "or", "xor", "not",
+        "push", "pop", "fpush", "fpop", "index", "length", 
+        "isEmpty", "clear", "contains", "changeItemAt",
+        "isWhitespaceChar", "isAlphaChar", "isNumChar",
+        "objAddField", "objGetField", "objMutField", "objRemField",
+        "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
+        "printLine", "readLine", "printChar", "readChar", "print", 
+        "read", "debugPrintStack", "debugPrintHeap",
+        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists"
+    ];
+    for s in unique_strs.iter(){
+        ops_map.insert(s.to_string(), i);
+        i += 1;
+    }
+
+    //The following inserts add all the aliases that exist for some of the operators. 
+    // The numbers given match the operation number 
+    // of the appropriate previously inserted operation.
+
+    //Alias for mod
+    ops_map.insert("%".to_string(), *(ops_map.get("mod").unwrap()));
+
+    //Alises for logical AND, OR, and NOT
+    ops_map.insert("&&".to_string(), *(ops_map.get("and").unwrap()));
+    ops_map.insert("||".to_string(), *(ops_map.get("or").unwrap()));
+    ops_map.insert("!".to_string(), *(ops_map.get("not").unwrap()));
+
+    //Aliases for push, pop, fpush, fpop, and length
+    ops_map.insert("p".to_string(), *(ops_map.get("push").unwrap()));
+    ops_map.insert("po".to_string(), *(ops_map.get("pop").unwrap()));
+    ops_map.insert("fp".to_string(), *(ops_map.get("fpush").unwrap()));
+    ops_map.insert("fpo".to_string(), *(ops_map.get("fpop").unwrap()));
+    ops_map.insert("len".to_string(), *(ops_map.get("length").unwrap()));
+
+    //Aliases for bitOr, bitAnd, and bitXor
+    ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
+    ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
+    ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
+
     for tok in tokens.into_iter(){
         match tok{
             //Boolean lexing cases.
@@ -4415,7 +4412,10 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             },
 
             //General catch-all case mostly meant for operators.
-            _ => lexed.push(Token::Word(tok)),
+            _ => {
+                let n: usize = *ops_map.get(&tok).unwrap_or(&0);
+                lexed.push(Token::Word((tok, n)));
+            }, 
         }
     }
 
@@ -4426,7 +4426,9 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
 fn make_ast_prime(
     mut already_parsed: Vec<ASTNode>, 
     tokens: Vec<Token>, 
-    token_index: usize, 
+    token_index: usize,
+    loc_nums: &mut HashMap<String, usize>,
+    curr_loc_num: &mut usize, 
     terminators: Vec<Token>
 ) -> (Vec<ASTNode>, Vec<Token>, usize, Option<usize>){
     //If out of tokens to parse, end or throw error if there were terminators to look for.
@@ -4443,23 +4445,23 @@ fn make_ast_prime(
     //If still tokens to parse, converts the tokens into an ASTNode.
     }else{
         match tokens[token_index]{
-            //Stop on terminator case.
+            //Stop on terminator case. (THIS MIGHT EXPLODE DUE TO THE RECONFIGURED WORD TOKENS)
             ref tok if terminators.contains(tok) => (already_parsed, tokens, token_index + 1, Some(token_index)),
             //Parse if statement case.
-            Token::Word(ref cmd) if cmd == "if" => {
-                let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1);
+            Token::Word(ref cmd) if cmd.0 == "if" => {
+                let (true_branch, false_branch, tokens_prime, token_index_prime) = parse_if(tokens, token_index + 1, loc_nums, curr_loc_num);
                 already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators) 
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators) 
             },
             //While loop parsing case.
-            Token::Word(ref cmd) if cmd == "while" => {
+            Token::Word(ref cmd) if cmd.0 == "while" => {
                 let (loop_body, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
                 already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
             },
             //Function case.
-            Token::Word(ref cmd) if cmd == "func" => {
+            Token::Word(ref cmd) if cmd.0 == "func" => {
                 //Makes sure there's enough stuff to look to parse the function.
                 if token_index + 2 > tokens.len(){
                     panic!("Insufficient tokens left for function to be parsed!");
@@ -4469,33 +4471,41 @@ fn make_ast_prime(
                 let command = std::mem::take(&mut toks[token_index + 1]);
                 let name = std::mem::take(&mut toks[token_index + 2]);
                 let (command_str, name_str) = match (command, name){
-                    (Token::Word(c), Token::Word(n)) => (c, n),
+                    (Token::Word(c), Token::Word(n)) => (c.0, n.0),
                     (_, _) => panic!("SHOULD NEVER GET HERE!!!"),
                 };
 
                 let (fbod, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), toks, token_index + 3, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
 
                 let fbod_ast = Box::new(ASTNode::Expression(fbod));
 
                 already_parsed.push(
                     ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
-                make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
             },
             //Var command parsing case.
-            Token::Word(ref cmd) if cmd == "var" => {
+            Token::Word(ref cmd) if cmd.0 == "var" => {
                 let (mut var_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
                 if var_data.len() >= 2{
                     let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
-                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c, n),
+                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
                         (_, _) => {panic!("Malformed variable command Error! \
                             Insufficient parameters given for variable command!")},
                     };
-
-                    already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd});
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                    let vn: usize = match loc_nums.get(&name){
+                        Some(n) => *n,
+                        None => {
+                            loc_nums.insert(name.clone(), *curr_loc_num);
+                            let ret = *curr_loc_num;
+                            *curr_loc_num += 1;
+                            ret
+                        },
+                    };
+                    already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: vn});
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
                 }else{
                     panic!("Malformed variable command Error! \
@@ -4503,18 +4513,26 @@ fn make_ast_prime(
                 }
             },
             //Loc command parsing case.
-            Token::Word(ref cmd) if cmd == "loc" => {
+            Token::Word(ref cmd) if cmd.0 == "loc" => {
                 let (mut var_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
                 if var_data.len() >= 2{
                     let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
-                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c, n),
+                        (ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
                         (_, _) => {panic!("Malformed local variable command Error! \
                             Insufficient parameters given for local variable command!")},
                     };
-
-                    already_parsed.push(ASTNode::LocVar{name: name, cmd: cmd});
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                    let var_num: usize = match loc_nums.get(&name){
+                        Some(n) => *n,
+                        None => {
+                            loc_nums.insert(name.clone(), *curr_loc_num);
+                            let ret = *curr_loc_num;
+                            *curr_loc_num += 1;
+                            ret
+                        },
+                    };
+                    already_parsed.push(ASTNode::LocVar{name: name, cmd: cmd, num: var_num});
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
                 }else{
                     panic!("Malformed local variable command Error! \
@@ -4522,17 +4540,17 @@ fn make_ast_prime(
                 }
             },
             //Box command case.
-            Token::Word(ref cmd) if cmd == "box" => {
+            Token::Word(ref cmd) if cmd.0 == "box" => {
                 let (mut box_data, tokens_prime, token_index_prime, _) = 
-                    make_ast_prime(Vec::new(), tokens, token_index + 1, vec![Token::Word(";".to_string())]);
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
                 if box_data.len() >= 1{
                     let box_cmd = match std::mem::take(&mut box_data[0]){
-                        ASTNode::Terminal(Token::Word(c)) => c,
+                        ASTNode::Terminal(Token::Word(c)) => c.0,
                         _ => panic!("Malformed box command!"),
                     };
 
                     already_parsed.push(ASTNode::BoxOp(box_cmd));
-                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
                 }else{
                     panic!("Malformed box command! No box command token given!")
                 }
@@ -4540,27 +4558,31 @@ fn make_ast_prime(
             _ => {
                 let mut toks = tokens;
                 already_parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
-                make_ast_prime(already_parsed, toks, token_index + 1, terminators)
+                make_ast_prime(already_parsed, toks, token_index + 1, loc_nums, curr_loc_num, terminators)
             },
         }
     }
 
 }
 
-fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<Token>, usize){
+fn parse_if(
+    tokens: Vec<Token>, 
+    token_index: usize, 
+    loc_nums: &mut HashMap<String, usize>, 
+    curr_loc_num: &mut usize) -> (ASTNode, ASTNode, Vec<Token>, usize){
     let (true_branch, tokens_prime, token_index_prime, terminator_index) = 
         make_ast_prime(
             Vec::new(), 
             tokens, 
-            token_index, 
-            vec![Token::Word("else".to_string()), Token::Word(";".to_string())]
+            token_index, loc_nums, curr_loc_num, 
+            vec![Token::Word(("else".to_string(), 0)), Token::Word((";".to_string(), 0))]
         );
     match terminator_index{
         Some(i) => {
             match tokens_prime[i]{
-                Token::Word(ref cmd) if cmd == "else" => {
+                Token::Word(ref cmd) if cmd.0 == "else" => {
                     let (false_branch, tokens_prime_prime, token_index_prime_prime) = 
-                        parse_else(tokens_prime, token_index_prime);
+                        parse_else(tokens_prime, token_index_prime, loc_nums, curr_loc_num);
                     (ASTNode::Expression(true_branch), false_branch, 
                         tokens_prime_prime, token_index_prime_prime)
                 },
@@ -4571,21 +4593,29 @@ fn parse_if(tokens: Vec<Token>, token_index: usize) -> (ASTNode, ASTNode, Vec<To
     }
 }
 
-fn parse_else(tokens: Vec<Token>, token_index: usize) -> (ASTNode, Vec<Token>, usize){
+fn parse_else(
+    tokens: Vec<Token>, 
+    token_index: usize, 
+    loc_nums: &mut HashMap<String, usize>,
+    curr_loc_num: &mut usize) -> (ASTNode, Vec<Token>, usize){
     let (if_false, tokens_prime, token_index_prime, _) = 
         make_ast_prime(
             Vec::new(),
             tokens, 
-            token_index,
-            vec![Token::Word(";".to_string())]
+            token_index, loc_nums, curr_loc_num,
+            vec![Token::Word((";".to_string(), 0))]
         );
     (ASTNode::Expression(if_false), tokens_prime, token_index_prime)
 }
 
 //Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
-// returning it for the program to then run.
-fn make_ast(tokens: Vec<Token>) -> ASTNode{
-    ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0, Vec::new()).0)
+// returning it for the program to then run. 
+// It also returns the number of unique local variable names for later use in running the program. 
+fn make_ast(tokens: Vec<Token>) -> (ASTNode, usize){
+    let mut loc_nums: HashMap<String, usize> = HashMap::new();
+    let mut curr_loc_num: usize = 0;
+    (ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0,
+     &mut loc_nums, &mut curr_loc_num, Vec::new()).0), curr_loc_num)
 }
 
 //DELETE LATER
@@ -4608,6 +4638,13 @@ fn variable_lack_of_args_error(var_action: &str) -> String{
         item on the stack! None provided!", var_action)
 }
 
+//Error string for when loc mak and loc mut 
+// don't have anything on the stack for them.
+fn local_variable_lack_of_args_error(var_action: &str) -> String{
+    format!("Local Variable (loc) error! Local variable {} needs one \
+        item on the stack! None provided!", var_action)
+}
+
 //Frees a box on the heap or kicks back an error.
 fn box_free_func(s: &mut State, v: Value, box_num: usize) -> Result<(), String>{
     if s.validate_box(box_num){
@@ -4619,6 +4656,40 @@ fn box_free_func(s: &mut State, v: Value, box_num: usize) -> Result<(), String>{
     }
 }
 
+//Adds one to the current frame count. 
+// This means that any local variables would be created a frame deeper than before.
+fn add_frame(s: &mut State){
+    s.curr_frame += 1
+}
+
+//Removes hashmap for local variables in current frame before leaving, 
+// unless at global scope where nothing happens.
+fn remove_frame(s: &mut State){
+    if s.curr_frame > 0{
+        if s.frames[s.frames.len() - 1].0 == s.curr_frame{
+            let mut popped = s.frames.pop().unwrap();
+            s.frame_pool.push(std::mem::take(&mut popped.1));
+        }
+        s.curr_frame -= 1;
+    }
+}
+
+//Removes the stack frame before then creating the appropriate error string.
+fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
+    remove_frame(s);
+    Err(err)
+}
+
+//Finds frame index of frame containing desired variable if found.
+fn find_var(s: &mut State, num: usize) -> Option<usize>{
+    for i in (0..(s.frames.len())).rev(){
+        if s.frames[i].1[num].1{
+            return Some(i);
+        }
+    }
+    None
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
     match ast{
@@ -4626,83 +4697,82 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
             for node in nodes.iter(){
                 match node{
                     ASTNode::Terminal(Token::V(v)) => state.push((*v).clone()),
-                    ASTNode::Terminal(Token::Word(ref op)) => {
-                        match state.ops.get(op){
-                            Some(func) => {
-                                match func(state){
-                                    Ok(_) => {},
-                                    Err(e) => return Err(e),
-                                }
-                            },
-                            None => {
-                                return Err(format!("Unrecognized Operator: {}", op));
-                            },
+                    ASTNode::Terminal(Token::Word((ref op, ref n))) => {
+                        if *n > 0{
+                            match state.ops[n - 1](state){
+                                Ok(_) => (),
+                                Err(e) => return error_and_remove_frame(state, e),
+                            }
+                        }else{
+                            return error_and_remove_frame(state, format!("Unrecognized Operator: {}", op));
                         } 
                     },
-                    ASTNode::Variable{var_name: name, var_cmd: cmd} => {
-                        let varcmd: &str = &cmd;
-                        match varcmd{
+                    ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: num} => {
+                        match cmd as &str{
                             "mak" => {
-                                match state.vars.get(name){
-                                    Some(_) => {
-                                        return Err(format!("Variable creation (var mak) error! Variable {} already exists! \
-                                            Try deleting it using del!", &name));
-                                    },
-                                    None => {
-                                        match state.pop(){
-                                            Some(v) => {
-                                                state.vars.insert(name.clone(), v);
-                                            },
-                                            None => {
-                                                return Err(variable_lack_of_args_error("creation (mak)"));
-                                            },
-                                        }
-                                    },
+                                if !state.vars[*num].1{
+                                    match state.pop(){
+                                        Some(v) => {
+                                            state.vars[*num].0 = v;
+                                            state.vars[*num].1 = true;
+                                        },
+                                        None => {
+                                            return error_and_remove_frame(state, 
+                                                variable_lack_of_args_error("creation (mak)"));
+                                        },
+                                    }
+                                }else{
+                                    return error_and_remove_frame(state, format!("Variable creation (var mak) \
+                                        error! Variable {} already exists! \
+                                        Try deleting it using del!", &name));
                                 }
                             },
                             "get" => {
-                                match state.vars.get(name){
-                                    Some(v) => {
-                                        state.stack.push(v.clone());
-                                    },
-                                    None => {
-                                        return Err(format!("Variable get (var get) error! Variable {} doesn't exist. \
-                                            Try making it first using var mak!", &name));
-                                    },
+                                if state.vars[*num].1{
+                                    state.push(state.vars[*num].0.clone());
+                                }else{
+                                    return error_and_remove_frame(state, format!("Variable get (var get) error! \
+                                        Variable {} doesn't exist. \
+                                        Try making it first using var mak!", &name));
                                 }
                             },
                             "mut" => {
-                                match state.vars.get_mut(name){
-                                    Some(v) => {
-                                        match state.stack.pop(){
-                                            Some(new_v) => {
-                                                if is_valid_mutation(v, &new_v){
-                                                    *v = new_v;
-                                                }else{
-                                                    return Err(invalid_mutation_error("var mut", "variable", name, &v, &new_v));
-                                                }
-                                            },
-                                            None => return Err(variable_lack_of_args_error("mutation (mut)")),
-                                        }
-                                    },
-                                    None => {
-                                        return Err(format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
-                                            Try making it first using var mak!", &name));
-                                    },
+                                if state.vars[*num].1{
+                                    match state.pop(){
+                                        Some(new_v) => {
+                                            let old_v: &mut Value = &mut state.vars[*num].0;
+                                            if is_valid_mutation(old_v, &new_v){
+                                                *old_v = new_v;
+                                            }else{
+                                                let mut_err = invalid_mutation_error("var mut", 
+                                                    "variable", name, &new_v, &new_v); 
+                                                return error_and_remove_frame(state, mut_err);
+                                            }
+                                        },
+                                        None => return error_and_remove_frame(state, 
+                                            variable_lack_of_args_error("mutation (mut)")),
+                                    }
+                                }else{
+                                    return error_and_remove_frame(state, 
+                                        format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
+                                        Try making it first using var mak!", &name));
                                 }
                             },
                             "del" => {
-                                match state.vars.remove(name){
-                                    Some(_) => {},
-                                    None => {
-                                        return Err(format!("Variable deletion (var del) error! \
-                                            Variable {} doesn't exist or was already deleted! \
-                                            Try making it first using var mak!", &name));
-                                    },
+                                //Marks given variable as invalid, allowing slot 
+                                // to be reused by var of the same number. 
+                                //Otherwise, throws error.
+                                if state.vars[*num].1{
+                                    state.vars[*num].1 = false;
+                                }else{ 
+                                    return error_and_remove_frame(state, 
+                                        format!("Variable deletion (var del) error! \
+                                        Variable {} doesn't exist or was already deleted! \
+                                        Try making it first using var mak!", &name));
                                 }
                             },
                             c => {
-                                return Err(format!("Variable (var) error! \
+                                return error_and_remove_frame(state, format!("Variable (var) error! \
                                     Unrecognized variable command! Valid: mak, get, mut, del . \
                                     Attempted: {}", c));
                             },
@@ -4715,34 +4785,36 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     Some(Value::StringBox(bn)) => {
                                         match box_free_func(state, Value::StringBox(bn), bn){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     },
                                     Some(Value::ListBox(bn)) => {
                                         match box_free_func(state, Value::ListBox(bn), bn){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     },
                                     Some(Value::ObjectBox(bn)) => {
                                         match box_free_func(state, Value::ObjectBox(bn), bn){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     },
                                     Some(Value::MiscBox(bn)) => {
                                         match box_free_func(state, Value::MiscBox(bn), bn){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     },
                                     Some(v) => {
-                                        return Err(format!("Box free error! Top of stack must be of type StringBox, \
+                                        return error_and_remove_frame(state, 
+                                            format!("Box free error! Top of stack must be of type StringBox, \
                                             ListBox, ObjectBox, or MiscBox! Attempted value: {}", &v));
                                     },
 
                                     None => {
-                                        return Err(needs_n_args_only_n_provided("box free", "One", "none"));
+                                        return error_and_remove_frame(state, 
+                                            needs_n_args_only_n_provided("box free", "One", "none"));
                                     },
 
                                 }
@@ -4756,7 +4828,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                         let new_bn = state.insert_to_heap(v);
                                         state.push(Value::MiscBox(new_bn));
                                     },
-                                    None => return Err(needs_n_args_only_n_provided("box make", "One", "none")),
+                                    None => return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided("box make", "One", "none")),
                                 }
                             },
                             "open" => {
@@ -4766,14 +4839,19 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                             let val_to_push = state.heap[bn].0.clone();
                                             state.push(val_to_push);
                                         }else{
-                                            return Err(bad_box_error("box open", "MiscBox", "NA", bn, usize::MAX, false));
+                                            return error_and_remove_frame(state, 
+                                                bad_box_error("box open", "MiscBox", "NA", 
+                                                    bn, usize::MAX, false));
                                         }
                                     },
                                     Some(v) => {
-                                        return Err(format!("Box open error! Top of stack must be type MiscBox! \
+                                        return error_and_remove_frame(state, 
+                                            format!("Box open error!\
+                                             Top of stack must be type MiscBox! \
                                             Attempted value: {}", &v));
                                     },
-                                    None => return Err(needs_n_args_only_n_provided("box open", "One", "none")),
+                                    None => return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided("box open", "One", "none")),
                                 }
                             },
                             "altr" => {
@@ -4784,25 +4862,33 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                                 state.heap[bn].0 = v;
                                                 state.push(Value::MiscBox(bn));
                                             }else{
-                                                return Err(invalid_mutation_error("box altr", 
+                                                return error_and_remove_frame(state, 
+                                                    invalid_mutation_error("box altr", 
                                                     "MiscBox", &bn.to_string(), &state.heap[bn].0, &v));
                                             }
                                         }else{
-                                            return Err(bad_box_error("box altr", "MiscBox", "NA", bn, usize::MAX, false));
+                                            return error_and_remove_frame(state, 
+                                                bad_box_error("box altr", "MiscBox", 
+                                                    "NA", bn, usize::MAX, false));
                                         }
                                     },
                                     (Some(a), Some(b)) => {
-                                        return Err(format!("Box altr error! Second to top of stack \
+                                        return error_and_remove_frame(state, 
+                                            format!("Box altr error! Second to top of stack \
                                             must be type MiscBox and top of stack type Value! \
                                             Attempted values: {} and {}", &a, &b));
                                     },
-                                    (None, Some(_)) => return Err(needs_n_args_only_n_provided("box altr", "Two", "only one")),
-                                    (None, None) => return Err(needs_n_args_only_n_provided("box altr", "Two", "none")),
-                                    _ => return Err(should_never_get_here_for_func("box altr")),
+                                    (None, Some(_)) => return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided("box altr", "Two", "only one")),
+                                    (None, None) => return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided("box altr", "Two", "none")),
+                                    _ => return error_and_remove_frame(state, 
+                                        should_never_get_here_for_func("box altr")),
                                 }
                             },
                             o => {
-                                return Err(format!("Box error! Unrecognized box operation! \
+                                return error_and_remove_frame(state, 
+                                    format!("Box error! Unrecognized box operation! \
                                     Valid: free, null, make, open, altr . Attempted: {}", o));
                             },
                         }
@@ -4810,6 +4896,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                     ASTNode::If{if_true: true_branch, if_false: false_branch} => {
                         match state.pop(){
                             Some(Value::Boolean(b)) => {
+                                add_frame(state);
                                 let res = match b{
                                     true => run_program(&true_branch, state),
                                     false => run_program(&false_branch, state),
@@ -4817,16 +4904,17 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
 
                                 match res{
                                     Ok(_) => {},
-                                    Err(e) => return Err(e),
+                                    Err(e) => return error_and_remove_frame(state, e),
                                 }
                             },
                             Some(v) => {
-                                return Err(format!("If statement error! \
+                                return error_and_remove_frame(state, format!("If statement error! \
                                     Top of stack needs to be type Boolean \
                                     for effective branching to occur! \
                                     Attempted value: {}", &v));
                             },
-                            None => return Err(needs_n_args_only_n_provided("if", "One", "none")),
+                            None => return error_and_remove_frame(state, 
+                                needs_n_args_only_n_provided("if", "One", "none")),
                         }
                     },
                     ASTNode::While(bod) => {
@@ -4834,20 +4922,23 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             match state.pop(){
                                 Some(Value::Boolean(b)) => {
                                     if b{
+                                        add_frame(state);
                                         match run_program(&bod, state){
                                             Ok(_) => {},
-                                            Err(e) => return Err(e),
+                                            Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     }else{
                                         break;
                                     }
                                 },
                                 Some(v) => {
-                                    return Err(format!("While loop error! Top of stack needs \
+                                    return error_and_remove_frame(state, 
+                                        format!("While loop error! Top of stack needs \
                                         to be of type Boolean to determine if loop needs \
                                         to run/run again! Attempted value: {}", &v));
                                 },
-                                None => return Err(needs_n_args_only_n_provided("while", "One", "none")),
+                                None => return error_and_remove_frame(state, 
+                                    needs_n_args_only_n_provided("while", "One", "none")),
                             }
                         }
                     },
@@ -4856,7 +4947,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                             "def" => {
                                 match state.fns.get(name){
                                     Some(_) => {
-                                        return Err(format!("Function definition (func def) error! \
+                                        return error_and_remove_frame(state, 
+                                            format!("Function definition (func def) error! \
                                             Function \"{}\" is already defined!", &name));
                                     },
                                     None => {
@@ -4868,7 +4960,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 let func_body = match state.fns.get(name){
                                     Some(b) => b,
                                     None => {
-                                        return Err(format!("Function call (func call) error! \
+                                        return error_and_remove_frame(state, 
+                                            format!("Function call (func call) error! \
                                             Function \"{}\" is not defined! \
                                             Try defining it using func def !", name));
                                     }, 
@@ -4877,16 +4970,105 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 //THIS WORKS BUT IS EXTREMELY JANKY AND I DON'T LIKE IT.
                                 // MAYBE TRY TO FIND A SAFER WAY.
                                 unsafe {
+                                    add_frame(&mut *(state as *const State as *mut State));
                                     match run_program(func_body, &mut *(state as *const State as *mut State)){
                                         Ok(_) => {},
-                                        Err(e) => return Err(e),
+                                        Err(e) => return error_and_remove_frame(state, e),
                                     }
                                 }
 
                             },
                             c => {
-                                return Err(format!("Function error! Invalid function \
+                                return error_and_remove_frame(state, 
+                                    format!("Function error! Invalid function \
                                     command given! Valid: def, call . Attempted: {}", c));
+                            },
+                        }
+                    },
+                    ASTNode::LocVar{name: nam, cmd: c, num: n} => {
+                        match c as &str{
+                            "mak" => {
+                                match state.pop(){
+                                    Some(v) => {
+                                        let last_index: usize = state.frames.len() - 1;
+                                        if state.frames[last_index].0 == state.curr_frame{
+                                            //If not valid Overwrites garbage value held at memory cell 
+                                            // with value from stack and sets it to valid, 
+                                            // making it an accessable variable.
+                                            //Otherwise, throws error because cell is already taken, 
+                                            // meaning variable exists.
+                                            if !state.frames[last_index].1[*n].1{
+                                                state.frames[last_index].1[*n].0 = v;
+                                                state.frames[last_index].1[*n].1 = true;
+                                            }else{
+                                                return error_and_remove_frame(state, format!("Local Variable \
+                                                    creation (loc mak) \
+                                                    error! Local Variable {} already exists in given scope!", &nam));
+                                            }
+                                        }else{
+                                            let mut new_frame: Vec<(Value, bool)> = if state.frame_pool.len() > 0{
+                                                let mut new = state.frame_pool.pop().unwrap();
+                                                recycle_frame(&mut new);
+                                                new
+                                            }else{
+                                                create_frame(state.unique_var_name_count)    
+                                            };
+                                            new_frame[*n].0 = v;
+                                            new_frame[*n].1 = true;
+                                            state.frames.push((state.curr_frame, new_frame));
+                                        }
+                                    },
+                                    None => {
+                                        return error_and_remove_frame(state, 
+                                            local_variable_lack_of_args_error("creation (mak)"));
+                                    },
+                                }
+                            },
+                            "get" => {
+                                match find_var(state, *n){
+                                    Some(frame_index) => {
+                                        state.push(state.frames[frame_index].1[*n].0.clone());
+                                    },
+                                    None => {
+                                        return error_and_remove_frame(state, format!("\
+                                            Local Variable get (loc get) error! \
+                                            Local variable {} doesn't exist in any scope! \
+                                            Try making it using loc mak!", nam));
+                                    },
+                                }
+                            },
+                            "mut" => {
+                                match state.stack.pop(){
+                                    Some(v) => {
+                                        match find_var(state, *n){
+                                            Some(frame_index) => {
+                                                let old_v: &mut Value = &mut state.frames[frame_index].1[*n].0;
+                                                if is_valid_mutation(old_v, &v){
+                                                    *old_v = v;
+                                                }else{
+                                                    let mut_err = invalid_mutation_error("loc mut", 
+                                                        "local variable", nam, &old_v, &v); 
+                                                    return error_and_remove_frame(state, mut_err);
+                                                }
+                                            },
+                                            None => {
+                                                return error_and_remove_frame(state, format!("\
+                                                    Local Variable mutation (loc mut) error! \
+                                                    Local variable {} doesn't exist in any scope! \
+                                                    Try making it using loc mak!", nam));
+                                            },
+                                        }
+                                    },
+                                    None => {
+                                        return error_and_remove_frame(state, 
+                                            local_variable_lack_of_args_error("mutation (mut)"))
+                                    },
+                                }
+                            },
+                            misc => {
+                                return error_and_remove_frame(state, format!("Local Variable (loc) error! \
+                                    Unrecognized local variable command! Valid: mak, get, mut . \
+                                    Attempted: {}", misc));
                             },
                         }
                     },
@@ -4897,6 +5079,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
         _ => {return Err("Should never get to this point!".to_string());},
     }
 
+    remove_frame(state);
     Ok(())
 }
 
@@ -4927,9 +5110,9 @@ fn main(){
 
     let lexed = lex_tokens(tokens);
 
-    let ast: ASTNode = make_ast(lexed);
+    let (ast, num_unique_loc_vars) = make_ast(lexed);
 
-    let mut state = State::new();
+    let mut state = State::new(num_unique_loc_vars);
 
     let result = run_program(&ast, &mut state);
 
