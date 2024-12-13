@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.7.0
+//Version: 0.7.1
 
 use std::collections::HashMap;
 use std::env;
@@ -5451,7 +5451,7 @@ fn main(){{
     let rust_file_name = if file_name.ends_with(".lmao"){
         format!("{}.rs", file_name_trimmed)
     }else{
-        format!("{}.rs", file_name)
+        format!("{}.rs", &file_name.replace(".", ""))
     };
     let rust_file_path = Path::new(&rust_file_name);
     
