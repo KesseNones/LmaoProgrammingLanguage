@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.6.3
+//Version: 0.6.5
 
 use std::collections::HashMap;
 use std::env;
@@ -801,7 +801,11 @@ fn make_code_str_from_ast(ast: &ASTNode, ops_to_funcs: &HashMap<String, String>)
 }
 
 //Translates AST to rust code recursively.
-fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops_to_funcs: &HashMap<String, String>){
+fn translate_ast_to_rust_code(
+    ast: &ASTNode, 
+    code_strings: &mut Vec<String>, 
+    ops_to_funcs: &HashMap<String, String>,
+    ){
     match ast{
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
@@ -850,6 +854,7 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                         let code_str = format!("
                             let res: Result<(), String> = match state.stack.pop(){{
                                 Some(Value::Boolean(b)) => {{
+                                    add_frame(state);
                                     if b{{
                                         {}
                                     }}else{{
@@ -857,18 +862,18 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                                     }}
                                 }},
                                 Some(v) => {{
-                                    return Err(format!(\"If statement error! \
+                                    Err(format!(\"If statement error! \
                                         Top of stack needs to be type Boolean \
                                         for effective branching to occur! \
-                                        Attempted value: {{}}\", &v));
+                                        Attempted value: {{}}\", &v))
                                 }},
                                 None => {{
-                                    return Err(needs_n_args_only_n_provided(\"If\", \"One\", \"none\"));
+                                    Err(needs_n_args_only_n_provided(\"If\", \"One\", \"none\"))
                                 }},
                             }};
                             match res{{
                                 Ok(_) => (),
-                                Err(e) => return Err(e),
+                                Err(e) => return error_and_remove_frame(state, e),
                             }}
                         ", &true_code, &false_code);
 
@@ -889,17 +894,19 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                                         }}
                                     }},
                                     Some(v) => {{
-                                        return Err(format!(\"While loop error! Top of stack needs \
+                                        return error_and_remove_frame(state, 
+                                            format!(\"While loop error! Top of stack needs \
                                             to be of type Boolean to determine if loop needs \
                                             to run/run again! Attempted value: {{}}\", &v));
                                     }},
                                     None => {{
-                                        return Err(needs_n_args_only_n_provided(\"while\", \"One\", \"none\"));
+                                        return error_and_remove_frame(state, 
+                                        needs_n_args_only_n_provided(\"while\", \"One\", \"none\"));
                                     }},
                                 }};
                                 match res{{
                                     Ok(_) => (),
-                                    Err(e) => return Err(e),
+                                    Err(e) => return error_and_remove_frame(state, e),
                                 }}
                             }}
                         ", &loop_code);
@@ -914,7 +921,8 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                                 let code_str = format!("
                                     match state.fns.get(\"{}\"){{
                                         Some(_) => {{
-                                            return Err(format!(\"Function definition (func def) error! \
+                                            return error_and_remove_frame(state, 
+                                                format!(\"Function definition (func def) error! \
                                                 Function \\\"{}\\\" is already defined!\"));
                                         }},
                                         None => {{
@@ -935,12 +943,13 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                                             unsafe {{
                                                 match func(&mut *(state as *const State as *mut State)){{
                                                     Ok(_) => (),
-                                                    Err(e) => return Err(e),
+                                                    Err(e) => return error_and_remove_frame(state, e),
                                                 }}
                                             }}
                                         }},
                                         None => {{
-                                            return Err(format!(\"Function call (func call) error! \
+                                            return error_and_remove_frame(state, 
+                                                format!(\"Function call (func call) error! \
                                                 Function \\\"{}\\\" is not defined! \
                                                 Try defining it using func def !\"));
                                         }},
@@ -950,7 +959,8 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
                                 code_strings.push(code_str);
                             },
                             c => {
-                                let err_str = format!("return Err(format!(\"Function error! Invalid function \
+                                let err_str = format!("return error_and_remove_frame(state, 
+                                    format!(\"Function error! Invalid function \
                                     command given! Valid: def, call . Attempted: {{}}\", \"{}\"));", c);
                                 code_strings.push(err_str);
                             },
@@ -963,6 +973,7 @@ fn translate_ast_to_rust_code(ast: &ASTNode, code_strings: &mut Vec<String>, ops
         _ => panic!("SHOULD NEVER GET HERE FOR TRANSLATION!!!")
     }
 
+    code_strings.push("remove_frame(state);".to_string());
     code_strings.push("Ok(())".to_string())
 
 }
@@ -5167,6 +5178,35 @@ fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
         },
     }
 }
+
+//Adds one to the current frame count. 
+// This means that any local variables would be created a frame deeper than before.
+fn add_frame(s: &mut State){
+    s.curr_frame += 1
+}
+
+//Removes hashmap for local variables in current frame before leaving, 
+// unless at global scope where nothing happens.
+fn remove_frame(s: &mut State){
+    if s.curr_frame > 0{
+        if s.frames[s.frames.len() - 1].0 == s.curr_frame{
+            let mut popped = s.frames.pop().unwrap();
+            s.frame_pool.push(std::mem::take(&mut popped.1));
+        }
+        s.curr_frame -= 1;
+    }
+}
+
+//Removes the stack frame before then creating the appropriate error string.
+fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
+    remove_frame(s);
+    Err(err)
+}
+
+//Function that performs a local variable action when needed.
+//fn loc_action(s: &mut State, name: &str, act: &str, num: usize) -> Result<(), String>{
+
+//}
 
 fn program(state: &mut State) -> Result<(), String>{
     ";
