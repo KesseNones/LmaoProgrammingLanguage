@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.6.2
+//Version: 0.6.3
 
 use std::collections::HashMap;
 use std::env;
@@ -1203,21 +1203,45 @@ struct State{
     stack: Vec<Value>,
     fns: HashMap<String, Box<FuncFunc>>,
     vars: HashMap<String, Value>,
-    frames: Vec<HashMap<String, Value>>,
     heap: Vec<(Value, bool)>,
     free_list: Vec<usize>,
+    frames: Vec<(usize, Vec<(Value, bool)>)>,
+    curr_frame: usize,
+    frame_pool: Vec<Vec<(Value, bool)>>,
+    unique_var_name_count: usize,
+}
+
+//Creates a frame for local variables to use.
+fn create_frame(size: usize) -> Vec<(Value, bool)>{
+    let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
+    for _ in 0..size{
+        frame.push((Value::NULLBox, false));
+    }
+    frame
+}
+
+//Sets all validity booleans to false, allowing frame 
+// to be reused with reletively low cost.
+fn recycle_frame(frame: &mut Vec<(Value, bool)>){
+    for i in 0..frame.len(){
+        frame[i].1 = false;
+    }
 }
 
 impl State{
     //Creates a new state.
-    fn new() -> Self{
+    fn new(num_unique_var_names: usize) -> Self{
         State {
             stack: Vec::new(),
             fns: HashMap::new(),
             vars: HashMap::new(),
-            frames: vec![HashMap::new()],
             heap: Vec::new(),
             free_list: Vec::new(),
+            frames: vec![(0, create_frame(num_unique_var_names))],
+            curr_frame: 0,
+            frame_pool: Vec::new(),
+            unique_var_name_count: num_unique_var_names,
+
         }
     }
 
@@ -5261,18 +5285,18 @@ fn program(state: &mut State) -> Result<(), String>{
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
-    let end_str = "
-}
+    let end_str = format!("
+}}
 
-fn main(){
-    let mut state = State::new();
-    match program(&mut state){
+fn main(){{
+    let mut state = State::new({});
+    match program(&mut state){{
         Ok(_) => println!(\"Program completed successfully!\"),
-        Err(e) => println!(\"Program failed with error: {}\", e),
-    }
-}
-    ";
-    file_strings.push(end_str.to_string());
+        Err(e) => println!(\"Program failed with error: {{}}\", e),
+    }}
+}}
+    ", num_unique_var_names);
+    file_strings.push(end_str);
 
     let file_string: String = file_strings.join("\n");
 
