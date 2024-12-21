@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.7.2
+//Version: 0.8.0
 
 use std::collections::HashMap;
 use std::env;
@@ -85,15 +85,25 @@ enum Value{
     Float64(f64),
     Char(char),
     Boolean(bool),
-    //String and its equivalent box to live on the stack.
-    String(String),
     StringBox(usize),
-    List(Vec<Value>),
     ListBox(usize),
-    Object(HashMap<String, Value>),
     ObjectBox(usize),
     MiscBox(usize),
     NULLBox,
+}
+
+//Used to contain values on the heap only.
+enum HeapValue{
+    String(String),
+    List(Vec<Value>),
+    Object(HashMap<String, Value>),
+    Primitive(Value),
+}
+
+//Exists in token lists and AST.
+enum SuperValue{
+    Reg(Value), 
+    Heap(HeapValue),
 }
 
 impl Clone for Value{
@@ -105,14 +115,22 @@ impl Clone for Value{
             Value::Float64(f) => Value::Float64(*f),
             Value::Char(c) => Value::Char(*c),
             Value::Boolean(b) => Value::Boolean(*b),
-            Value::String(st) => Value::String((st).clone()),
             Value::StringBox(sb) => Value::StringBox(*sb),
-            Value::List(l) => Value::List((l).clone()),
             Value::ListBox(bn) => Value::ListBox(*bn),
-            Value::Object(o) => Value::Object(o.clone()),
             Value::ObjectBox(bn) => Value::ObjectBox(*bn),
             Value::MiscBox(bn) => Value::MiscBox(*bn),
             Value::NULLBox => Value::NULLBox,
+        }
+    }
+}
+
+impl Clone for HeapValue{
+    fn clone(&self) -> HeapValue{
+        match self{
+            HeapValue::String(st) => HeapValue::String((st).clone()),
+            HeapValue::List(l) => HeapValue::List((l).clone()),
+            HeapValue::Object(o) => HeapValue::Object(o.clone()),
+            HeapValue::Primitive(p) => HeapValue::Primitive(p.clone()),
         }
     }
 }
@@ -126,11 +144,8 @@ impl PartialEq for Value{
             (Value::Float64(a), Value::Float64(b)) => a == b,
             (Value::Char(a), Value::Char(b)) => a == b,
             (Value::Boolean(a), Value::Boolean(b)) => a == b,
-            (Value::String(a), Value::String(b)) => a == b,
             (Value::StringBox(a), Value::StringBox(b)) => a == b,
-            (Value::List(a), Value::List(b)) => a == b,
             (Value::ListBox(a), Value::ListBox(b)) => a == b,
-            (Value::Object(a), Value::Object(b)) => a == b,
             (Value::ObjectBox(a), Value::ObjectBox(b)) => a == b,
             (Value::MiscBox(a), Value::MiscBox(b)) => a == b,
             (Value::NULLBox, Value::NULLBox) => true,
@@ -140,6 +155,21 @@ impl PartialEq for Value{
 }
 
 impl Eq for Value {}
+
+impl PartialEq for HeapValue{
+    fn eq(&self, other: &Self) -> bool{
+        match(self, other){
+            (HeapValue::String(a), HeapValue::String(b)) => a == b,
+            (HeapValue::List(a), HeapValue::List(b)) => a == b,
+            (HeapValue::Object(a), HeapValue::Object(b)) => a == b,
+            (HeapValue::Primitive(a), HeapValue::Primitive(b)) => a == b, 
+            _ => false,
+        }
+    }
+}
+
+impl Eq for HeapValue {}
+
 
 impl fmt::Display for Value{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
@@ -168,11 +198,8 @@ impl fmt::Display for Value{
             },
             Value::Char(c) => write!(f, "Value::Char(\'{}\')", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, "Value::Boolean({})", b),
-            Value::String(s) => write!(f, "Value::String(replace_literals_with_escapes(\"{}\"))", s),
             Value::StringBox(sb) => write!(f, "Value::StringBox({})", sb),
-            Value::List(_) => write!(f, "Value::List(Vec::new())"),
             Value::ListBox(lb) => write!(f, "Value::ListBox({})", lb),
-            Value::Object(_) => write!(f, "Value::Object(HashMap::new())"),
             Value::ObjectBox(ob) => write!(f, "Value::ObjectBox({})", ob),
             Value::MiscBox(bn) => write!(f, "Value::MiscBox({})", bn),
             Value::NULLBox => write!(f, "Value::NULLBox"),
@@ -180,9 +207,47 @@ impl fmt::Display for Value{
     }
 }
 
+impl fmt::Display for HeapValue{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            HeapValue::String(s) => write!(f, "HeapValue::String(replace_literals_with_escapes(\"{}\"))", s), 
+            HeapValue::List(_) => write!(f, "HeapValue::List(Vec::new())"),
+            HeapValue::Object(_) => write!(f, "HeapValue::Object(HashMap::new())"), 
+            HeapValue::Primitive(p) => write!(f, "{}", p),
+        }
+    }
+}
+
+impl fmt::Display for SuperValue{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self{
+            SuperValue::Reg(r) => write!(f, "{}", r),
+            SuperValue::Heap(h) => write!(f, "{}", h),
+        }
+    }
+}
+
+impl PartialEq for SuperValue{
+    fn eq(&self, other: &Self) -> bool{
+        match(self, other){
+            (SuperValue::Reg(r1), SuperValue::Reg(r2)) => r1 == r2,
+            (SuperValue::Heap(h1), SuperValue::Heap(h2)) => h1 == h2,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for SuperValue {}
+
 impl Default for Value{
     fn default() -> Self{
         Value::NULLBox
+    }
+}
+
+impl Default for HeapValue{
+    fn default() -> Self{
+        HeapValue::Primitive(Value::default())
     }
 }
 
@@ -190,13 +255,13 @@ impl Default for Value{
 // a command to run an operator or something like that.
 #[derive(PartialEq, Eq)]
 enum Token{
-    V(Value),
+    V(SuperValue),
     Word((String, usize))
 }
 
 impl Default for Token{
     fn default() -> Self{
-        Token::V(Value::NULLBox)
+        Token::V(SuperValue::Reg(Value::NULLBox))
     }
 }
 
@@ -223,7 +288,7 @@ enum ASTNode{
 
 impl Default for ASTNode{
     fn default() -> Self{
-        ASTNode::Terminal(Token::V(Value::NULLBox))
+        ASTNode::Terminal(Token::default())
     }
 }
 
@@ -250,7 +315,8 @@ impl fmt::Display for ASTNode{
 impl Clone for ASTNode{
     fn clone(&self) -> ASTNode{
         match self{
-            ASTNode::Terminal(Token::V(val)) => ASTNode::Terminal(Token::V(val.clone())),
+            ASTNode::Terminal(Token::V(SuperValue::Reg(r))) => ASTNode::Terminal(Token::V(SuperValue::Reg(r.clone()))),
+            ASTNode::Terminal(Token::V(SuperValue::Heap(h))) => ASTNode::Terminal(Token::V(SuperValue::Heap(h.clone()))),
             ASTNode::Terminal(Token::Word(w)) => ASTNode::Terminal(Token::Word(w.clone())),
             ASTNode::If{if_true: true_branch, if_false: false_branch} => {
                 ASTNode::If{if_true: Box::new(*true_branch.clone()), 
@@ -445,17 +511,22 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             //Boolean lexing cases.
             ref t if t == "True" || t == "true" => {
                 lexed.push(Token::V(
-                    Value::Boolean(true))
+                    SuperValue::Reg(Value::Boolean(true)))
                 );
             },
             ref t if t == "False" || t == "false" => {
                 lexed.push(Token::V(
-                    Value::Boolean(false))
+                    SuperValue::Reg(Value::Boolean(false)))
                 );
             },
             //String case.
             ref t if t.starts_with("\"") && t.ends_with("\"") => {
-                lexed.push(Token::V(Value::String(replace_literals_with_escapes(&tok[1..(tok.len() - 1)]))));
+                lexed.push(Token::V(
+                    SuperValue::Heap(
+                        HeapValue::String(
+                            replace_literals_with_escapes(&tok[1..(tok.len() - 1)]))
+                    ))
+                );
             }, 
             //Char case.
             ref t if t.starts_with("\'") && t.ends_with("\'") => {
@@ -472,95 +543,95 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                         _ => captured,
                     };
                 }
-                lexed.push(Token::V(Value::Char(captured)));
+                lexed.push(Token::V(SuperValue::Reg(Value::Char(captured))));
             },
             //List case.
-            ref t if t == "[]" => lexed.push(Token::V(Value::List(Vec::new()))),
+            ref t if t == "[]" => lexed.push(Token::V(SuperValue::Heap(HeapValue::List(Vec::new())))),
             //Object case.
-            ref t if t == "{}" => lexed.push(Token::V(Value::Object(HashMap::new()))),
+            ref t if t == "{}" => lexed.push(Token::V(SuperValue::Heap(HeapValue::Object(HashMap::new())))),
             //Float cases.
             ref t if t.ends_with("f32") => {
                 match tok[0..(tok.len() - 3)].parse::<f32>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float32(parsed)))),
                     Err(_) => throw_parse_error("f32", &tok),
                 }
             },
             ref t if t.ends_with("f64") => {
                 match tok[0..(tok.len() - 3)].parse::<f64>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Float64(parsed))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float64(parsed)))),
                     Err(_) => throw_parse_error("f64", &tok), 
                 }
             },
             //Explicit integer cases for both signed and unsigned.
             ref t if t.ends_with("u8") => {
                 match tok[0..(tok.len() - 2)].parse::<u8>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt8(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt8(parsed))))),
                     Err(_) => throw_parse_error("u8", &tok), 
                 }
             },
             ref t if t.ends_with("i8") => {
                 match tok[0..(tok.len() - 2)].parse::<i8>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int8(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int8(parsed))))),
                     Err(_) => throw_parse_error("i8", &tok), 
                 }
             },
             ref t if t.ends_with("u16") => {
                 match tok[0..(tok.len() - 3)].parse::<u16>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt16(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt16(parsed))))),
                     Err(_) => throw_parse_error("u16", &tok),
                 }
             },
             ref t if t.ends_with("i16") => {
                 match tok[0..(tok.len() - 3)].parse::<i16>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int16(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int16(parsed))))),
                     Err(_) => throw_parse_error("i16", &tok), 
                 }
             },
             ref t if t.ends_with("u32") => {
                 match tok[0..(tok.len() - 3)].parse::<u32>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt32(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt32(parsed))))),
                     Err(_) => throw_parse_error("u32", &tok), 
                 }
             },
             ref t if t.ends_with("i32") => {
                 match tok[0..(tok.len() - 3)].parse::<i32>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int32(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int32(parsed))))),
                     Err(_) => throw_parse_error("i32", &tok), 
                 }
             },
             ref t if t.ends_with("u64") => {
                 match tok[0..(tok.len() - 3)].parse::<u64>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt64(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt64(parsed))))),
                     Err(_) => throw_parse_error("u64", &tok), 
                 }
             },
             ref t if t.ends_with("i64") => {
                 match tok[0..(tok.len() - 3)].parse::<i64>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int64(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int64(parsed))))),
                     Err(_) => throw_parse_error("i64", &tok), 
                 }
             },
             ref t if t.ends_with("u128") => {
                 match tok[0..(tok.len() - 4)].parse::<u128>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UInt128(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt128(parsed))))),
                     Err(_) => throw_parse_error("u128", &tok), 
                 }
             },
             ref t if t.ends_with("i128") => {
                 match tok[0..(tok.len() - 4)].parse::<i128>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::Int128(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int128(parsed))))),
                     Err(_) => throw_parse_error("i128", &tok), 
                 }
             },
             ref t if t.ends_with("usize") => {
                 match tok[0..(tok.len() - 5)].parse::<usize>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::UInt(IntUnsigned::UIntSize(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UIntSize(parsed))))),
                     Err(_) => throw_parse_error("usize", &tok), 
                 }
             },
             ref t if t.ends_with("isize") => {
                 match tok[0..(tok.len() - 5)].parse::<isize>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::IntSize(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::IntSize(parsed))))),
                     Err(_) => throw_parse_error("isize", &tok), 
                 }
             },
@@ -571,7 +642,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                         && t.chars().next().unwrap() <= '9')) 
                     => {
                 match tok.parse::<f32>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float32(parsed)))),
                     Err(_) => throw_parse_error("f32", &tok),
                 }
             },
@@ -581,7 +652,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                         && t.chars().next().unwrap() <= '9') 
                     => {
                 match tok.parse::<isize>(){
-                    Ok(parsed) => lexed.push(Token::V(Value::Int(IntSigned::IntSize(parsed)))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::IntSize(parsed))))),
                     Err(_) => throw_parse_error("isize", &tok),
                 }
             },
@@ -810,8 +881,40 @@ fn translate_ast_to_rust_code(
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
                 match node{
-                    ASTNode::Terminal(Token::V(value)) => {
-                        code_strings.push(format!("state.push({});", value))
+                    ASTNode::Terminal(Token::V(SuperValue::Reg(v))) => code_strings.push(format!("state.stack.push({});", v)),
+                    ASTNode::Terminal(Token::V(SuperValue::Heap(h))) => {
+                        let code_str_init = format!("
+                            {{
+                                let new_bn = state.insert_to_heap({});
+
+                        ", h);
+                        let code_str = match h{
+                            HeapValue::String(_) => {
+                                format!("
+                                    {}
+                                        state.stack.push(Value::StringBox(new_bn));
+                                    }}
+                                ", &code_str_init)
+                            },
+                            HeapValue::List(_) => {
+                                format!("
+                                    {}
+                                        state.stack.push(Value::ListBox(new_bn));
+                                    }}
+                                ", &code_str_init)
+                            },
+                            HeapValue::Object(_) => {
+                                format!("
+                                    {}
+                                        state.stack.push(Value::ObjectBox(new_bn));
+                                    }}
+                                ", &code_str_init)
+                            },
+                            HeapValue::Primitive(_) => {
+                                "return Err(\"SHOULD NEVER GET HERE FOR VALUE PUSHING!!!\".to_string())".to_string()
+                            },
+                        };
+                        code_strings.push(code_str);
                     },
                     ASTNode::Terminal(Token::Word(op)) => {
                         match ops_to_funcs.get(&op.0){
@@ -1100,7 +1203,8 @@ impl Clone for IntUnsigned{
     }
 }
 
-//This enum is used to contain all the possible data types of Lmao.
+//This enum is used to contain all the possible data types of Lmao 
+// that live everywhere but the Heap.
 enum Value{
     //Specific signed integers found from type declarations. (coming soonTM)
     Int(IntSigned),
@@ -1111,16 +1215,39 @@ enum Value{
     Float64(f64),
     Char(char),
     Boolean(bool),
-    //String and its equivalent box to live on the stack.
-    String(String),
+    //Used to reference items in the heap.
     StringBox(usize),
-    List(Vec<Value>),
     ListBox(usize),
-    Object(HashMap<String, Value>),
     ObjectBox(usize),
     MiscBox(usize),
     NULLBox,
 }
+
+//Used to contain values on the heap only.
+enum HeapValue{
+    String(String),
+    List(Vec<Value>),
+    Object(HashMap<String, Value>),
+    Primitive(Value),
+}
+
+//Exists in token lists and AST.
+enum SuperValue{
+    Reg(Value), 
+    Heap(HeapValue),
+}
+
+impl PartialEq for SuperValue{
+    fn eq(&self, other: &Self) -> bool{
+        match(self, other){
+            (SuperValue::Reg(r1), SuperValue::Reg(r2)) => r1 == r2,
+            (SuperValue::Heap(h1), SuperValue::Heap(h2)) => h1 == h2,
+            _ => false,
+        }
+    }
+}
+
+impl Eq for SuperValue {}
 
 impl Clone for Value{
     fn clone(&self) -> Value{
@@ -1131,14 +1258,22 @@ impl Clone for Value{
             Value::Float64(f) => Value::Float64(*f),
             Value::Char(c) => Value::Char(*c),
             Value::Boolean(b) => Value::Boolean(*b),
-            Value::String(st) => Value::String((st).clone()),
             Value::StringBox(sb) => Value::StringBox(*sb),
-            Value::List(l) => Value::List((l).clone()),
             Value::ListBox(bn) => Value::ListBox(*bn),
-            Value::Object(o) => Value::Object(o.clone()),
             Value::ObjectBox(bn) => Value::ObjectBox(*bn),
             Value::MiscBox(bn) => Value::MiscBox(*bn),
             Value::NULLBox => Value::NULLBox,
+        }
+    }
+}
+
+impl Clone for HeapValue{
+    fn clone(&self) -> HeapValue{
+        match self{
+            HeapValue::String(st) => HeapValue::String((st).clone()),
+            HeapValue::List(l) => HeapValue::List((l).clone()),
+            HeapValue::Object(o) => HeapValue::Object(o.clone()),
+            HeapValue::Primitive(p) => HeapValue::Primitive(p.clone()),
         }
     }
 }
@@ -1152,11 +1287,8 @@ impl PartialEq for Value{
             (Value::Float64(a), Value::Float64(b)) => a == b,
             (Value::Char(a), Value::Char(b)) => a == b,
             (Value::Boolean(a), Value::Boolean(b)) => a == b,
-            (Value::String(a), Value::String(b)) => a == b,
             (Value::StringBox(a), Value::StringBox(b)) => a == b,
-            (Value::List(a), Value::List(b)) => a == b,
             (Value::ListBox(a), Value::ListBox(b)) => a == b,
-            (Value::Object(a), Value::Object(b)) => a == b,
             (Value::ObjectBox(a), Value::ObjectBox(b)) => a == b,
             (Value::MiscBox(a), Value::MiscBox(b)) => a == b,
             (Value::NULLBox, Value::NULLBox) => true,
@@ -1166,6 +1298,20 @@ impl PartialEq for Value{
 }
 
 impl Eq for Value {}
+
+impl PartialEq for HeapValue{
+    fn eq(&self, other: &Self) -> bool{
+        match(self, other){
+            (HeapValue::String(a), HeapValue::String(b)) => a == b,
+            (HeapValue::List(a), HeapValue::List(b)) => a == b,
+            (HeapValue::Object(a), HeapValue::Object(b)) => a == b,
+            (HeapValue::Primitive(a), HeapValue::Primitive(b)) => a == b, 
+            _ => false,
+        }
+    }
+}
+
+impl Eq for HeapValue {}
 
 impl fmt::Display for Value{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
@@ -1188,20 +1334,8 @@ impl fmt::Display for Value{
             },
             Value::Char(c) => write!(f, \"Char \'{}\'\", c.escape_default().collect::<String>()),
             Value::Boolean(b) => write!(f, \"Boolean {}\", b),
-            Value::String(s) => write!(f, \"String {:?}\", s),
             Value::StringBox(sb) => write!(f, \"StringBox {}\", sb),
-            Value::List(ls) => {
-                let ls_strs: Vec<String> = ls.iter().map(|el| format!(\"{}\", el)).collect();
-                write!(f, \"List [{}]\", ls_strs.join(\", \"))
-            },
             Value::ListBox(lb) => write!(f, \"ListBox {}\", lb),
-            Value::Object(o) => {
-                let mut obj_strs: Vec<String> = Vec::new();
-                for (key, value) in o.iter(){
-                    obj_strs.push(format!(\"{}: {}\", key, value));
-                }
-                write!(f, \"Object {}{}{}\", \"{\", obj_strs.join(\", \"), \"}\")
-            },
             Value::ObjectBox(ob) => write!(f, \"ObjectBox {}\", ob),
             Value::MiscBox(bn) => write!(f, \"MiscBox {}\", bn),
             Value::NULLBox => write!(f, \"NULLBox\"),
@@ -1215,6 +1349,41 @@ impl Default for Value{
     }
 }
 
+impl fmt::Display for HeapValue{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self {
+            HeapValue::String(s) => write!(f, \"String {:?}\", s),
+            HeapValue::List(ls) => {
+                let ls_strs: Vec<String> = ls.iter().map(|el| format!(\"{}\", el)).collect();
+                write!(f, \"List [{}]\", ls_strs.join(\", \"))
+            },
+            HeapValue::Object(o) => {
+                let mut obj_strs: Vec<String> = Vec::new();
+                for (key, value) in o.iter(){
+                    obj_strs.push(format!(\"{}: {}\", key, value));
+                }
+                write!(f, \"Object {}{}{}\", \"{\", obj_strs.join(\", \"), \"}\")
+            },
+            HeapValue::Primitive(p) => write!(f, \"{}\", p),
+        }
+    }
+}
+
+impl Default for HeapValue{
+    fn default() -> Self{
+        HeapValue::Primitive(Value::NULLBox)
+    }
+}
+
+impl fmt::Display for SuperValue{
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        match self{
+            SuperValue::Reg(r) => write!(f, \"{}\", r),
+            SuperValue::Heap(h) => write!(f, \"{}\", h),
+        }
+    }
+}
+
 type FuncFunc = fn(&mut State) -> Result<(), String>;
 
 //Main mutable state
@@ -1222,7 +1391,7 @@ struct State{
     stack: Vec<Value>,
     fns: HashMap<String, Box<FuncFunc>>,
     vars: Vec<(Value, bool)>,
-    heap: Vec<(Value, bool)>,
+    heap: Vec<(HeapValue, bool)>,
     free_list: Vec<usize>,
     frames: Vec<(usize, Vec<(Value, bool)>)>,
     curr_frame: usize,
@@ -1266,7 +1435,7 @@ impl State{
 
     //Inserts an item into the heap, 
     // returning an index to where it was inserted in the heap.
-    fn insert_to_heap(&mut self, ins_val: Value) -> usize{
+    fn insert_to_heap(&mut self, ins_val: HeapValue) -> usize{
         if self.free_list.len() > 0{
             let free_cell_num = self.free_list.pop().unwrap();
             self.heap[free_cell_num] = (ins_val, true);
@@ -1290,26 +1459,6 @@ impl State{
         }
     }
 
-    //Pushes a value to the stack and accounts for if the value 
-    // is a non-primitive type, allocating it on the heap if necessary.
-    fn push(&mut self, ins_val: Value){
-        match ins_val{
-            Value::String(_) => {
-                let box_num = self.insert_to_heap(ins_val);
-                self.stack.push(Value::StringBox(box_num));
-            },
-            Value::List(_) => {
-                let box_num = self.insert_to_heap(ins_val);
-                self.stack.push(Value::ListBox(box_num));
-            },
-            Value::Object(_) => {
-                let box_num = self.insert_to_heap(ins_val);
-                self.stack.push(Value::ObjectBox(box_num));
-            },
-            anything => self.stack.push(anything),
-        }
-    }
-
     fn pop(&mut self) -> Option<Value>{
         self.stack.pop()
     }
@@ -1329,38 +1478,19 @@ impl State{
 
 }
 
-fn type_to_string(v: &Value) -> String{
-    let type_str: &str = match v{
-        Value::Int(IntSigned::Int8(_)) => \"i8\",
-        Value::Int(IntSigned::Int16(_)) => \"i16\",
-        Value::Int(IntSigned::Int32(_)) => \"i32\",
-        Value::Int(IntSigned::Int64(_)) => \"i64\",
-        Value::Int(IntSigned::Int128(_)) => \"i128\",
-        Value::Int(IntSigned::IntSize(_)) => \"isize\",
-        
-        Value::UInt(IntUnsigned::UInt8(_)) => \"u8\",
-        Value::UInt(IntUnsigned::UInt16(_)) => \"u16\",
-        Value::UInt(IntUnsigned::UInt32(_)) => \"u32\",
-        Value::UInt(IntUnsigned::UInt64(_)) => \"u64\",
-        Value::UInt(IntUnsigned::UInt128(_)) => \"u128\",
-        Value::UInt(IntUnsigned::UIntSize(_)) => \"usize\",
-
-        Value::Float32(_) => \"f32\",
-        Value::Float64(_) => \"f64\",
-
-        Value::Char(_) => \"Char\",
-        Value::Boolean(_) => \"Boolean\",
-        Value::String(_) => \"String\",
-        Value::StringBox(_) => \"StringBox\",
-        Value::List(_) => \"List\",
-        Value::ListBox(_) => \"ListBox\",
-        Value::Object(_) => \"Object\",
-        Value::ObjectBox(_) => \"ObjectBox\",
-        Value::MiscBox(_) => \"MiscBox\",
-        Value::NULLBox => \"NULLBox\",
-    };
-
-    type_str.to_string()
+//Uses the implemented format traits to build a string for the given type. 
+// From there, it only consumes the characters that name the actual type.
+// This avoids needing a big match statement. 
+fn type_to_string(v: &SuperValue) -> String{
+    let mut chrs = String::new();
+    for c in format!(\"{}\", v).chars(){
+        if c == ' '{
+            break;
+        }else{
+            chrs.push(c);
+        }
+    }
+    chrs
 }
 
 //Used for numerical operators like +, -, *, etc.
@@ -1385,7 +1515,7 @@ fn should_never_get_here_for_func(func: &str) -> String{
 fn push_val_or_err(r: Result<Value, String>, s: &mut State) -> Result<(), String>{
     match r{
         Ok(v) => {
-            s.push(v);
+            s.stack.push(v);
             Ok(())
         },
         Err(e) => Err(e),
@@ -1888,8 +2018,8 @@ fn power(s: &mut State) -> Result<(), String>{
 fn swap(s: &mut State) -> Result<(), String>{
     match s.pop2(){
         (Some(a), Some(b)) => {
-            s.push(b);
-            s.push(a);
+            s.stack.push(b);
+            s.stack.push(a);
             Ok(())
         },
         (None, Some(_)) => Err(needs_n_args_only_n_provided(\"swap\", \"Two\", \"only one\")),
@@ -1919,9 +2049,9 @@ fn drop_stack(s: &mut State) -> Result<(), String>{
 fn rot(s: &mut State) -> Result<(), String>{
     match s.pop3(){
         (Some(a), Some(b), Some(c)) => {
-            s.push(c);
-            s.push(a);
-            s.push(b);
+            s.stack.push(c);
+            s.stack.push(a);
+            s.stack.push(b);
 
             Ok(())
         },
@@ -1937,8 +2067,8 @@ fn rot(s: &mut State) -> Result<(), String>{
 fn dup(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(v) => {
-            s.push(v.clone());
-            s.push(v.clone());
+            s.stack.push(v.clone());
+            s.stack.push(v.clone());
             Ok(())
         },
         None => Err(needs_n_args_only_n_provided(\"dup\", \"One\", \"none\")),
@@ -1959,8 +2089,8 @@ fn deep_dup(s: &mut State) -> Result<(), String>{
             if s.validate_box(bn){
                 let dupped_string = s.heap[bn].0.clone();
                 let new_bn = s.insert_to_heap(dupped_string);
-                s.push(Value::StringBox(bn));
-                s.push(Value::StringBox(new_bn));
+                s.stack.push(Value::StringBox(bn));
+                s.stack.push(Value::StringBox(new_bn));
                 Ok(())
             }else{
                 Err(error_for_deep_dup_due_to_bad_box(\"StringBox\", Value::StringBox(bn)))
@@ -1970,8 +2100,8 @@ fn deep_dup(s: &mut State) -> Result<(), String>{
             if s.validate_box(bn){
                 let dupped_list = s.heap[bn].0.clone();
                 let new_bn = s.insert_to_heap(dupped_list);
-                s.push(Value::ListBox(bn));
-                s.push(Value::ListBox(new_bn));
+                s.stack.push(Value::ListBox(bn));
+                s.stack.push(Value::ListBox(new_bn));
                 Ok(())
             }else{
                 Err(error_for_deep_dup_due_to_bad_box(\"ListBox\", Value::ListBox(bn)))
@@ -1981,8 +2111,8 @@ fn deep_dup(s: &mut State) -> Result<(), String>{
             if s.validate_box(bn){
                 let dupped_obj = s.heap[bn].0.clone();
                 let new_bn = s.insert_to_heap(dupped_obj);
-                s.push(Value::ObjectBox(bn));
-                s.push(Value::ObjectBox(new_bn));
+                s.stack.push(Value::ObjectBox(bn));
+                s.stack.push(Value::ObjectBox(new_bn));
                 Ok(())
             }else{
                 Err(error_for_deep_dup_due_to_bad_box(\"ObjectBox\", Value::ObjectBox(bn)))
@@ -1992,16 +2122,16 @@ fn deep_dup(s: &mut State) -> Result<(), String>{
             if s.validate_box(bn){
                 let dupped_data = s.heap[bn].0.clone();
                 let new_bn = s.insert_to_heap(dupped_data);
-                s.push(Value::MiscBox(bn));
-                s.push(Value::MiscBox(new_bn));
+                s.stack.push(Value::MiscBox(bn));
+                s.stack.push(Value::MiscBox(new_bn));
                 Ok(())
             }else{
                 Err(error_for_deep_dup_due_to_bad_box(\"MiscBox\", Value::MiscBox(bn)))
             }
         },
         Some(v) => {
-            s.push(v.clone());
-            s.push(v.clone());
+            s.stack.push(v.clone());
+            s.stack.push(v.clone());
             Ok(())
         },
         None => Err(needs_n_args_only_n_provided(\"dup\", \"One\", \"none\")),
@@ -2616,8 +2746,8 @@ fn concat(s: &mut State) -> Result<(), String>{
                 match (s.validate_box(a), s.validate_box(b)){
                     (true, true) => {
                         //Concatenates string from Box B to string in Box A.
-                        let mut a_str: Value = std::mem::take(&mut s.heap[a].0);
-                        if let (Value::String(ref mut s1), Value::String(ref s2)) = (&mut a_str, &s.heap[b].0){
+                        let mut a_str: HeapValue = std::mem::take(&mut s.heap[a].0);
+                        if let (HeapValue::String(ref mut s1), HeapValue::String(ref s2)) = (&mut a_str, &s.heap[b].0){
                             s1.push_str(s2);
                             s.heap[a].0 = a_str;
                             Ok(Value::StringBox(a))
@@ -2649,9 +2779,8 @@ fn concat(s: &mut State) -> Result<(), String>{
                     (true, true) => {
                         //Concatenates list from Box B to list in Box A.
                         //THIS IS CRINGE, TRY TO MAYBE FIGURE OUT A BETTER WAY LATER
-                        let mut list_a: Value = std::mem::take(&mut s.heap[a].0);
-                        if let (Value::List(ref mut ls1), Value::List(ref ls2)) = (&mut list_a, &s.heap[b].0){
-                            //NEEDS TESTING LATER TO MAKE SURE IT WORKS!!!
+                        let mut list_a: HeapValue = std::mem::take(&mut s.heap[a].0);
+                        if let (HeapValue::List(ref mut ls1), HeapValue::List(ref ls2)) = (&mut list_a, &s.heap[b].0){
                             for el in ls2.iter(){
                                 ls1.push(el.clone());
                             }
@@ -2792,7 +2921,7 @@ fn list_push(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
         (Some(Value::ListBox(bn)), Some(v)) => {
             if s.validate_box(bn){
-                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
                     ls.push(v);
                     Ok(Value::ListBox(bn))
                 }else{
@@ -2804,7 +2933,7 @@ fn list_push(s: &mut State) -> Result<(), String>{
         },
         (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
             if s.validate_box(bn){
-                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
                     st.push(c);
                     Ok(Value::StringBox(bn))
                 }else{
@@ -2843,7 +2972,7 @@ fn list_pop(s: &mut State) -> Result<(), String>{
     let res: Result<(Value, Value), String> = match s.pop(){
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
                     match ls.pop(){
                         Some(v) => Ok((Value::ListBox(bn), v)),
                         None => Err(pop_error(\"pop/po\", \"List\", \"pop\")),
@@ -2857,7 +2986,7 @@ fn list_pop(s: &mut State) -> Result<(), String>{
         },
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
                     match st.pop(){
                         Some(v) => Ok((Value::StringBox(bn), Value::Char(v))),
                         None => Err(pop_error(\"pop/po\", \"String\", \"pop\")),
@@ -2880,8 +3009,8 @@ fn list_pop(s: &mut State) -> Result<(), String>{
 
     match res{
         Ok((v1, v2)) => {
-            s.push(v1);
-            s.push(v2);
+            s.stack.push(v1);
+            s.stack.push(v2);
             Ok(())
         },
         Err(e) => Err(e),
@@ -2893,7 +3022,7 @@ fn list_front_push(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
         (Some(Value::ListBox(bn)), Some(v)) => {
             if s.validate_box(bn){
-                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
                     ls.insert(0, v);
                     Ok(Value::ListBox(bn))
                 }else{
@@ -2905,7 +3034,7 @@ fn list_front_push(s: &mut State) -> Result<(), String>{
         },
         (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
             if s.validate_box(bn){
-                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
                     st.insert(0, c);
                     Ok(Value::StringBox(bn))
                 }else{
@@ -2938,7 +3067,7 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
     let res: Result<(Value, Value), String> = match s.pop(){
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
                     if ls.len() > 0{
                         Ok((Value::ListBox(bn), ls.remove(0)))
                     }else{
@@ -2953,7 +3082,7 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
         },
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
                     if st.len() > 0{
                         Ok((Value::StringBox(bn), Value::Char(st.remove(0))))
                     }else{
@@ -2977,8 +3106,8 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
 
     match res{
         Ok((v1, v2)) => {
-            s.push(v1);
-            s.push(v2);
+            s.stack.push(v1);
+            s.stack.push(v2);
             Ok(())
         },
         Err(e) => Err(e),
@@ -2991,7 +3120,7 @@ fn index(s: &mut State) -> Result<(), String>{
     let res = match s.pop2(){
         (Some(Value::ListBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
             if s.validate_box(bn){
-                if let Value::List(ref ls) = s.heap[bn].0{
+                if let HeapValue::List(ref ls) = s.heap[bn].0{
                     if i < ls.len(){
                         Ok(ls[i].clone())
                     }else{
@@ -3007,7 +3136,7 @@ fn index(s: &mut State) -> Result<(), String>{
         },
         (Some(Value::StringBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
             if s.validate_box(bn){
-                if let Value::String(ref st) = s.heap[bn].0{
+                if let HeapValue::String(ref st) = s.heap[bn].0{
                     if i < st.len(){
                         Ok(Value::Char(st.chars().nth(i).unwrap()))
                     }else{
@@ -3041,7 +3170,7 @@ fn length(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop(){
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::List(ref ls) = s.heap[bn].0{
+                if let HeapValue::List(ref ls) = s.heap[bn].0{
                     Ok(Value::UInt(IntUnsigned::UIntSize(ls.len())))
                 }else{
                     Err(should_never_get_here_for_func(\"length\"))
@@ -3052,7 +3181,7 @@ fn length(s: &mut State) -> Result<(), String>{
         },
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref st) = s.heap[bn].0{
+                if let HeapValue::String(ref st) = s.heap[bn].0{
                     Ok(Value::UInt(IntUnsigned::UIntSize(st.len())))
                 }else{
                     Err(should_never_get_here_for_func(\"length\"))
@@ -3076,7 +3205,7 @@ fn is_empty(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop(){
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::List(ref ls) = s.heap[bn].0{
+                if let HeapValue::List(ref ls) = s.heap[bn].0{
                     Ok(Value::Boolean(ls.len() == 0))
                 }else{
                     Err(should_never_get_here_for_func(\"is_empty\"))
@@ -3087,7 +3216,7 @@ fn is_empty(s: &mut State) -> Result<(), String>{
         },
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref st) = s.heap[bn].0{
+                if let HeapValue::String(ref st) = s.heap[bn].0{
                     Ok(Value::Boolean(st.len() == 0))
                 }else{
                     Err(should_never_get_here_for_func(\"is_empty\"))
@@ -3111,7 +3240,7 @@ fn list_clear(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop(){
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
                     ls.clear();
                     Ok(Value::ListBox(bn))
                 }else{
@@ -3123,7 +3252,7 @@ fn list_clear(s: &mut State) -> Result<(), String>{
         },
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
                     st.clear();
                     Ok(Value::StringBox(bn))
                 }else{
@@ -3150,7 +3279,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
     let res = match s.pop2(){
         (Some(Value::ListBox(bn)), Some(v)) => {
             if s.validate_box(bn){
-                if let Value::List(ref ls) = &s.heap[bn].0{
+                if let HeapValue::List(ref ls) = &s.heap[bn].0{
                     Ok(Value::Boolean(ls.contains(&v)))
                 }else{
                     Err(should_never_get_here_for_func(\"list_contains\"))
@@ -3162,7 +3291,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
         (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
-                    if let (Value::Object(ref o), Value::String(ref s)) = (&s.heap[a].0, &s.heap[b].0){
+                    if let (HeapValue::Object(ref o), HeapValue::String(ref s)) = (&s.heap[a].0, &s.heap[b].0){
                         Ok(Value::Boolean(o.contains_key(s)))
                     }else{
                         Err(should_never_get_here_for_func(\"list_contains\"))
@@ -3181,7 +3310,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
         },
         (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
             if s.validate_box(bn){
-                if let Value::String(ref st) = &s.heap[bn].0{
+                if let HeapValue::String(ref st) = &s.heap[bn].0{
                     Ok(Value::Boolean(st.contains(c)))
                 }else{
                     Err(should_never_get_here_for_func(\"list_contains\"))
@@ -3213,7 +3342,7 @@ fn change_item_at(s: &mut State) -> Result<(), String>{
             //Changes item in list to new value at 
             // index i assuming list is valid and index is in range.
             if s.validate_box(bn){
-                if let Value::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
                     if i < ls.len(){
                         ls[i] = v;
                         Ok(Value::ListBox(bn))
@@ -3308,7 +3437,7 @@ fn add_field(s: &mut State) -> Result<(), String>{
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
                     let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
-                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                    if let (HeapValue::Object(ref mut o), HeapValue::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
                         if !o.contains_key(st){
                             o.insert(st.clone(), v);
                             s.heap[a].0 = obj_to_mut;
@@ -3359,7 +3488,7 @@ fn get_field(s: &mut State) -> Result<(), String>{
         (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
-                    if let (Value::Object(ref o), Value::String(ref st)) = (&s.heap[a].0, &s.heap[b].0){
+                    if let (HeapValue::Object(ref o), HeapValue::String(ref st)) = (&s.heap[a].0, &s.heap[b].0){
                         match o.get(st){
                             Some(v) => Ok(v.clone()),
                             None => Err(field_not_in_obj_err(\"objGetField\", a, st))
@@ -3411,7 +3540,6 @@ fn is_valid_mutation(a: &Value, b: &Value) -> bool{
 
         (Value::StringBox(_), Value::StringBox(_)) => true,
         (Value::ListBox(_), Value::ListBox(_)) => true,
-        (Value::Object(_), Value::Object(_)) => true,
         (Value::MiscBox(_), Value::MiscBox(_)) => true,
 
         (Value::NULLBox, Value::StringBox(_)) => true,
@@ -3441,7 +3569,7 @@ fn mut_field(s: &mut State) -> Result<(), String>{
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
                     let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
-                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                    if let (HeapValue::Object(ref mut o), HeapValue::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
                         match o.get_mut(st){
                             Some(old_v) => {
                                 if is_valid_mutation(old_v, &v){
@@ -3489,7 +3617,7 @@ fn remove_field(s: &mut State) -> Result<(), String>{
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
                     let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
-                    if let (Value::Object(ref mut o), Value::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                    if let (HeapValue::Object(ref mut o), HeapValue::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
                         match o.remove(st){
                             Some(_) => {
                                 s.heap[a].0 = obj_to_mut;
@@ -3532,7 +3660,7 @@ fn string_compare(s: &mut State) -> Result<(), String>{
         (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
-                    if let (Value::String(ref str_a), Value::String(ref str_b)) = (&s.heap[a].0, &s.heap[b].0){
+                    if let (HeapValue::String(ref str_a), HeapValue::String(ref str_b)) = (&s.heap[a].0, &s.heap[b].0){
                         let comp_res: isize = match str_a.cmp(str_b){
                             Ordering::Less => -1,
                             Ordering::Equal => 0,
@@ -3853,73 +3981,73 @@ fn bit_shift(s: &mut State) -> Result<(), String>{
 
 //Pushes maximum value for isize datatype to stack.
 fn max_isize(s: &mut State) -> Result<(), String>{
-    s.push(Value::Int(IntSigned::IntSize(isize::MAX)));
+    s.stack.push(Value::Int(IntSigned::IntSize(isize::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for usize datatype to stack.
 fn max_usize(s: &mut State) -> Result<(), String>{
-    s.push(Value::UInt(IntUnsigned::UIntSize(usize::MAX)));
+    s.stack.push(Value::UInt(IntUnsigned::UIntSize(usize::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for i8 datatype to stack.
 fn max_i8(s: &mut State) -> Result<(), String>{
-    s.push(Value::Int(IntSigned::Int8(i8::MAX)));
+    s.stack.push(Value::Int(IntSigned::Int8(i8::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for i16 datatype to stack.
 fn max_i16(s: &mut State) -> Result<(), String>{
-    s.push(Value::Int(IntSigned::Int16(i16::MAX)));
+    s.stack.push(Value::Int(IntSigned::Int16(i16::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for i32 datatype to stack.
 fn max_i32(s: &mut State) -> Result<(), String>{
-    s.push(Value::Int(IntSigned::Int32(i32::MAX)));
+    s.stack.push(Value::Int(IntSigned::Int32(i32::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for i64 datatype to stack.
 fn max_i64(s: &mut State) -> Result<(), String>{
-    s.push(Value::Int(IntSigned::Int64(i64::MAX)));
+    s.stack.push(Value::Int(IntSigned::Int64(i64::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for i128 datatype to stack.
 fn max_i128(s: &mut State) -> Result<(), String>{
-    s.push(Value::Int(IntSigned::Int128(i128::MAX)));
+    s.stack.push(Value::Int(IntSigned::Int128(i128::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for u8 datatype to stack.
 fn max_u8(s: &mut State) -> Result<(), String>{
-    s.push(Value::UInt(IntUnsigned::UInt8(u8::MAX)));
+    s.stack.push(Value::UInt(IntUnsigned::UInt8(u8::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for u16 datatype to stack.
 fn max_u16(s: &mut State) -> Result<(), String>{
-    s.push(Value::UInt(IntUnsigned::UInt16(u16::MAX)));
+    s.stack.push(Value::UInt(IntUnsigned::UInt16(u16::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for u32 datatype to stack.
 fn max_u32(s: &mut State) -> Result<(), String>{
-    s.push(Value::UInt(IntUnsigned::UInt32(u32::MAX)));
+    s.stack.push(Value::UInt(IntUnsigned::UInt32(u32::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for u64 datatype to stack.
 fn max_u64(s: &mut State) -> Result<(), String>{
-    s.push(Value::UInt(IntUnsigned::UInt64(u64::MAX)));
+    s.stack.push(Value::UInt(IntUnsigned::UInt64(u64::MAX)));
     Ok(())
 }
 
 //Pushes maximum value for u128 datatype to stack.
 fn max_u128(s: &mut State) -> Result<(), String>{
-    s.push(Value::UInt(IntUnsigned::UInt128(u128::MAX)));
+    s.stack.push(Value::UInt(IntUnsigned::UInt128(u128::MAX)));
     Ok(())
 }
 
@@ -3964,7 +4092,7 @@ fn invalid_cast_error(t: &str) -> String{
 }
 
 //Tries to cast a numeric type to all the other types it could be.
-fn cast_num_to_others<T>(t: &str, v: T) -> Result<Value, String>
+fn cast_num_to_others<T>(t: &str, v: T) -> Result<SuperValue, String>
 where 
     T: 
         TryInto<isize> + 
@@ -3998,90 +4126,90 @@ where
     match t{
         \"isize\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::Int(IntSigned::IntSize(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::IntSize(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         }, 
         \"usize\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::UInt(IntUnsigned::UIntSize(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UIntSize(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         }, 
         \"i8\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::Int(IntSigned::Int8(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int8(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"i16\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::Int(IntSigned::Int16(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int16(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"i32\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::Int(IntSigned::Int32(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int32(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"i64\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::Int(IntSigned::Int64(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int64(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"i128\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::Int(IntSigned::Int128(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int128(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u8\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt8(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt8(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u16\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt16(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt16(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u32\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt32(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt32(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u64\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt64(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt64(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u128\" => {
             match v.try_into(){
-                Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt128(casted))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt128(casted)))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
 
         \"f32\" => {
-            Ok(Value::Float32(v.into_float32()))
+            Ok(SuperValue::Reg(Value::Float32(v.into_float32())))
         },
 
         \"f64\" => {
-            Ok(Value::Float64(v.into_float64()))
+            Ok(SuperValue::Reg(Value::Float64(v.into_float64())))
         },
 
         \"Char\" => {
             match v.try_into(){
                 Ok(u32_val) => {
                     match std::char::from_u32(u32_val){
-                        Some(casted) => Ok(Value::Char(casted)),
+                        Some(casted) => Ok(SuperValue::Reg(Value::Char(casted))),
                         None => Err(\"given value is outside of valid UTF-8 Char range!\".to_string()),
                     }   
                 },
@@ -4091,7 +4219,7 @@ where
         },
 
         \"String\" => {
-            Ok(Value::String(v.to_string()))
+            Ok(SuperValue::Heap(HeapValue::String(v.to_string())))
         },
         t => Err(invalid_cast_error(t)), 
     }
@@ -4136,17 +4264,18 @@ where
     <T as TryInto<u128>>::Error: std::fmt::Display,
 {
     if s.validate_box(bn){
-        if let Value::String(ref t) = &s.heap[bn].0{
+        if let HeapValue::String(ref t) = &s.heap[bn].0{
             match cast_num_to_others(t, v_inside){
-                Ok(Value::String(st)) => {
-                    let new_bn = s.insert_to_heap(Value::String(st));
+                Ok(SuperValue::Heap(HeapValue::String(st))) => {
+                    let new_bn = s.insert_to_heap(HeapValue::String(st));
                     Ok(Value::StringBox(new_bn))
                 },
-                Ok(val) => Ok(val),
-                Err(reason) => Err(numeric_error_cast_string(v, t, &reason)), 
+                Ok(SuperValue::Reg(v)) => Ok(v),
+                Err(reason) => Err(numeric_error_cast_string(v, t, &reason)),
+                _ => Err(should_never_get_here_for_func(\"integer_cast_action\")), 
             }
         }else{
-            Err(should_never_get_here_for_func(\"cast_stuff\"))
+            Err(should_never_get_here_for_func(\"integer_cast_action\"))
         }
     }else{
         Err(bad_stringbox_for_casting_error(bn))
@@ -4203,7 +4332,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
 
         (Some(Value::Float32(n)), Some(Value::StringBox(bn))) => {
             if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
+                if let HeapValue::String(ref t) = &s.heap[bn].0{
                     let t: &str = t;
                     match t{
                         \"isize\" => Ok(Value::Int(IntSigned::IntSize(n as isize))),
@@ -4226,7 +4355,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
 
                         \"String\" => {
                             let f32_str = format!(\"{}\", Value::Float32(n));
-                            let new_bn = s.insert_to_heap(Value::String(f32_str[4..].to_string()));
+                            let new_bn = s.insert_to_heap(HeapValue::String(f32_str[4..].to_string()));
                             Ok(Value::StringBox(new_bn))
                         },
 
@@ -4243,7 +4372,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
 
         (Some(Value::Float64(n)), Some(Value::StringBox(bn))) => {
             if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
+                if let HeapValue::String(ref t) = &s.heap[bn].0{
                     let t: &str = t;
                     match t{
                         \"isize\" => Ok(Value::Int(IntSigned::IntSize(n as isize))),
@@ -4266,7 +4395,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
 
                         \"String\" => {
                             let f64_str = format!(\"{}\", Value::Float64(n));
-                            let new_bn = s.insert_to_heap(Value::String(f64_str[4..].to_string()));
+                            let new_bn = s.insert_to_heap(HeapValue::String(f64_str[4..].to_string()));
                             Ok(Value::StringBox(new_bn))
                         },
 
@@ -4283,7 +4412,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
 
         (Some(Value::Char(c)), Some(Value::StringBox(bn))) => {
             if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
+                if let HeapValue::String(ref t) = &s.heap[bn].0{
                     let t: &str = t;
                     match t{
                         \"isize\" => Ok(Value::Int(IntSigned::IntSize(c as isize))),
@@ -4302,7 +4431,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                         \"u128\" => Ok(Value::UInt(IntUnsigned::UInt128(c as u128))),
 
                         \"String\" => {
-                            let new_bn = s.insert_to_heap(Value::String(c.to_string()));
+                            let new_bn = s.insert_to_heap(HeapValue::String(c.to_string()));
                             Ok(Value::StringBox(new_bn))
                         },
 
@@ -4319,7 +4448,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
 
         (Some(Value::Boolean(b)), Some(Value::StringBox(bn))) => {
             if s.validate_box(bn){
-                if let Value::String(ref t) = &s.heap[bn].0{
+                if let HeapValue::String(ref t) = &s.heap[bn].0{
                     let t: &str = t;
                     match t{
                         \"isize\" => Ok(Value::Int(IntSigned::IntSize(b as isize))),
@@ -4338,7 +4467,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                         \"u128\" => Ok(Value::UInt(IntUnsigned::UInt128(b as u128))),
 
                         \"String\" => {
-                            let new_bn = s.insert_to_heap(Value::String(b.to_string()));
+                            let new_bn = s.insert_to_heap(HeapValue::String(b.to_string()));
                             Ok(Value::StringBox(new_bn))
                         },
 
@@ -4356,7 +4485,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
         (Some(Value::StringBox(string_num)), Some(Value::StringBox(bn))) => {
             match (s.validate_box(string_num), s.validate_box(bn)) {
                 (true, true) => {
-                    if let (Value::String(ref st), Value::String(ref t)) = (&s.heap[string_num].0, &s.heap[bn].0){
+                    if let (HeapValue::String(ref st), HeapValue::String(ref t)) = (&s.heap[string_num].0, &s.heap[bn].0){
                         let t: &str = t;
                         match t{
                             \"isize\" => {
@@ -4468,7 +4597,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                                     .chars()
                                     .map(|c| Value::Char(c))
                                     .collect();
-                                let ls_bn = s.insert_to_heap(Value::List(char_ls));
+                                let ls_bn = s.insert_to_heap(HeapValue::List(char_ls));
                                 Ok(Value::ListBox(ls_bn))
                             },
 
@@ -4487,13 +4616,13 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
         (Some(Value::ListBox(ls_num)), Some(Value::StringBox(bn))) => {
             match (s.validate_box(ls_num), s.validate_box(bn)) {
                 (true, true) => {
-                    if let (ref ls, Value::String(ref t)) = (&s.heap[ls_num].0, &s.heap[bn].0){
+                    if let (ref ls, HeapValue::String(ref t)) = (&s.heap[ls_num].0, &s.heap[bn].0){
                         let t: &str = t;
                         match t{
                             \"List\" => Ok(Value::ListBox(ls_num)),
                             \"String\" => {
                                 let ls_str = format!(\"{}\", ls);
-                                let new_bn = s.insert_to_heap(Value::String(ls_str[5..].to_string()));
+                                let new_bn = s.insert_to_heap(HeapValue::String(ls_str[5..].to_string()));
                                 Ok(Value::StringBox(new_bn))
                             },
                             t => Err(format!(\"Operator (cast) error! Failed \
@@ -4512,13 +4641,13 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
         (Some(Value::ObjectBox(obj_num)), Some(Value::StringBox(bn))) => {
             match (s.validate_box(obj_num), s.validate_box(bn)) {
                 (true, true) => {
-                    if let (ref obj, Value::String(ref t)) = (&s.heap[obj_num].0, &s.heap[bn].0){
+                    if let (ref obj, HeapValue::String(ref t)) = (&s.heap[obj_num].0, &s.heap[bn].0){
                         let t: &str = t;
                         match t{
                             \"Object\" => Ok(Value::ObjectBox(obj_num)),
                             \"String\" => {
                                 let obj_str = format!(\"{}\", obj);
-                                let new_bn = s.insert_to_heap(Value::String(obj_str[7..].to_string()));
+                                let new_bn = s.insert_to_heap(HeapValue::String(obj_str[7..].to_string()));
                                 Ok(Value::StringBox(new_bn))
                             },
                             t => Err(format!(\"Operator (cast) error! Failed \
@@ -4562,7 +4691,7 @@ fn print_line(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref st) = &s.heap[bn].0{
+                if let HeapValue::String(ref st) = &s.heap[bn].0{
                     println!(\"{}\", st);
                     Ok(())
                 }else{
@@ -4586,8 +4715,8 @@ fn read_line_from_in(s: &mut State) -> Result<(), String>{
         let _ = input.pop();
     }
 
-    let bn = s.insert_to_heap(Value::String(replace_literals_with_escapes(&input)));
-    s.push(Value::StringBox(bn));
+    let bn = s.insert_to_heap(HeapValue::String(replace_literals_with_escapes(&input)));
+    s.stack.push(Value::StringBox(bn));
 
     Ok(())
 
@@ -4633,7 +4762,7 @@ fn read_char(s: &mut State) -> Result<(), String>{
         // Once it succeeds it grabs the first char from it and pushes it to the stack.
         if let Ok(st) = std::str::from_utf8(&buff_collection[0..buff_collection_length]){
             if let Some(c) = st.chars().nth(0){
-                s.push(Value::Char(c));
+                s.stack.push(Value::Char(c));
                 return Ok(());
             }
         }
@@ -4649,7 +4778,7 @@ fn print_string(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref st) = &s.heap[bn].0{
+                if let HeapValue::String(ref st) = &s.heap[bn].0{
                     print!(\"{}\", st);
                     match io::stdout().flush(){
                         Ok(_) => Ok(()),
@@ -4690,8 +4819,8 @@ fn read_from_in(s: &mut State) -> Result<(), String>{
     match std::str::from_utf8(&bytes){
         Ok(st) => {
             let new_string = replace_literals_with_escapes(&st);
-            let bn = s.insert_to_heap(Value::String(new_string));
-            s.push(Value::StringBox(bn));
+            let bn = s.insert_to_heap(HeapValue::String(new_string));
+            s.stack.push(Value::StringBox(bn));
             Ok(())
         },
         Err(e) => {
@@ -4702,47 +4831,38 @@ fn read_from_in(s: &mut State) -> Result<(), String>{
 
 }
 
-//Used to make some code more slick.
-fn box_type_string_maker(v: &Value) -> String{
-    let mut box_type_str = type_to_string(v);
-    box_type_str.push_str(\"Box\");
-    box_type_str
-}
-
 //Prints each item on the stack while 
 // also indicating if box types are valid or not.
 fn debug_stack_print(s: &mut State) -> Result<(), String>{
     let filler_str = \"--------------------------------\";
 
     println!(\"{}\", filler_str);
-    println!(\"BEGIN STACK PRINT\n{}\", filler_str);
+    println!(\"BEGIN STACK PRINT\\n{}\", filler_str);
     for item in s.stack.iter(){
         match item {
-            Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) => {
-                if s.validate_box(*bn) && (type_to_string(item) == box_type_string_maker(&s.heap[*bn].0)){
-                    println!(\"{}\", item);
+            Value::StringBox(bn) | Value::ListBox(bn) | Value::ObjectBox(bn) | Value::MiscBox(bn) => {
+                //Determines if given box is valid or not and saves the value 
+                // in the string which will be added to the print later on.
+                let invalid_str: &str = if s.validate_box(*bn){
+                    match (item, &s.heap[*bn].0){
+                        (Value::StringBox(_), HeapValue::String(_)) => \"\",
+                        (Value::ListBox(_), HeapValue::List(_)) => \"\",
+                        (Value::ObjectBox(_), HeapValue::Object(_)) => \"\",
+                        (Value::MiscBox(_), HeapValue::Primitive(_)) => \"\",
+                        _ => \"[INVALID]\",
+                    }
                 }else{
-                    println!(\"{} [INVALID]\", item);
-                }
+                    \"[INVALID]\"
+                };
+                println!(\"{} {}\", item, invalid_str);
             },
-            Value::MiscBox(bn) => {
-                if s.validate_box(*bn) && 
-                    (&type_to_string(&s.heap[*bn].0) != \"String\") && 
-                    (&type_to_string(&s.heap[*bn].0) != \"List\") &&
-                    (&type_to_string(&s.heap[*bn].0) != \"Object\")
-                {
-                    println!(\"{}\", item);
-                }else{
-                    println!(\"{} [INVALID]\", item);
-                }
-            },
-            _ => println!(\"{}\", item),
+            i => println!(\"{}\", i),
         }
     }
 
     println!(\"{}\", filler_str);
     println!(\"STACK LENGTH: {}\", s.stack.len());
-    println!(\"{}\nEND STACK PRINT\", filler_str); 
+    println!(\"{}\\nEND STACK PRINT\", filler_str); 
     println!(\"{}\", filler_str);
 
     Ok(())
@@ -4754,27 +4874,28 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
     let filler_str = \"////////////////////////////////\";
     
     println!(\"{}\", filler_str);
-    println!(\"BEGIN HEAP PRINT\n{}\", filler_str);
+    println!(\"BEGIN HEAP PRINT\\n{}\", filler_str);
     
+    //Iterates through and prints each item on heap for debugging.
     for i in 0..(s.heap.len()){
-        //If it's a regular box, constructs the type appropriately, 
-        // otherwise gives the exception of miscbox.
-        let box_type_str: String;
-        if matches!(&s.heap[i].0, Value::String(_) | Value::List(_) | Value::Object(_)){
-            box_type_str = box_type_string_maker(&s.heap[i].0);
-        }else{
-            box_type_str = \"MiscBox\".to_string();
-        }
+        let box_type_str: &str = match &s.heap[i].0{
+            HeapValue::String(_) => \"StringBox\",
+            HeapValue::List(_) => \"ListBox\",
+            HeapValue::Object(_) => \"ObjectBox\",
+            HeapValue::Primitive(_) => \"MiscBox\",
+        };
 
-        if s.heap[i].1{
-            println!(\"{} {}:\n\t{}\", box_type_str, i, s.heap[i].0);
+        //Determines if given memory cell is valid or not and prints accordingly.
+        let invalid_str: &str = if s.heap[i].1{
+            \"\"
         }else{
-            println!(\"{} {} [INVALID]:\n\t{}\", box_type_str, i, s.heap[i].0);
-        }
+            \" [INVALID]\"
+        };
+        println!(\"{} {}{}:\\n\\t{}\", box_type_str, i, invalid_str, s.heap[i].0);
     }
 
     println!(\"{}\", filler_str);
-    println!(\"HEAP SIZE: {}\n{}\", s.heap.len(), filler_str);
+    println!(\"HEAP SIZE: {}\\n{}\", s.heap.len(), filler_str);
     print!(\"FREE'D BOX NUMBERS: [\");
     for i in 0..(s.free_list.len()){
         if i < (s.free_list.len() - 1){
@@ -4783,8 +4904,8 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
             print!(\"{}\", s.free_list[i]);
         }
     }
-    println!(\"]\n{}\nFREE'D BOX NUMBERS LENGTH: {}\", filler_str, s.free_list.len());
-    println!(\"{}\nEND HEAP PRINT\", filler_str);
+    println!(\"]\n{}\\nFREE'D BOX NUMBERS LENGTH: {}\", filler_str, s.free_list.len());
+    println!(\"{}\\nEND HEAP PRINT\", filler_str);
     println!(\"{}\", filler_str);
 
     Ok(())
@@ -4797,7 +4918,7 @@ fn write_data_to_file(s: &mut State) -> Result<(), String>{
         (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
-                    if let (Value::String(ref file_name), Value::String(ref string_to_write)) = (&s.heap[a].0, &s.heap[b].0){
+                    if let (HeapValue::String(ref file_name), HeapValue::String(ref string_to_write)) = (&s.heap[a].0, &s.heap[b].0){
                         let file_path = Path::new(file_name);
                         let mut file = match OpenOptions::new().write(true).truncate(true).open(file_path){
                             Ok(f) => f,
@@ -4846,7 +4967,7 @@ fn read_data_from_file(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref file_name) = &s.heap[bn].0{
+                if let HeapValue::String(ref file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
                     let mut file = match OpenOptions::new().read(true).open(file_path){
                         Ok(f) => f,
@@ -4866,9 +4987,9 @@ fn read_data_from_file(s: &mut State) -> Result<(), String>{
                     }
                     
                     let file_string = replace_literals_with_escapes(&literal_file_string);
-                    let new_bn = s.insert_to_heap(Value::String(file_string));
+                    let new_bn = s.insert_to_heap(HeapValue::String(file_string));
 
-                    s.push(Value::StringBox(new_bn));
+                    s.stack.push(Value::StringBox(new_bn));
                     Ok(())
 
                 }else{
@@ -4888,7 +5009,7 @@ fn create_file_based_on_string(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref file_name) = &s.heap[bn].0{
+                if let HeapValue::String(ref file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
 
                     //Throws error if file with given name already exists.
@@ -4927,7 +5048,7 @@ fn delete_file_based_on_string(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref file_name) = &s.heap[bn].0{
+                if let HeapValue::String(ref file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
 
                     match remove_file(file_path){
@@ -4957,7 +5078,7 @@ fn file_exists(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let Value::String(ref file_name) = &s.heap[bn].0{
+                if let HeapValue::String(ref file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
 
                     //THIS MIGHT BE TOO BROAD, WITH PERMISSIONS EDGE CASES GETTING IN THE WAY
@@ -4966,7 +5087,7 @@ fn file_exists(s: &mut State) -> Result<(), String>{
                         Err(_) => false,
                     };
 
-                    s.push(Value::Boolean(exists));
+                    s.stack.push(Value::Boolean(exists));
 
                     Ok(())
 
@@ -5011,7 +5132,7 @@ fn var_action(state: &mut State, name: &str, act: &str, num: usize) -> Result<()
         },
         \"get\" => {
             if state.vars[num].1{
-                state.push(state.vars[num].0.clone());
+                state.stack.push(state.vars[num].0.clone());
             }else{
                 return Err(format!(\"Variable get (var get) error! \
                     Variable {} doesn't exist. \
@@ -5113,14 +5234,14 @@ fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
             Ok(())
         },
         \"null\" => {
-            s.push(Value::NULLBox);
+            s.stack.push(Value::NULLBox);
             Ok(())
         },
         \"make\" => {
             match s.stack.pop(){
                 Some(v) => {
-                    let new_bn = s.insert_to_heap(v);
-                    s.push(Value::MiscBox(new_bn));
+                    let new_bn = s.insert_to_heap(HeapValue::Primitive(v));
+                    s.stack.push(Value::MiscBox(new_bn));
                 },
                 None => return Err(needs_n_args_only_n_provided(\"box make\", \"One\", \"none\")),
             }
@@ -5131,8 +5252,11 @@ fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
             match s.stack.pop(){
                 Some(Value::MiscBox(bn)) => {
                     if s.validate_box(bn){
-                        let val_to_push = s.heap[bn].0.clone();
-                        s.push(val_to_push);
+                        if let HeapValue::Primitive(ref v) = &s.heap[bn].0{
+                            s.stack.push(v.clone());
+                        }else{
+                            return Err(should_never_get_here_for_func(\"box open (box_action)\"));
+                        }
                     }else{
                         return Err(bad_box_error(\"box open\", \"MiscBox\", \"NA\", bn, usize::MAX, false));
                     }
@@ -5150,12 +5274,17 @@ fn box_action(s: &mut State, cmd: &str) -> Result<(), String>{
             match s.pop2(){
                 (Some(Value::MiscBox(bn)), Some(v)) => {
                     if s.validate_box(bn){
-                        if is_valid_mutation(&s.heap[bn].0, &v){
-                            s.heap[bn].0 = v;
-                            s.push(Value::MiscBox(bn));
+                        if let HeapValue::Primitive(ref mut old_v) = &mut s.heap[bn].0{
+                            if is_valid_mutation(old_v, &v){
+                                *old_v = v;
+                                s.stack.push(Value::MiscBox(bn));
+                            }else{
+                                let old_v_cloned = old_v.clone();
+                                return Err(invalid_mutation_error(\"box altr\", \"MiscBox\", 
+                                    &bn.to_string(), &old_v_cloned, &v));
+                            }
                         }else{
-                            return Err(invalid_mutation_error(\"box altr\", 
-                                \"MiscBox\", &bn.to_string(), &s.heap[bn].0, &v));
+                            return Err(should_never_get_here_for_func(\"box altr (box_action)\"));
                         }
                     }else{
                         return Err(bad_box_error(\"box altr\", \"MiscBox\", \"NA\", bn, usize::MAX, false));
@@ -5263,7 +5392,7 @@ fn loc_action(s: &mut State, name: &str, act: &str, n: usize) -> Result<(), Stri
         \"get\" => {
             match find_var(s, n){
                 Some(frame_index) => {
-                    s.push(s.frames[frame_index].1[n].0.clone());
+                    s.stack.push(s.frames[frame_index].1[n].0.clone());
                 },
                 None => {
                     return Err(format!(\"Local Variable get (loc get) error! \
