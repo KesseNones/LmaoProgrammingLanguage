@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.0
+//Version: 0.8.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -294,7 +294,8 @@ enum ASTNode{
     Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
     Variable{var_name: String, var_cmd: String, var_num: usize},
     LocVar{name: String, cmd: String, num: usize},
-    BoxOp(String)
+    BoxOp(String),
+    AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
 }
 
 impl Default for ASTNode{
@@ -319,6 +320,7 @@ impl fmt::Display for ASTNode{
             ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => write!(f, "Variable [name: {}, cmd: {}, num: {}]", name, cmd, n),
             ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
+            ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
         }
     }
 }
@@ -347,6 +349,7 @@ impl Clone for ASTNode{
             },
             ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
+            ASTNode::AttErr{attempt: att, err: e} => ASTNode::AttErr{attempt: att.clone(), err: e.clone()},
         }
     }
 }
@@ -4580,6 +4583,13 @@ fn make_ast_prime(
                     panic!("Malformed box command! No box command token given!")
                 }
             },
+            //Attempt onError case.
+            Token::Word(ref cmd) if cmd.0 == "attempt" => {
+                let (att_branch, err_branch, tokens_prime, token_index_prime) = 
+                    parse_att_err(tokens, token_index + 1, loc_nums, curr_loc_num);
+                already_parsed.push(ASTNode::AttErr{attempt: Box::new(att_branch), err: Box::new(err_branch)});
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+            },
             _ => {
                 let mut toks = tokens;
                 already_parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
@@ -4588,6 +4598,42 @@ fn make_ast_prime(
         }
     }
 
+}
+
+//Used to recursively parse an attempt branch for AttErr
+fn parse_att_err(
+    tokens: Vec<Token>,
+    token_index: usize, 
+    loc_nums: &mut HashMap<String, usize>,
+    curr_loc_num: &mut usize) -> (ASTNode, ASTNode, Vec<Token>, usize){
+    let (att_branch, tokens_prime, token_index_prime, terminator_index) = 
+        make_ast_prime(
+            Vec::new(),
+            tokens, 
+            token_index, loc_nums, curr_loc_num,
+            vec![Token::Word(("onError".to_string(), 0))]
+        );
+    match terminator_index{
+        Some(i) => {
+            match tokens_prime[i]{
+                Token::Word(ref cmd) if cmd.0 == "onError" => {
+                    let (error_branch, tokens_prime_prime, token_index_prime_prime, _) = 
+                        make_ast_prime(
+                            Vec::new(),
+                            tokens_prime,
+                            token_index_prime, 
+                            loc_nums,
+                            curr_loc_num,
+                            vec![Token::Word((";".to_string(), 0))]
+                        );
+                    (ASTNode::Expression(att_branch), ASTNode::Expression(error_branch), 
+                        tokens_prime_prime, token_index_prime_prime)
+                },
+                _ => panic!("Failed to correctly construct attempt onError block!"),
+            }
+        },
+        None => panic!("REALLY SHOULD NEVER GET HERE!")
+    }
 }
 
 fn parse_if(
