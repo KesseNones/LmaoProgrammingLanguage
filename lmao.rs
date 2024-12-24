@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.1
+//Version: 0.8.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5168,6 +5168,24 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                 return error_and_remove_frame(state, format!("Local Variable (loc) error! \
                                     Unrecognized local variable command! Valid: mak, get, mut . \
                                     Attempted: {}", misc));
+                            },
+                        }
+                    },
+                    ASTNode::AttErr{attempt: att, err: e} => {
+                        add_frame(state);
+                        match run_program(att, state){
+                            Ok(_) => (),
+                            Err(e1) => {
+                                //Pushes error string to stack instead of returning it up stack. 
+                                let err_bn = state.insert_to_heap(HeapValue::String(e1));
+                                state.stack.push(Value::StringBox(err_bn));
+
+                                //Recursively runs error code block and explodes if there's a problem.
+                                add_frame(state);
+                                match run_program(e, state){
+                                    Ok(_) => (),
+                                    Err(e2) => return error_and_remove_frame(state, e2),
+                                }
                             },
                         }
                     },
