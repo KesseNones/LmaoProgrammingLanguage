@@ -10,63 +10,63 @@ contexts:
     # Strings begin and end with quotes, and use backslashes as an escape
     # character
     # - match: "\""
-    #   scope: punctuation.definition.string.begin.xd
+    #   scope: punctuation.definition.string.begin.lmao
     #   push: double_quoted_string
 
     - match: '//.*$'
       scope: punctuation.definition.comment.lmao
 
     - match: ';'
-      scope: punctuation.terminator.xd
+      scope: punctuation.terminator.lmao
 
     #Fancier version of function parisng but it's a bit borked.
     # - match: '(func)\s+(def|call)\s+(\w+)\s+(.*\s+)?(;)'
     #   captures:
-    #     1: variable.function.xd
-    #     2: variable.parameter.xd
-    #     3: constant.character.xd
+    #     1: variable.function.lmao
+    #     2: variable.parameter.lmao
+    #     3: constant.character.lmao
 
     #Highlights functions.
     - match: '\b(func)\s+(def|call)\s+(\w+)'
       captures:
-        1: variable.function.xd
-        2: variable.parameter.xd
-        3: constant.language.infinity.xd
+        1: variable.function.lmao
+        2: variable.parameter.lmao
+        3: constant.language.infinity.lmao
 
     #Highlights variables.
     - match: '\b(var)\s+(mak|get|mut|del)\s+(\w+)\s+(;)(?![\w])'
       captures:
-        1: variable.language.xd
-        2: variable.parameter.xd
-        3: variable.function.xd
+        1: variable.language.lmao
+        2: variable.parameter.lmao
+        3: variable.function.lmao
 
     #Highlights local variables.
     - match: '\b(loc)\s+(mak|get|mut)\s+(\w+)\s+(;)(?![\w])'
       captures:
-        1: variable.language.xd
-        2: variable.parameter.xd
-        3: variable.function.xd
+        1: variable.language.lmao
+        2: variable.parameter.lmao
+        3: variable.function.lmao
 
     - match: '\b(box)\s+(make|open|altr|free|null)\s+(;)(?![\w])'
       captures:
-        1: variable.function.xd
-        2: entity.other.inherited-class.xd
+        1: variable.function.lmao
+        2: entity.other.inherited-class.lmao
 
     #Highlights strings.
     - match: '(?<![\w])"[^"]*"(?![\w])'
-      scope: string.quoted.double.xd
+      scope: string.quoted.double.lmao
 
     #Char parsing
     - match: "(?<![\\w])\'[\\\\]?.\'(?![\\w])"
-      scope: string.quoted.single.xd
+      scope: string.quoted.single.lmao
 
     #Boolean parsing
     - match: '\b(true|True|false|False)\b'
-      scope: constant.character.xd
+      scope: constant.character.lmao
 
     #Parses empty lists/objects
     - match: '(?<![\w])(\[\]|{})(?![\w])'
-      scope: entity.other.inherited-class.xd
+      scope: entity.other.inherited-class.lmao
 
     # Keywords are if, else for and while.
     # Note that blackslashes don't need to be escaped within single quoted
@@ -74,154 +74,165 @@ contexts:
     # need to be escaped: this is done by using two single quotes next to each
     # other.
     - match: '\b(if|else|while)\b'
-      scope: keyword.control.xd
+      scope: keyword.control.lmao
 
     # Numbers
     - match: '\b(-)?[0-9.]+(e(\-)?[0-9.]+)?(d|b)?(isize|usize|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64)*\b'
-      scope: constant.numeric.xd
+      scope: constant.numeric.lmao
 
     #Gross gigantic operators area.
 
     #Stack printing debug operator.
     - match: '\bdebugPrintStack\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
+
+    #Heap printing debug operator.
+    - match: '\bdebugPrintHeap\b'
+      scope: keyword.operator.lmao
 
     #Addition
     - match: '(?<![\w])\+(?![\w])'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Subtraction
     - match: '(?<![\w])\-(?![\w])'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Multiplication
     - match: '(?<![\w])\*(?![\w])'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Division
     - match: '(?<![\w])\/(?![\w])'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
+
+    #Modulo word version
+    - match: '\bmod\b'
+      scope: keyword.operator.lmao
+
+    #Highlights max operators for integers
+    - match: '\b(i|u)(size|8|16|32|64|128)Max\b'
+      scope: keyword.operator.lmao
 
     #Swap
     - match: '\bswap\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Drop/dropstack
     - match: '\bdropStack|drop\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Rot
     - match: '\brot\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Dup
     - match: '\bdup\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
-    #Equals
-    - match: '(?<![\w])==(?![\w])'
-      scope: keyword.operator.xd
+    #deepDup
+    - match: '\bdeepDup\b'
+      scope: keyword.operator.lmao
+
+    #Equals or not equals
+    - match: '(?<![\w])(=|!)=(?![\w])'
+      scope: keyword.operator.lmao
 
     #Geq/greater than
     - match: '(?<![\w])(>=|>)(?![\w])'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Leq/less than
     - match: '(?<![\w])(<=|<)(?![\w])'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
+
+    #String comparison
+    - match: '\bstringCompare\b'
+      scope: keyword.operator.lmao
 
     #Modulo
     - match: '(?<![\w])%(?![\w])'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Logical AND
     - match: '\band\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Logical XOR / OR
     - match: '\b(xor|or)\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Logical NOT
     - match: '\bnot\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #Exponent operator
     - match: '\bpow\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String push operator
     - match: '\b(push|p)\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String pop
     - match: '\b(pop|po)\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String front push
     - match: '\b(fpush|fp)\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String front pop
     - match: '\b(fpop|fpo)\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String index
     - match: '\bindex\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String length
     - match: '\b(length|len)\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String/Object isEmpty
     - match: '\bisEmpty\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String clear
     - match: '\bclear\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String/Object contains
     - match: '\bcontains\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #List/String change item at.
     - match: '\bchangeItemAt\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
-    #Whitespace check
-    - match: '\bisWhitespace\b'
-      scope: keyword.operator.xd
+    #Char type checking.
+    - match: '\bis(Whitespace|Alpha|Num)Char\b'
+      scope: keyword.operator.lmao
 
     #Caster
     - match: '\bcast\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
-    #Queries type
-    - match: '\bqueryType\b'
-      scope: keyword.operator.xd
+    #Object operators
+    - match: '\bobj(Add|Get|Mut|Rem)Field\b'
+      scope: keyword.operator.lmao
 
     #IO out
-    - match: '\b(printError|printLine|printChar|print)\b'
-      scope: keyword.operator.xd
+    - match: '\b(printLine|printChar|print)\b'
+      scope: keyword.operator.lmao
 
     #IO In
     - match: '\b(readLine|readChar|read)\b'
-      scope: keyword.operator.xd
-
-    #Field changers for object
-    - match: '\b(add|remove|get|mutate)Field\b'
-      scope: keyword.operator.xd
-
-    #File IO in
-    - match: '\breadFile\b'
-      scope: keyword.operator.xd
-
-    #File IO out
-    - match: '\bwriteFile\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
 
     #BitWise operators.
     - match: '\bbit(Or|And|Xor|Not|Shift)\b'
-      scope: keyword.operator.xd
+      scope: keyword.operator.lmao
+
+    - match: '\bfile(Write|Read|Create|Remove|Exists)\b'
+      scope: keyword.operator.lmao
