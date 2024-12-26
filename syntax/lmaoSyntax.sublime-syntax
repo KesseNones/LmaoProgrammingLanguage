@@ -13,10 +13,6 @@ contexts:
     #   scope: punctuation.definition.string.begin.xd
     #   push: double_quoted_string
 
-    #Try to figure out how to handle invalid comments later!!!
-    # - match: "[^\\s]?/\'[^\\s]?"
-    #   scope: invalid.xd
-
     - match: '//.*$'
       scope: punctuation.definition.comment.lmao
 
@@ -55,16 +51,6 @@ contexts:
       captures:
         1: variable.function.xd
         2: entity.other.inherited-class.xd
-
-    - match: '\btempStackChange\b'
-      scope: variable.language.xd
-
-    #Try to figure out try-catch highlighting later on!
-    # - match: '\b(attempt)\s*(onError)\s*;'
-    #   captures:
-    #     1: variable.function.xd
-    #     2: variable.function.xd
-
 
     #Highlights strings.
     - match: '(?<![\w])"[^"]*"(?![\w])'
