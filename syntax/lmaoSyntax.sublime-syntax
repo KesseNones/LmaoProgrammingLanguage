@@ -1,10 +1,10 @@
 %YAML 1.2
 ---
-name: EcksDee
+name: Lmao
 # See http://www.sublimetext.com/docs/syntax.html
 file_extensions:
-  - xd
-scope: source.xd
+  - lmao
+scope: source.lmao
 contexts:
   main:
     # Strings begin and end with quotes, and use backslashes as an escape
@@ -13,19 +13,12 @@ contexts:
     #   scope: punctuation.definition.string.begin.xd
     #   push: double_quoted_string
 
-
-    #Comments! Fix the precise syntax of this comment later!
-    - match: "/'"
-      scope: punctuation.definition.comment.begin.xd
-      push:
-        - meta_scope: comment.block.xd
-        - match: "'/"
-          scope: punctuation.definition.comment.end.xd
-          pop: true
-
     #Try to figure out how to handle invalid comments later!!!
     # - match: "[^\\s]?/\'[^\\s]?"
     #   scope: invalid.xd
+
+    - match: '//.*$'
+      scope: punctuation.definition.comment.lmao
 
     - match: ';'
       scope: punctuation.terminator.xd
