@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.1
+//Version: 0.8.2
 
 use std::collections::HashMap;
 use std::env;
@@ -1556,7 +1556,7 @@ impl State{
 //Uses the implemented format traits to build a string for the given type. 
 // From there, it only consumes the characters that name the actual type.
 // This avoids needing a big match statement. 
-fn type_to_string(v: &SuperValue) -> String{
+fn type_to_string(v: &Value) -> String{
     let mut chrs = String::new();
     for c in format!(\"{}\", v).chars(){
         if c == ' '{
@@ -5178,6 +5178,20 @@ fn file_exists(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Consumes a value and pushes a stringbox whose contents 
+// is a string that represents the type of the consumed value.
+fn query_type(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(v) => {
+            let type_str = type_to_string(&v);
+            let bn = s.insert_to_heap(HeapValue::String(type_str));
+            s.stack.push(Value::StringBox(bn));
+            Ok(())
+        },
+        None => Err(needs_n_args_only_n_provided(\"queryType\", \"One\", \"none\")),
+    }
+}
+
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
 fn variable_lack_of_args_error(var_action: &str) -> String{
@@ -5626,6 +5640,9 @@ fn program(state: &mut State) -> Result<(), String>{
     ops_to_funcs.insert(String::from("fileCreate"), String::from("create_file_based_on_string"));
     ops_to_funcs.insert(String::from("fileRemove"), String::from("delete_file_based_on_string"));
     ops_to_funcs.insert(String::from("fileExists"), String::from("file_exists"));
+
+    //Type querying
+    ops_to_funcs.insert(String::from("queryType"), String::from("query_type"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
