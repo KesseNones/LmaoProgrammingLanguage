@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.2
+//Version: 0.8.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -370,10 +370,10 @@ struct State{
     unique_var_name_count: usize,
 }
 
-//Uses the implemented format traits to build a string for the given type. 
+//Uses the implemented format traits to build a string for the given Value type. 
 // From there, it only consumes the characters that name the actual type.
 // This avoids needing a big match statement. 
-fn type_to_string(v: &SuperValue) -> String{
+fn type_to_string(v: &Value) -> String{
     let mut chrs = String::new();
     for c in format!("{}", v).chars(){
         if c == ' '{
@@ -4007,6 +4007,20 @@ fn file_exists(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Consumes a value and pushes a stringbox whose contents 
+// is a string that represents the type of the consumed value.
+fn query_type(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(v) => {
+            let type_str = type_to_string(&v);
+            let bn = s.insert_to_heap(HeapValue::String(type_str));
+            s.stack.push(Value::StringBox(bn));
+            Ok(())
+        },
+        None => Err(needs_n_args_only_n_provided("queryType", "One", "none")),
+    }
+}
+
 //Creates a frame for local variables to use.
 fn create_frame(size: usize) -> Vec<(Value, bool)>{
     let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
@@ -4060,7 +4074,8 @@ impl State{
             read_from_in, debug_stack_print, debug_heap_print,
             //File IO operators
             write_data_to_file, read_data_from_file, 
-            create_file_based_on_string, delete_file_based_on_string, file_exists
+            create_file_based_on_string, delete_file_based_on_string, file_exists,
+            query_type
         ];
         
         State {
@@ -4257,7 +4272,8 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
         "printLine", "readLine", "printChar", "readChar", "print", 
         "read", "debugPrintStack", "debugPrintHeap",
-        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists"
+        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
+        "queryType"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
