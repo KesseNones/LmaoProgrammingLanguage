@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.3
+//Version: 0.8.4
 
 use std::collections::HashMap;
 use std::env;
@@ -5233,6 +5233,26 @@ fn leave_scope_if_true(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Throws an error containing a string held by a stringbox at the top of the stack.
+fn throw_custom_error(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let HeapValue::String(ref err_str) = &s.heap[bn].0{
+                    Err(err_str.clone())
+                }else{
+                    Err(should_never_get_here_for_func(\"throw_custom_error\"))
+                }
+            }else{
+                Err(bad_box_error(\"throwCustomError\", \"StringBox\", \"NA\", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(format!(\"Operator (throwCustomError) error! Top of stack \
+                must be of type StringBox! Attempted value: {}\", &v)),
+        None => Err(needs_n_args_only_n_provided(\"throwCustomError\", \"One\", \"none\")),
+    }
+}
+
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
 fn variable_lack_of_args_error(var_action: &str) -> String{
@@ -5687,6 +5707,9 @@ fn program(state: &mut State) -> Result<bool, String>{
 
     //Leaving scope
     ops_to_funcs.insert(String::from("leaveScopeIfTrue"), String::from("leave_scope_if_true"));
+
+    //Throwing a custom error.
+    ops_to_funcs.insert(String::from("throwCustomError"), String::from("throw_custom_error"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
