@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.2
+//Version: 0.8.3
 
 use std::collections::HashMap;
 use std::env;
@@ -967,7 +967,14 @@ fn translate_ast_to_rust_code(
                             Some(op_func) => {
                                 let code_str = format!("
                                     match {}(state){{
-                                        Ok(_) => (),
+                                        Ok(_) => {{
+                                            //Leaves current scope if necessary.
+                                            if state.leaving_scope{{
+                                                state.leaving_scope = false;
+                                                remove_frame(state);
+                                                return Ok(true);
+                                            }}
+                                        }},
                                         Err(e) => return Err(e),
                                     }}
                                 ", op_func);
@@ -1001,28 +1008,36 @@ fn translate_ast_to_rust_code(
                         let false_code = make_code_str_from_ast(&false_branch, ops_to_funcs);
                         
                         let code_str = format!("
-                            let res: Result<(), String> = match state.stack.pop(){{
-                                Some(Value::Boolean(b)) => {{
-                                    add_frame(state);
-                                    if b{{
-                                        {}
-                                    }}else{{
-                                        {}
-                                    }}
-                                }},
-                                Some(v) => {{
-                                    Err(format!(\"If statement error! \
-                                        Top of stack needs to be type Boolean \
-                                        for effective branching to occur! \
-                                        Attempted value: {{}}\", &v))
-                                }},
-                                None => {{
-                                    Err(needs_n_args_only_n_provided(\"If\", \"One\", \"none\"))
-                                }},
-                            }};
-                            match res{{
-                                Ok(_) => (),
-                                Err(e) => return error_and_remove_frame(state, e),
+                            {{
+                                let true_code_func = |state: &mut State| -> Result<bool, String>{{
+                                    {}
+                                }};
+                                let false_code_func = |state: &mut State| -> Result<bool, String>{{
+                                    {}
+                                }};
+                                let res: Result<bool, String> = match state.stack.pop(){{
+                                    Some(Value::Boolean(b)) => {{
+                                        add_frame(state);
+                                        if b{{
+                                            true_code_func(state)
+                                        }}else{{
+                                            false_code_func(state)
+                                        }}
+                                    }},
+                                    Some(v) => {{
+                                        Err(format!(\"If statement error! \
+                                            Top of stack needs to be type Boolean \
+                                            for effective branching to occur! \
+                                            Attempted value: {{}}\", &v))
+                                    }},
+                                    None => {{
+                                        Err(needs_n_args_only_n_provided(\"If\", \"One\", \"none\"))
+                                    }},
+                                }};
+                                match res{{
+                                    Ok(_) => (),
+                                    Err(e) => return error_and_remove_frame(state, e),
+                                }}
                             }}
                         ", &true_code, &false_code);
 
@@ -1033,28 +1048,37 @@ fn translate_ast_to_rust_code(
                         let loop_code = make_code_str_from_ast(&loop_body, ops_to_funcs);
 
                         let code_str = format!("
-                            loop {{
-                                let res: Result<(), String> = match state.stack.pop(){{
-                                    Some(Value::Boolean(b)) => {{
-                                        if b {{
-                                            add_frame(state);
-                                            {}
-                                        }}else{{
-                                            break;
-                                        }}
-                                    }},
-                                    Some(v) => {{
-                                        return Err(format!(\"While loop error! Top of stack needs \
-                                            to be of type Boolean to determine if loop needs \
-                                            to run/run again! Attempted value: {{}}\", &v))
-                                    }},
-                                    None => {{
-                                        Err(needs_n_args_only_n_provided(\"while\", \"One\", \"none\"))
-                                    }},
+                            {{
+                                let loop_bod_func = |state: &mut State| -> Result<bool, String> {{
+                                    {}
                                 }};
-                                match res{{
-                                    Ok(_) => (),
-                                    Err(e) => return error_and_remove_frame(state, e),
+                                loop {{
+                                    let res: Result<bool, String> = match state.stack.pop(){{
+                                        Some(Value::Boolean(b)) => {{
+                                            if b {{
+                                                add_frame(state);
+                                                loop_bod_func(state)
+                                            }}else{{
+                                                break;
+                                            }}
+                                        }},
+                                        Some(v) => {{
+                                            return Err(format!(\"While loop error! Top of stack needs \
+                                                to be of type Boolean to determine if loop needs \
+                                                to run/run again! Attempted value: {{}}\", &v))
+                                        }},
+                                        None => {{
+                                            Err(needs_n_args_only_n_provided(\"while\", \"One\", \"none\"))
+                                        }},
+                                    }};
+                                    match res{{
+                                        Ok(left_early) => {{
+                                            if left_early{{
+                                                break;
+                                            }}
+                                        }},
+                                        Err(e) => return error_and_remove_frame(state, e),
+                                    }}
                                 }}
                             }}
                         ", &loop_code);
@@ -1130,7 +1154,7 @@ fn translate_ast_to_rust_code(
                         let code_str = format!("
                             {{
                                 add_frame(state);
-                                let att_func = |state: &mut State| -> Result<(), String> {{
+                                let att_func = |state: &mut State| -> Result<bool, String> {{
                                     {}
                                 }};
                                 match att_func(state){{
@@ -1139,7 +1163,7 @@ fn translate_ast_to_rust_code(
                                         let new_bn = state.insert_to_heap(HeapValue::String(e));
                                         state.stack.push(Value::StringBox(new_bn));
                                         add_frame(state);
-                                        let err_func = |state: &mut State| -> Result<(), String> {{
+                                        let err_func = |state: &mut State| -> Result<bool, String> {{
                                             {}
                                         }};
                                         match err_func(state){{
@@ -1160,7 +1184,7 @@ fn translate_ast_to_rust_code(
     }
 
     code_strings.push("remove_frame(state);".to_string());
-    code_strings.push("Ok(())".to_string())
+    code_strings.push("Ok(false)".to_string())
 
 }
 
@@ -1472,6 +1496,7 @@ struct State{
     curr_frame: usize,
     frame_pool: Vec<Vec<(Value, bool)>>,
     unique_var_name_count: usize,
+    leaving_scope: bool,
 }
 
 //Creates a frame for local variables to use.
@@ -1504,7 +1529,7 @@ impl State{
             curr_frame: 0,
             frame_pool: Vec::new(),
             unique_var_name_count: num_unique_var_names,
-
+            leaving_scope: false,
         }
     }
 
@@ -5192,6 +5217,22 @@ fn query_type(s: &mut State) -> Result<(), String>{
     }
 }
 
+//If the top of the stack is a true boolean, the program leaves the current scope.
+// This is useful for early function returns and breaking out of loops. 
+fn leave_scope_if_true(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::Boolean(b)) => {
+            s.leaving_scope = b;
+            Ok(())
+        },
+        Some(v) => {
+            Err(format!(\"Operator (leaveScopeIfTrue) error! Top of stack \
+                must be of type Boolean! Attempted value: {}\", &v))
+        },
+        None => Err(needs_n_args_only_n_provided(\"leaveScopeIfTrue\", \"One\", \"none\")),
+    }
+}
+
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
 fn variable_lack_of_args_error(var_action: &str) -> String{
@@ -5417,7 +5458,7 @@ fn remove_frame(s: &mut State){
 }
 
 //Removes the stack frame before then creating the appropriate error string.
-fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
+fn error_and_remove_frame(s: &mut State, err: String) -> Result<bool, String>{
     remove_frame(s);
     Err(err)
 }
@@ -5526,7 +5567,7 @@ fn loc_action(s: &mut State, name: &str, act: &str, n: usize) -> Result<(), Stri
     Ok(())
 }
 
-fn program(state: &mut State) -> Result<(), String>{
+fn program(state: &mut State) -> Result<bool, String>{
     ";
     file_strings.push(base.to_string());
 
@@ -5643,6 +5684,9 @@ fn program(state: &mut State) -> Result<(), String>{
 
     //Type querying
     ops_to_funcs.insert(String::from("queryType"), String::from("query_type"));
+
+    //Leaving scope
+    ops_to_funcs.insert(String::from("leaveScopeIfTrue"), String::from("leave_scope_if_true"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
