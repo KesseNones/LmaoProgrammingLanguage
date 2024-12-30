@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.3
+//Version: 0.8.4
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -368,6 +368,7 @@ struct State{
     curr_frame: usize,
     frame_pool: Vec<Vec<(Value, bool)>>,
     unique_var_name_count: usize,
+    leaving_scope: bool,
 }
 
 //Uses the implemented format traits to build a string for the given Value type. 
@@ -4021,6 +4022,22 @@ fn query_type(s: &mut State) -> Result<(), String>{
     }
 }
 
+//If the top of the stack is a true boolean, the program leaves the current scope.
+// This is useful for early function returns and breaking out of loops. 
+fn leave_scope_if_true(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::Boolean(b)) => {
+            s.leaving_scope = b;
+            Ok(())
+        },
+        Some(v) => {
+            Err(format!("Operator (leaveScopeIfTrue) error! Top of stack \
+                must be of type Boolean! Attempted value: {}", &v))
+        },
+        None => Err(needs_n_args_only_n_provided("leaveScopeIfTrue", "One", "none")),
+    }
+}
+
 //Creates a frame for local variables to use.
 fn create_frame(size: usize) -> Vec<(Value, bool)>{
     let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
@@ -4075,7 +4092,7 @@ impl State{
             //File IO operators
             write_data_to_file, read_data_from_file, 
             create_file_based_on_string, delete_file_based_on_string, file_exists,
-            query_type
+            query_type, leave_scope_if_true
         ];
         
         State {
@@ -4089,6 +4106,7 @@ impl State{
             curr_frame: 0,
             frame_pool: Vec::new(),
             unique_var_name_count: num_unique_var_names,
+            leaving_scope: false,
         }
     }
 
@@ -4273,7 +4291,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "printLine", "readLine", "printChar", "readChar", "print", 
         "read", "debugPrintStack", "debugPrintHeap",
         "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
-        "queryType"
+        "queryType", "leaveScopeIfTrue"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
@@ -4762,7 +4780,7 @@ fn remove_frame(s: &mut State){
 }
 
 //Removes the stack frame before then creating the appropriate error string.
-fn error_and_remove_frame(s: &mut State, err: String) -> Result<(), String>{
+fn error_and_remove_frame(s: &mut State, err: String) -> Result<bool, String>{
     remove_frame(s);
     Err(err)
 }
@@ -4778,7 +4796,7 @@ fn find_var(s: &mut State, num: usize) -> Option<usize>{
 }
 
 //Iterates recursively through the AST and effectively runs the program doing so.
-fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
+fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
     match ast{
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
@@ -4804,9 +4822,16 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                     },
                     ASTNode::Terminal(Token::Word((ref op, ref n))) => {
                         if *n > 0{
+                            //Runs operator at index equivalent to a valid operator name.
                             match state.ops[n - 1](state){
                                 Ok(_) => (),
                                 Err(e) => return error_and_remove_frame(state, e),
+                            }
+                            //Leaves current scope if necessary.
+                            if state.leaving_scope{
+                                state.leaving_scope = false;
+                                remove_frame(state);
+                                return Ok(true);
                             }
                         }else{
                             return error_and_remove_frame(state, format!("Unrecognized Operator: {}", op));
@@ -5039,7 +5064,11 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
                                     if b{
                                         add_frame(state);
                                         match run_program(&bod, state){
-                                            Ok(_) => {},
+                                            Ok(left_early) => {
+                                                if left_early{
+                                                    break;
+                                                }
+                                            },
                                             Err(e) => return error_and_remove_frame(state, e),
                                         }
                                     }else{
@@ -5213,7 +5242,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<(), String>{
     }
 
     remove_frame(state);
-    Ok(())
+    Ok(false)
 }
 
 fn main(){
