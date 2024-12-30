@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.4
+//Version: 0.8.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4038,6 +4038,26 @@ fn leave_scope_if_true(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Throws an error containing a string held by a stringbox at the top of the stack.
+fn throw_custom_error(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::StringBox(bn)) => {
+            if s.validate_box(bn){
+                if let HeapValue::String(ref err_str) = &s.heap[bn].0{
+                    Err(err_str.clone())
+                }else{
+                    Err(should_never_get_here_for_func("throw_custom_error"))
+                }
+            }else{
+                Err(bad_box_error("throwCustomError", "StringBox", "NA", bn, usize::MAX, false))
+            }
+        },
+        Some(v) => Err(format!("Operator (throwCustomError) error! Top of stack \
+                must be of type StringBox! Attempted value: {}", &v)),
+        None => Err(needs_n_args_only_n_provided("throwCustomError", "One", "none")),
+    }
+}
+
 //Creates a frame for local variables to use.
 fn create_frame(size: usize) -> Vec<(Value, bool)>{
     let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
@@ -4092,7 +4112,7 @@ impl State{
             //File IO operators
             write_data_to_file, read_data_from_file, 
             create_file_based_on_string, delete_file_based_on_string, file_exists,
-            query_type, leave_scope_if_true
+            query_type, leave_scope_if_true, throw_custom_error
         ];
         
         State {
@@ -4291,7 +4311,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "printLine", "readLine", "printChar", "readChar", "print", 
         "read", "debugPrintStack", "debugPrintHeap",
         "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
-        "queryType", "leaveScopeIfTrue"
+        "queryType", "leaveScopeIfTrue", "throwCustomError"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
