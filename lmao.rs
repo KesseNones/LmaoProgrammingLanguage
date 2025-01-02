@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.5
+//Version: 0.8.6
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4265,6 +4265,11 @@ fn tokenize(chars: &Vec<char>) -> Vec<String>{
 
     if in_string{
         panic!("Parse error! String not ended with matching double quotation!");
+    }
+
+    //If there was a valid token at the exact end of a file, it's picked up here.
+    if curr_token.len() > 0{
+        tokens.push(curr_token.iter().collect());
     }
 
     tokens
