@@ -14,7 +14,7 @@ contexts:
     #   push: double_quoted_string
 
     - match: '//.*$'
-      scope: punctuation.definition.comment.lmao
+      scope: comment.line.double-slash.lmao
 
     - match: ';'
       scope: punctuation.terminator.lmao
