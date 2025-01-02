@@ -218,6 +218,18 @@ contexts:
     - match: '\bcast\b'
       scope: keyword.operator.lmao
 
+    #Querying a type
+    - match: '\bqueryType\b'
+      scope: keyword.operator.lmao
+
+    #Custom error throwing
+    - match: '\bthrowCustomError\b'
+      scope: keyword.operator.lmao
+
+    #Early scope leaving
+    - match: '\bleaveScopeIfTrue\b'
+      scope: keyword.operator.lmao
+
     #Object operators
     - match: '\bobj(Add|Get|Mut|Rem)Field\b'
       scope: keyword.operator.lmao
