@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.4
+//Version: 0.8.5
 
 use std::collections::HashMap;
 use std::env;
@@ -5253,6 +5253,28 @@ fn throw_custom_error(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Fetches arguments passed to program and converts them into a list 
+// of stringboxes where each stringbox contains an argument string.
+//This basically is like argv in C.
+fn get_args(s: &mut State) -> Result<(), String>{
+    //Fetches initial args from environment.
+    let all_args: Vec<String> = env::args().collect();
+    
+    //Creates a list which holds string boxes 
+    // pointing to all the given arguments.
+    let args: Vec<Value> = all_args
+        .iter()
+        .map(|st| 
+            Value::StringBox(s.insert_to_heap(HeapValue::String(st.clone())))
+        ).collect();
+
+    //Inserts list of arg stringboxes into heap and pushes listbox.
+    let bn = s.insert_to_heap(HeapValue::List(args));
+    s.stack.push(Value::ListBox(bn));
+
+    Ok(())
+}
+
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
 fn variable_lack_of_args_error(var_action: &str) -> String{
@@ -5710,6 +5732,9 @@ fn program(state: &mut State) -> Result<bool, String>{
 
     //Throwing a custom error.
     ops_to_funcs.insert(String::from("throwCustomError"), String::from("throw_custom_error"));
+
+    //Getting program arguments.
+    ops_to_funcs.insert(String::from("getArgs"), String::from("get_args"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
