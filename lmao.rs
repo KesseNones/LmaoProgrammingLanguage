@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.6
+//Version: 0.8.7
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4058,6 +4058,29 @@ fn throw_custom_error(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Fetches arguments passed to program and converts them into a list 
+// of stringboxes where each stringbox contains an argument string.
+//This basically is like argv in C.
+fn get_args(s: &mut State) -> Result<(), String>{
+    //Fetches initial args from environment.
+    let all_args: Vec<String> = env::args().collect();
+    
+    //Creates a list which holds string boxes 
+    // pointing to all the given arguments.
+    let args: Vec<Value> = all_args[1..]
+        .iter()
+        .map(|st| 
+            Value::StringBox(s.insert_to_heap(HeapValue::String(st.clone())))
+        )
+        .collect();
+
+    //Inserts list of arg stringboxes into heap and pushes listbox.
+    let bn = s.insert_to_heap(HeapValue::List(args));
+    s.stack.push(Value::ListBox(bn));
+
+    Ok(())
+}
+
 //Creates a frame for local variables to use.
 fn create_frame(size: usize) -> Vec<(Value, bool)>{
     let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
@@ -4112,7 +4135,8 @@ impl State{
             //File IO operators
             write_data_to_file, read_data_from_file, 
             create_file_based_on_string, delete_file_based_on_string, file_exists,
-            query_type, leave_scope_if_true, throw_custom_error
+            query_type, leave_scope_if_true, throw_custom_error, 
+            get_args
         ];
         
         State {
@@ -4316,7 +4340,8 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "printLine", "readLine", "printChar", "readChar", "print", 
         "read", "debugPrintStack", "debugPrintHeap",
         "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
-        "queryType", "leaveScopeIfTrue", "throwCustomError"
+        "queryType", "leaveScopeIfTrue", "throwCustomError",
+        "getArgs"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
