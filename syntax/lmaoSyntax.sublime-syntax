@@ -77,7 +77,7 @@ contexts:
       scope: keyword.control.lmao
 
     # Numbers
-    - match: '\b(-)?[0-9.]+(e(\-)?[0-9.]+)?(d|b)?(isize|usize|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64)*\b'
+    - match: '(?<![\w])(\-)?[0-9.]+(e(\-)?[0-9.]+)?(isize|usize|i8|i16|i32|i64|i128|u8|u16|u32|u64|u128|f32|f64)*\b'
       scope: constant.numeric.lmao
 
     #Gross gigantic operators area.
