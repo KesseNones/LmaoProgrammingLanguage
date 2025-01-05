@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.7
+//Version: 0.8.8
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -17,6 +17,7 @@ use std::cmp::Ordering;
 use std::convert::TryInto;
 use fmt::Display;
 use std::io;
+use std::rc::Rc;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -291,7 +292,7 @@ enum ASTNode{
     If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
     While(Box<ASTNode>),
     Expression(Vec<ASTNode>),
-    Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
+    Function{func_cmd: String, func_name: String, func_bod: Rc<ASTNode>},
     Variable{var_name: String, var_cmd: String, var_num: usize},
     LocVar{name: String, cmd: String, num: usize},
     BoxOp(String),
@@ -342,7 +343,7 @@ impl Clone for ASTNode{
             },
             ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
                 ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
-                    func_bod: Box::new(*bod.clone())}
+                    func_bod: Rc::clone(&bod)}
             },
             ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
                 ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone(), var_num: *n}
@@ -359,7 +360,7 @@ type OpFunc = fn(&mut State) -> Result<(), String>;
 //Main mutable state
 struct State{
     stack: Vec<Value>,
-    fns: HashMap<String, ASTNode>,
+    fns: HashMap<String, Rc<ASTNode>>,
     vars: Vec<(Value, bool)>,
     heap: Vec<(HeapValue, bool)>,
     free_list: Vec<usize>,
@@ -4590,7 +4591,7 @@ fn make_ast_prime(
                 let (fbod, tokens_prime, token_index_prime, _) = 
                     make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
 
-                let fbod_ast = Box::new(ASTNode::Expression(fbod));
+                let fbod_ast = Rc::new(ASTNode::Expression(fbod));
 
                 already_parsed.push(
                     ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
@@ -5146,7 +5147,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                             Function \"{}\" is already defined!", &name));
                                     },
                                     None => {
-                                        state.fns.insert(name.clone(), (**bod).clone());
+                                        state.fns.insert(name.clone(), Rc::clone(&bod));
                                     },
                                 }
                             },
@@ -5161,8 +5162,9 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                     }, 
                                 };
 
-                                //THIS WORKS BUT IS EXTREMELY JANKY AND I DON'T LIKE IT.
-                                // MAYBE TRY TO FIND A SAFER WAY.
+                                //This gross blob of unsafe code makes function calls work.
+                                //It's okay though because even though state changes, func_body never will, 
+                                // so it's safe despite the borrow checker's complaints.
                                 unsafe {
                                     add_frame(&mut *(state as *const State as *mut State));
                                     match run_program(func_body, &mut *(state as *const State as *mut State)){
