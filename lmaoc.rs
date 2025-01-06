@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.5
+//Version: 0.8.6
 
 use std::collections::HashMap;
 use std::env;
@@ -5275,6 +5275,38 @@ fn get_args(s: &mut State) -> Result<(), String>{
     Ok(())
 }
 
+//Consumes top of stack and checks if it's a valid box.
+fn is_valid_box(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::NULLBox) => Ok(Value::Boolean(false)),
+        Some(v) => {
+            match v{
+                Value::StringBox(bn) | Value::ListBox(bn) |
+                Value::ObjectBox(bn) | Value::MiscBox(bn) => {
+                    let is_valid = if s.validate_box(bn){
+                        match (v, &s.heap[bn].0){
+                            (Value::StringBox(_), HeapValue::String(_)) => true,
+                            (Value::ListBox(_), HeapValue::List(_)) => true,
+                            (Value::ObjectBox(_), HeapValue::Object(_)) => true,
+                            (Value::MiscBox(_), HeapValue::Primitive(_)) => true,
+                            _ => false,
+                        }
+                    }else{
+                        false
+                    };
+                    Ok(Value::Boolean(is_valid))            
+                },
+                _ => Err(format!(\"Operator (isValidBox) error! \
+                    Top of stack must be of type StringBox, ListBox, \
+                    ObjectBox, MiscBox, or NULLBox! Attempted value: {}\", &v)),         
+            }
+        },
+        None => Err(needs_n_args_only_n_provided(\"isValidBox\", \"One\", \"none\")),
+    };
+
+    push_val_or_err(res, s)
+}
+
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
 fn variable_lack_of_args_error(var_action: &str) -> String{
@@ -5735,6 +5767,9 @@ fn program(state: &mut State) -> Result<bool, String>{
 
     //Getting program arguments.
     ops_to_funcs.insert(String::from("getArgs"), String::from("get_args"));
+
+    //Checks for box validity.
+    ops_to_funcs.insert(String::from("isValidBox"), String::from("is_valid_box"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
