@@ -252,3 +252,7 @@ contexts:
     #Getting args.
     - match: '\bgetArgs\b'
       scope: keyword.operator.lmao
+
+    #Checking box validity
+    - match: '\bisValidBox\b'
+      scope: keyword.operator.lmao
