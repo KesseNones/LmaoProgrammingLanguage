@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.8
+//Version: 0.8.9
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4082,6 +4082,38 @@ fn get_args(s: &mut State) -> Result<(), String>{
     Ok(())
 }
 
+//Consumes top of stack and checks if it's a valid box.
+fn is_valid_box(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::NULLBox) => Ok(Value::Boolean(false)),
+        Some(v) => {
+            match v{
+                Value::StringBox(bn) | Value::ListBox(bn) |
+                Value::ObjectBox(bn) | Value::MiscBox(bn) => {
+                    let is_valid = if s.validate_box(bn){
+                        match (v, &s.heap[bn].0){
+                            (Value::StringBox(_), HeapValue::String(_)) => true,
+                            (Value::ListBox(_), HeapValue::List(_)) => true,
+                            (Value::ObjectBox(_), HeapValue::Object(_)) => true,
+                            (Value::MiscBox(_), HeapValue::Primitive(_)) => true,
+                            _ => false,
+                        }
+                    }else{
+                        false
+                    };
+                    Ok(Value::Boolean(is_valid))            
+                },
+                _ => Err(format!("Operator (isValidBox) error! \
+                    Top of stack must be of type StringBox, ListBox, \
+                    ObjectBox, MiscBox, or NULLBox! Attempted value: {}", &v)),         
+            }
+        },
+        None => Err(needs_n_args_only_n_provided("isValidBox", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
 //Creates a frame for local variables to use.
 fn create_frame(size: usize) -> Vec<(Value, bool)>{
     let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
@@ -4137,7 +4169,7 @@ impl State{
             write_data_to_file, read_data_from_file, 
             create_file_based_on_string, delete_file_based_on_string, file_exists,
             query_type, leave_scope_if_true, throw_custom_error, 
-            get_args
+            get_args, is_valid_box
         ];
         
         State {
@@ -4342,7 +4374,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "read", "debugPrintStack", "debugPrintHeap",
         "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
         "queryType", "leaveScopeIfTrue", "throwCustomError",
-        "getArgs"
+        "getArgs", "isValidBox"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
