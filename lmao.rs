@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.9
+//Version: 0.8.10
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -297,6 +297,7 @@ enum ASTNode{
     LocVar{name: String, cmd: String, num: usize},
     BoxOp(String),
     AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
+    Defer(Rc<ASTNode>),
 }
 
 impl Default for ASTNode{
@@ -322,6 +323,7 @@ impl fmt::Display for ASTNode{
             ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
             ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
+            ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
         }
     }
 }
@@ -351,6 +353,7 @@ impl Clone for ASTNode{
             ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
             ASTNode::AttErr{attempt: att, err: e} => ASTNode::AttErr{attempt: att.clone(), err: e.clone()},
+            ASTNode::Defer(bod) => ASTNode::Defer(Rc::clone(bod)),
         }
     }
 }
