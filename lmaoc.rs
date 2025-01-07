@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.6
+//Version: 0.8.7
 
 use std::collections::HashMap;
 use std::env;
@@ -11,6 +11,7 @@ use std::io::Read;
 use std::io::Write; 
 use std::fmt;
 use std::process::Command;
+use std::rc::Rc;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -280,11 +281,12 @@ enum ASTNode{
     If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
     While(Box<ASTNode>),
     Expression(Vec<ASTNode>),
-    Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
+    Function{func_cmd: String, func_name: String, func_bod: Rc<ASTNode>},
     Variable{var_name: String, var_cmd: String, var_num: usize},
     LocVar{name: String, cmd: String, num: usize},
     BoxOp(String),
     AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
+    Defer(Rc<ASTNode>),
 }
 
 impl Default for ASTNode{
@@ -310,6 +312,7 @@ impl fmt::Display for ASTNode{
             ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
             ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
+            ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
         }
     }
 }
@@ -331,7 +334,7 @@ impl Clone for ASTNode{
             },
             ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
                 ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
-                    func_bod: Box::new(*bod.clone())}
+                    func_bod: Rc::clone(&bod)}
             },
             ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
                 ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone(), var_num: *n}
@@ -339,6 +342,7 @@ impl Clone for ASTNode{
             ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
             ASTNode::AttErr{attempt: att, err: e} => ASTNode::AttErr{attempt: att.clone(), err: e.clone()},
+            ASTNode::Defer(bod) => ASTNode::Defer(Rc::clone(bod)),
         }
     }
 }
@@ -727,7 +731,7 @@ fn make_ast_prime(
                 let (fbod, tokens_prime, token_index_prime, _) = 
                     make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
 
-                let fbod_ast = Box::new(ASTNode::Expression(fbod));
+                let fbod_ast = Rc::new(ASTNode::Expression(fbod));
 
                 already_parsed.push(
                     ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
@@ -809,6 +813,20 @@ fn make_ast_prime(
                 let (att_branch, err_branch, tokens_prime, token_index_prime) = 
                     parse_att_err(tokens, token_index + 1, loc_nums, curr_loc_num);
                 already_parsed.push(ASTNode::AttErr{attempt: Box::new(att_branch), err: Box::new(err_branch)});
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+            },
+            //Defer case.
+            Token::Word(ref cmd) if cmd.0 == "defer" => {
+                let (defer_body, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(
+                        Vec::new(),
+                        tokens, 
+                        token_index + 1, 
+                        loc_nums,
+                        curr_loc_num,
+                        vec![Token::Word((";".to_string(), 0))]
+                    ); 
+                already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
             },
             _ => {
