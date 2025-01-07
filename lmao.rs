@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.11
+//Version: 0.9.0
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4895,8 +4895,24 @@ fn find_var(s: &mut State, num: usize) -> Option<usize>{
     None
 }
 
+//Iterates over vec of deferred code backwards 
+// to replicate stack behavior, 
+fn run_deferred(s: &mut State, deferred: Vec<Rc<ASTNode>>) -> Result<(), String>{
+    for code in deferred.iter().rev(){
+        add_frame(s);
+        match run_program(code, s){
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+    }
+
+    Ok(())
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
+    let mut deferred: Vec<Rc<ASTNode>> = Vec::new();
+
     match ast{
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
@@ -4927,9 +4943,16 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                 Ok(_) => (),
                                 Err(e) => return error_and_remove_frame(state, e),
                             }
-                            //Leaves current scope if necessary.
+                            //Leaves current scope if necessary, running 
+                            // all deferred code that's been encountered and leaves the scope.
                             if state.leaving_scope{
                                 state.leaving_scope = false;
+
+                                match run_deferred(state, deferred){
+                                    Ok(_) => (),
+                                    Err(e) => return error_and_remove_frame(state, e),
+                                }
+
                                 remove_frame(state);
                                 return Ok(true);
                             }
@@ -5335,11 +5358,18 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                             },
                         }
                     },
+                    ASTNode::Defer(body) => deferred.push(Rc::clone(body)),
                     _ => {},
                 }
             }
         },
         _ => {return Err("Should never get to this point!".to_string());},
+    }
+
+    //Runs deferred code.
+    match run_deferred(state, deferred){
+        Ok(_) => (),
+        Err(e) => return error_and_remove_frame(state, e),
     }
 
     remove_frame(state);
