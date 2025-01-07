@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.9.0
+//Version: 0.9.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4911,7 +4911,7 @@ fn run_deferred(s: &mut State, deferred: Vec<Rc<ASTNode>>) -> Result<(), String>
 
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
-    let mut deferred: Vec<Rc<ASTNode>> = Vec::new();
+    let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
 
     match ast{
         ASTNode::Expression(nodes) => {
@@ -4948,9 +4948,12 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                             if state.leaving_scope{
                                 state.leaving_scope = false;
 
-                                match run_deferred(state, deferred){
-                                    Ok(_) => (),
-                                    Err(e) => return error_and_remove_frame(state, e),
+                                //Runs deferred code if any has been deferred in scope.
+                                if let Some(def) = deferred{
+                                    match run_deferred(state, def){
+                                        Ok(_) => (),
+                                        Err(e) => return error_and_remove_frame(state, e),
+                                    }
                                 }
 
                                 remove_frame(state);
@@ -5358,7 +5361,13 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                             },
                         }
                     },
-                    ASTNode::Defer(body) => deferred.push(Rc::clone(body)),
+                    ASTNode::Defer(body) => {
+                        if let Some(ref mut def) = deferred{
+                            def.push(Rc::clone(body));
+                        }else{
+                            deferred = Some(vec![Rc::clone(body)]);
+                        }
+                    },
                     _ => {},
                 }
             }
@@ -5366,10 +5375,12 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
         _ => {return Err("Should never get to this point!".to_string());},
     }
 
-    //Runs deferred code.
-    match run_deferred(state, deferred){
-        Ok(_) => (),
-        Err(e) => return error_and_remove_frame(state, e),
+    //Runs deferred code if any has been deferred.
+    if let Some(def) = deferred{
+        match run_deferred(state, def){
+            Ok(_) => (),
+            Err(e) => return error_and_remove_frame(state, e),
+        }
     }
 
     remove_frame(state);
