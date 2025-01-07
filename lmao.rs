@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.10
+//Version: 0.8.11
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4708,6 +4708,20 @@ fn make_ast_prime(
                 let (att_branch, err_branch, tokens_prime, token_index_prime) = 
                     parse_att_err(tokens, token_index + 1, loc_nums, curr_loc_num);
                 already_parsed.push(ASTNode::AttErr{attempt: Box::new(att_branch), err: Box::new(err_branch)});
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+            },
+            //Defer case.
+            Token::Word(ref cmd) if cmd.0 == "defer" => {
+                let (defer_body, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(
+                        Vec::new(),
+                        tokens, 
+                        token_index + 1, 
+                        loc_nums,
+                        curr_loc_num,
+                        vec![Token::Word((";".to_string(), 0))]
+                    ); 
+                already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
             },
             _ => {
