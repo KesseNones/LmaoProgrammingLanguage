@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.7
+//Version: 0.8.8
 
 use std::collections::HashMap;
 use std::env;
@@ -439,6 +439,11 @@ fn tokenize(chars: &Vec<char>) -> Vec<String>{
         panic!("Parse error! String not ended with matching double quotation!");
     }
 
+    //If there was a valid token at the exact end of a file, it's picked up here.
+    if curr_token.len() > 0{
+        tokens.push(curr_token.iter().collect());
+    }
+
     tokens
 
 }
@@ -482,7 +487,9 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
         "printLine", "readLine", "printChar", "readChar", "print", 
         "read", "debugPrintStack", "debugPrintHeap",
-        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists"
+        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
+        "queryType", "leaveScopeIfTrue", "throwCustomError",
+        "getArgs", "isValidBox"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
@@ -975,7 +982,8 @@ fn translate_ast_to_rust_code(
                                 ", &code_str_init)
                             },
                             HeapValue::Primitive(_) => {
-                                "return Err(\"SHOULD NEVER GET HERE FOR VALUE PUSHING!!!\".to_string())".to_string()
+                                "return error_and_remove_frame(state, \"SHOULD NEVER GET \
+                                HERE FOR VALUE PUSHING!!!\".to_string())".to_string()
                             },
                         };
                         code_strings.push(code_str);
@@ -993,13 +1001,14 @@ fn translate_ast_to_rust_code(
                                                 return Ok(true);
                                             }}
                                         }},
-                                        Err(e) => return Err(e),
+                                        Err(e) => return error_and_remove_frame(state, e),
                                     }}
                                 ", op_func);
                                 code_strings.push(code_str)
                             },
                             None => {
-                                code_strings.push(format!("return Err(String::from(\"Unrecognized Operator: {}\"));", &op.0))
+                                code_strings.push(format!("return error_and_remove_frame(state, \
+                                    String::from(\"Unrecognized Operator: {}\"));", &op.0))
                             },
                         }
                     },
@@ -1007,7 +1016,7 @@ fn translate_ast_to_rust_code(
                         let code_str = format!("
                             match var_action(state, \"{}\", \"{}\", {}){{
                                 Ok(_) => (),
-                                Err(e) => return Err(e),
+                                Err(e) => return error_and_remove_frame(state, e),
                             }}
                         ", &name, &cmd, n);
                         code_strings.push(code_str)
@@ -1016,7 +1025,7 @@ fn translate_ast_to_rust_code(
                         let code_str = format!("
                             match box_action(state, \"{}\"){{
                                 Ok(_) => (),
-                                Err(e) => return Err(e),
+                                Err(e) => return error_and_remove_frame(state, e),
                             }}
                         ", &op);
                         code_strings.push(code_str)
@@ -1116,7 +1125,7 @@ fn translate_ast_to_rust_code(
                                                 Function \\\"{}\\\" is already defined!\"));
                                         }},
                                         None => {{
-                                            let func = |state: &mut State| -> Result<(), String>{{
+                                            let func = |state: &mut State| -> Result<bool, String>{{
                                                 {}
                                             }};
                                             state.fns.insert(\"{}\".to_string(), Box::new(func));
@@ -1131,6 +1140,7 @@ fn translate_ast_to_rust_code(
                                     match state.fns.get(\"{}\"){{
                                         Some(func) => {{
                                             unsafe {{
+                                                add_frame(&mut *(state as *const State as *mut State));
                                                 match func(&mut *(state as *const State as *mut State)){{
                                                     Ok(_) => (),
                                                     Err(e) => return error_and_remove_frame(state, e),
@@ -1160,7 +1170,7 @@ fn translate_ast_to_rust_code(
                         let code_str = format!("
                             match loc_action(state, \"{}\", \"{}\", {}){{
                                 Ok(_) => (),
-                                Err(e) => return Err(e),
+                                Err(e) => return error_and_remove_frame(state, e), 
                             }}
                         ", &nm, &c, n);
                         code_strings.push(code_str)
@@ -1501,7 +1511,7 @@ impl fmt::Display for SuperValue{
     }
 }
 
-type FuncFunc = fn(&mut State) -> Result<(), String>;
+type FuncFunc = fn(&mut State) -> Result<bool, String>;
 
 //Main mutable state
 struct State{
