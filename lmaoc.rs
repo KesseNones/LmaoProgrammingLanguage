@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.9.0
+//Version: 0.9.1
 
 use std::collections::HashMap;
 use std::env;
@@ -957,6 +957,7 @@ fn make_deferred_code_blocks(
                 let defer_func = |state: &mut State| -> Result<bool, String>{{
                     {}
                 }};
+                add_frame(state);
                 match defer_func(state){{
                     Ok(_) => (),
                     Err(e) => return error_and_remove_frame(state, e),
