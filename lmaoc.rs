@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.8
+//Version: 0.9.0
 
 use std::collections::HashMap;
 use std::env;
@@ -942,12 +942,40 @@ fn make_code_str_from_ast(ast: &ASTNode, ops_to_funcs: &HashMap<String, String>)
     code_lines.join("\n")
 }
 
+//Takes in any code that was deferred and converts 
+// it to code that runs at the end of a scope.
+fn make_deferred_code_blocks(
+    deferred: &Vec<Rc<ASTNode>>, 
+    ops_to_funcs: &HashMap<String, String>
+    ) -> String{
+    let mut code_strings: Vec<String> = Vec::new();
+
+    for code in deferred.iter().rev(){
+        let defer_body = make_code_str_from_ast(code, ops_to_funcs);
+        let code_str = format!("
+            {{
+                let defer_func = |state: &mut State| -> Result<bool, String>{{
+                    {}
+                }};
+                match defer_func(state){{
+                    Ok(_) => (),
+                    Err(e) => return error_and_remove_frame(state, e),
+                }}
+            }}
+        ", defer_body);
+        code_strings.push(code_str);
+    }
+
+    code_strings.join("\n")
+}
+
 //Translates AST to rust code recursively.
 fn translate_ast_to_rust_code(
     ast: &ASTNode, 
     code_strings: &mut Vec<String>, 
     ops_to_funcs: &HashMap<String, String>,
     ){
+    let mut deferred: Vec<Rc<ASTNode>> = Vec::new();
     match ast{
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
@@ -991,19 +1019,32 @@ fn translate_ast_to_rust_code(
                     ASTNode::Terminal(Token::Word(op)) => {
                         match ops_to_funcs.get(&op.0){
                             Some(op_func) => {
+                                //Only creates deferred code in translated code if it's very likely to be used, 
+                                // saving on a significant amount of memory.
+                                let deferred_code: String;
+                                if &op.0 == "leaveScopeIfTrue"{
+                                    deferred_code = make_deferred_code_blocks(&deferred, ops_to_funcs)
+                                }else{
+                                    deferred_code = String::from("")
+                                }
+
+                                //Builds code string for given operator call.
                                 let code_str = format!("
                                     match {}(state){{
                                         Ok(_) => {{
                                             //Leaves current scope if necessary.
                                             if state.leaving_scope{{
                                                 state.leaving_scope = false;
+                                                
+                                                {}
+
                                                 remove_frame(state);
                                                 return Ok(true);
                                             }}
                                         }},
                                         Err(e) => return error_and_remove_frame(state, e),
                                     }}
-                                ", op_func);
+                                ", op_func, deferred_code);
                                 code_strings.push(code_str)
                             },
                             None => {
@@ -1204,12 +1245,16 @@ fn translate_ast_to_rust_code(
                         ", attempt_code, error_code);
                         code_strings.push(code_str);
                     },
+                    ASTNode::Defer(body) => deferred.push(Rc::clone(body)),
                     _ => {},
                 }
             }
         },
         _ => panic!("SHOULD NEVER GET HERE FOR TRANSLATION!!!")
     }
+
+    //Adds translated code from deferred blocks to run at the end of the scope.
+    code_strings.push(make_deferred_code_blocks(&deferred, ops_to_funcs));
 
     code_strings.push("remove_frame(state);".to_string());
     code_strings.push("Ok(false)".to_string())
