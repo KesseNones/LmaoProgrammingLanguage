@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.8.5
+//Version: 0.9.3
 
 use std::collections::HashMap;
 use std::env;
@@ -11,6 +11,7 @@ use std::io::Read;
 use std::io::Write; 
 use std::fmt;
 use std::process::Command;
+use std::rc::Rc;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -280,11 +281,12 @@ enum ASTNode{
     If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
     While(Box<ASTNode>),
     Expression(Vec<ASTNode>),
-    Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
+    Function{func_cmd: String, func_name: String, func_bod: Rc<ASTNode>},
     Variable{var_name: String, var_cmd: String, var_num: usize},
     LocVar{name: String, cmd: String, num: usize},
     BoxOp(String),
     AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
+    Defer(Rc<ASTNode>),
 }
 
 impl Default for ASTNode{
@@ -310,6 +312,7 @@ impl fmt::Display for ASTNode{
             ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
             ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
+            ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
         }
     }
 }
@@ -331,7 +334,7 @@ impl Clone for ASTNode{
             },
             ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
                 ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
-                    func_bod: Box::new(*bod.clone())}
+                    func_bod: Rc::clone(&bod)}
             },
             ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
                 ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone(), var_num: *n}
@@ -339,6 +342,7 @@ impl Clone for ASTNode{
             ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
             ASTNode::AttErr{attempt: att, err: e} => ASTNode::AttErr{attempt: att.clone(), err: e.clone()},
+            ASTNode::Defer(bod) => ASTNode::Defer(Rc::clone(bod)),
         }
     }
 }
@@ -435,6 +439,11 @@ fn tokenize(chars: &Vec<char>) -> Vec<String>{
         panic!("Parse error! String not ended with matching double quotation!");
     }
 
+    //If there was a valid token at the exact end of a file, it's picked up here.
+    if curr_token.len() > 0{
+        tokens.push(curr_token.iter().collect());
+    }
+
     tokens
 
 }
@@ -478,7 +487,9 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
         "printLine", "readLine", "printChar", "readChar", "print", 
         "read", "debugPrintStack", "debugPrintHeap",
-        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists"
+        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
+        "queryType", "leaveScopeIfTrue", "throwCustomError",
+        "getArgs", "isValidBox"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
@@ -727,7 +738,7 @@ fn make_ast_prime(
                 let (fbod, tokens_prime, token_index_prime, _) = 
                     make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
 
-                let fbod_ast = Box::new(ASTNode::Expression(fbod));
+                let fbod_ast = Rc::new(ASTNode::Expression(fbod));
 
                 already_parsed.push(
                     ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
@@ -809,6 +820,20 @@ fn make_ast_prime(
                 let (att_branch, err_branch, tokens_prime, token_index_prime) = 
                     parse_att_err(tokens, token_index + 1, loc_nums, curr_loc_num);
                 already_parsed.push(ASTNode::AttErr{attempt: Box::new(att_branch), err: Box::new(err_branch)});
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+            },
+            //Defer case.
+            Token::Word(ref cmd) if cmd.0 == "defer" => {
+                let (defer_body, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(
+                        Vec::new(),
+                        tokens, 
+                        token_index + 1, 
+                        loc_nums,
+                        curr_loc_num,
+                        vec![Token::Word((";".to_string(), 0))]
+                    ); 
+                already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
             },
             _ => {
@@ -917,12 +942,41 @@ fn make_code_str_from_ast(ast: &ASTNode, ops_to_funcs: &HashMap<String, String>)
     code_lines.join("\n")
 }
 
+//Takes in any code that was deferred and converts 
+// it to code that runs at the end of a scope.
+fn make_deferred_code_blocks(
+    deferred: &Vec<Rc<ASTNode>>, 
+    ops_to_funcs: &HashMap<String, String>
+    ) -> String{
+    let mut code_strings: Vec<String> = Vec::new();
+
+    for code in deferred.iter().rev(){
+        let defer_body = make_code_str_from_ast(code, ops_to_funcs);
+        let code_str = format!("
+            {{
+                let defer_func = |state: &mut State| -> Result<bool, String>{{
+                    {}
+                }};
+                add_frame(state);
+                match defer_func(state){{
+                    Ok(_) => (),
+                    Err(e) => return error_and_remove_frame(state, e),
+                }}
+            }}
+        ", defer_body);
+        code_strings.push(code_str);
+    }
+
+    code_strings.join("\n")
+}
+
 //Translates AST to rust code recursively.
 fn translate_ast_to_rust_code(
     ast: &ASTNode, 
     code_strings: &mut Vec<String>, 
     ops_to_funcs: &HashMap<String, String>,
     ){
+    let mut deferred: Vec<Rc<ASTNode>> = Vec::new();
     match ast{
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
@@ -957,7 +1011,8 @@ fn translate_ast_to_rust_code(
                                 ", &code_str_init)
                             },
                             HeapValue::Primitive(_) => {
-                                "return Err(\"SHOULD NEVER GET HERE FOR VALUE PUSHING!!!\".to_string())".to_string()
+                                "return error_and_remove_frame(state, \"SHOULD NEVER GET \
+                                HERE FOR VALUE PUSHING!!!\".to_string())".to_string()
                             },
                         };
                         code_strings.push(code_str);
@@ -965,23 +1020,37 @@ fn translate_ast_to_rust_code(
                     ASTNode::Terminal(Token::Word(op)) => {
                         match ops_to_funcs.get(&op.0){
                             Some(op_func) => {
+                                //Only creates deferred code in translated code if it's very likely to be used, 
+                                // saving on a significant amount of memory.
+                                let deferred_code: String;
+                                if &op.0 == "leaveScopeIfTrue"{
+                                    deferred_code = make_deferred_code_blocks(&deferred, ops_to_funcs)
+                                }else{
+                                    deferred_code = String::from("")
+                                }
+
+                                //Builds code string for given operator call.
                                 let code_str = format!("
                                     match {}(state){{
                                         Ok(_) => {{
                                             //Leaves current scope if necessary.
                                             if state.leaving_scope{{
                                                 state.leaving_scope = false;
+                                                
+                                                {}
+
                                                 remove_frame(state);
                                                 return Ok(true);
                                             }}
                                         }},
-                                        Err(e) => return Err(e),
+                                        Err(e) => return error_and_remove_frame(state, e),
                                     }}
-                                ", op_func);
+                                ", op_func, deferred_code);
                                 code_strings.push(code_str)
                             },
                             None => {
-                                code_strings.push(format!("return Err(String::from(\"Unrecognized Operator: {}\"));", &op.0))
+                                code_strings.push(format!("return error_and_remove_frame(state, \
+                                    String::from(\"Unrecognized Operator: {}\"));", &op.0))
                             },
                         }
                     },
@@ -989,7 +1058,7 @@ fn translate_ast_to_rust_code(
                         let code_str = format!("
                             match var_action(state, \"{}\", \"{}\", {}){{
                                 Ok(_) => (),
-                                Err(e) => return Err(e),
+                                Err(e) => return error_and_remove_frame(state, e),
                             }}
                         ", &name, &cmd, n);
                         code_strings.push(code_str)
@@ -998,7 +1067,7 @@ fn translate_ast_to_rust_code(
                         let code_str = format!("
                             match box_action(state, \"{}\"){{
                                 Ok(_) => (),
-                                Err(e) => return Err(e),
+                                Err(e) => return error_and_remove_frame(state, e),
                             }}
                         ", &op);
                         code_strings.push(code_str)
@@ -1098,7 +1167,7 @@ fn translate_ast_to_rust_code(
                                                 Function \\\"{}\\\" is already defined!\"));
                                         }},
                                         None => {{
-                                            let func = |state: &mut State| -> Result<(), String>{{
+                                            let func = |state: &mut State| -> Result<bool, String>{{
                                                 {}
                                             }};
                                             state.fns.insert(\"{}\".to_string(), Box::new(func));
@@ -1113,6 +1182,7 @@ fn translate_ast_to_rust_code(
                                     match state.fns.get(\"{}\"){{
                                         Some(func) => {{
                                             unsafe {{
+                                                add_frame(&mut *(state as *const State as *mut State));
                                                 match func(&mut *(state as *const State as *mut State)){{
                                                     Ok(_) => (),
                                                     Err(e) => return error_and_remove_frame(state, e),
@@ -1142,7 +1212,7 @@ fn translate_ast_to_rust_code(
                         let code_str = format!("
                             match loc_action(state, \"{}\", \"{}\", {}){{
                                 Ok(_) => (),
-                                Err(e) => return Err(e),
+                                Err(e) => return error_and_remove_frame(state, e), 
                             }}
                         ", &nm, &c, n);
                         code_strings.push(code_str)
@@ -1176,12 +1246,16 @@ fn translate_ast_to_rust_code(
                         ", attempt_code, error_code);
                         code_strings.push(code_str);
                     },
+                    ASTNode::Defer(body) => deferred.push(Rc::clone(body)),
                     _ => {},
                 }
             }
         },
         _ => panic!("SHOULD NEVER GET HERE FOR TRANSLATION!!!")
     }
+
+    //Adds translated code from deferred blocks to run at the end of the scope.
+    code_strings.push(make_deferred_code_blocks(&deferred, ops_to_funcs));
 
     code_strings.push("remove_frame(state);".to_string());
     code_strings.push("Ok(false)".to_string())
@@ -1483,7 +1557,7 @@ impl fmt::Display for SuperValue{
     }
 }
 
-type FuncFunc = fn(&mut State) -> Result<(), String>;
+type FuncFunc = fn(&mut State) -> Result<bool, String>;
 
 //Main mutable state
 struct State{
@@ -4989,13 +5063,12 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
         let invalid_str: &str = if s.heap[i].1{
             \"\"
         }else{
-            \" [INVALID]\"
+            \" [FREE]\"
         };
         println!(\"{} {}{}:\\n\\t{}\", box_type_str, i, invalid_str, s.heap[i].0);
     }
 
     println!(\"{}\", filler_str);
-    println!(\"HEAP SIZE: {}\\n{}\", s.heap.len(), filler_str);
     print!(\"FREE'D BOX NUMBERS: [\");
     for i in 0..(s.free_list.len()){
         if i < (s.free_list.len() - 1){
@@ -5004,9 +5077,12 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
             print!(\"{}\", s.free_list[i]);
         }
     }
-    println!(\"]\n{}\\nFREE'D BOX NUMBERS LENGTH: {}\", filler_str, s.free_list.len());
-    println!(\"{}\\nEND HEAP PRINT\", filler_str);
-    println!(\"{}\", filler_str);
+    println!(\"]\n{}\", filler_str);
+    println!(\"FREE'D BOX COUNT: {}\n{}\", s.free_list.len(), filler_str);
+    println!(\"TOTAL HEAP ITEM COUNT: {}\n{}\", s.heap.len(), filler_str);
+    println!(\"PERCENT OF HEAP FREE'D: {:.2}\n{}\", 
+        (s.free_list.len() as f32) / (s.heap.len() as f32) * 100f32, filler_str);
+    println!(\"END HEAP PRINT\n{}\", filler_str);
 
     Ok(())
 }
@@ -5273,6 +5349,38 @@ fn get_args(s: &mut State) -> Result<(), String>{
     s.stack.push(Value::ListBox(bn));
 
     Ok(())
+}
+
+//Consumes top of stack and checks if it's a valid box.
+fn is_valid_box(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::NULLBox) => Ok(Value::Boolean(false)),
+        Some(v) => {
+            match v{
+                Value::StringBox(bn) | Value::ListBox(bn) |
+                Value::ObjectBox(bn) | Value::MiscBox(bn) => {
+                    let is_valid = if s.validate_box(bn){
+                        match (v, &s.heap[bn].0){
+                            (Value::StringBox(_), HeapValue::String(_)) => true,
+                            (Value::ListBox(_), HeapValue::List(_)) => true,
+                            (Value::ObjectBox(_), HeapValue::Object(_)) => true,
+                            (Value::MiscBox(_), HeapValue::Primitive(_)) => true,
+                            _ => false,
+                        }
+                    }else{
+                        false
+                    };
+                    Ok(Value::Boolean(is_valid))            
+                },
+                _ => Err(format!(\"Operator (isValidBox) error! \
+                    Top of stack must be of type StringBox, ListBox, \
+                    ObjectBox, MiscBox, or NULLBox! Attempted value: {}\", &v)),         
+            }
+        },
+        None => Err(needs_n_args_only_n_provided(\"isValidBox\", \"One\", \"none\")),
+    };
+
+    push_val_or_err(res, s)
 }
 
 //Error string for when var mak and var mut 
@@ -5735,6 +5843,9 @@ fn program(state: &mut State) -> Result<bool, String>{
 
     //Getting program arguments.
     ops_to_funcs.insert(String::from("getArgs"), String::from("get_args"));
+
+    //Checks for box validity.
+    ops_to_funcs.insert(String::from("isValidBox"), String::from("is_valid_box"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 

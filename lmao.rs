@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.8.7
+//Version: 0.9.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -17,6 +17,7 @@ use std::cmp::Ordering;
 use std::convert::TryInto;
 use fmt::Display;
 use std::io;
+use std::rc::Rc;
 
 #[derive(PartialEq, Eq)]
 enum IntSigned{
@@ -291,11 +292,12 @@ enum ASTNode{
     If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
     While(Box<ASTNode>),
     Expression(Vec<ASTNode>),
-    Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
+    Function{func_cmd: String, func_name: String, func_bod: Rc<ASTNode>},
     Variable{var_name: String, var_cmd: String, var_num: usize},
     LocVar{name: String, cmd: String, num: usize},
     BoxOp(String),
     AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
+    Defer(Rc<ASTNode>),
 }
 
 impl Default for ASTNode{
@@ -321,6 +323,7 @@ impl fmt::Display for ASTNode{
             ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
             ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
+            ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
         }
     }
 }
@@ -342,7 +345,7 @@ impl Clone for ASTNode{
             },
             ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
                 ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
-                    func_bod: Box::new(*bod.clone())}
+                    func_bod: Rc::clone(&bod)}
             },
             ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
                 ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone(), var_num: *n}
@@ -350,6 +353,7 @@ impl Clone for ASTNode{
             ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
             ASTNode::AttErr{attempt: att, err: e} => ASTNode::AttErr{attempt: att.clone(), err: e.clone()},
+            ASTNode::Defer(bod) => ASTNode::Defer(Rc::clone(bod)),
         }
     }
 }
@@ -359,7 +363,7 @@ type OpFunc = fn(&mut State) -> Result<(), String>;
 //Main mutable state
 struct State{
     stack: Vec<Value>,
-    fns: HashMap<String, ASTNode>,
+    fns: HashMap<String, Rc<ASTNode>>,
     vars: Vec<(Value, bool)>,
     heap: Vec<(HeapValue, bool)>,
     free_list: Vec<usize>,
@@ -3794,13 +3798,12 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
         let invalid_str: &str = if s.heap[i].1{
             ""
         }else{
-            " [INVALID]"
+            " [FREE]"
         };
         println!("{} {}{}:\n\t{}", box_type_str, i, invalid_str, s.heap[i].0);
     }
 
     println!("{}", filler_str);
-    println!("HEAP SIZE: {}\n{}", s.heap.len(), filler_str);
     print!("FREE'D BOX NUMBERS: [");
     for i in 0..(s.free_list.len()){
         if i < (s.free_list.len() - 1){
@@ -3809,9 +3812,12 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
             print!("{}", s.free_list[i]);
         }
     }
-    println!("]\n{}\nFREE'D BOX NUMBERS LENGTH: {}", filler_str, s.free_list.len());
-    println!("{}\nEND HEAP PRINT", filler_str);
-    println!("{}", filler_str);
+    println!("]\n{}", filler_str);
+    println!("FREE'D BOX COUNT: {}\n{}", s.free_list.len(), filler_str);
+    println!("TOTAL HEAP ITEM COUNT: {}\n{}", s.heap.len(), filler_str);
+    println!("PERCENT OF HEAP FREE'D: {:.2}\n{}", 
+        (s.free_list.len() as f32) / (s.heap.len() as f32) * 100f32, filler_str);
+    println!("END HEAP PRINT\n{}", filler_str);
 
     Ok(())
 }
@@ -4081,6 +4087,38 @@ fn get_args(s: &mut State) -> Result<(), String>{
     Ok(())
 }
 
+//Consumes top of stack and checks if it's a valid box.
+fn is_valid_box(s: &mut State) -> Result<(), String>{
+    let res = match s.pop(){
+        Some(Value::NULLBox) => Ok(Value::Boolean(false)),
+        Some(v) => {
+            match v{
+                Value::StringBox(bn) | Value::ListBox(bn) |
+                Value::ObjectBox(bn) | Value::MiscBox(bn) => {
+                    let is_valid = if s.validate_box(bn){
+                        match (v, &s.heap[bn].0){
+                            (Value::StringBox(_), HeapValue::String(_)) => true,
+                            (Value::ListBox(_), HeapValue::List(_)) => true,
+                            (Value::ObjectBox(_), HeapValue::Object(_)) => true,
+                            (Value::MiscBox(_), HeapValue::Primitive(_)) => true,
+                            _ => false,
+                        }
+                    }else{
+                        false
+                    };
+                    Ok(Value::Boolean(is_valid))            
+                },
+                _ => Err(format!("Operator (isValidBox) error! \
+                    Top of stack must be of type StringBox, ListBox, \
+                    ObjectBox, MiscBox, or NULLBox! Attempted value: {}", &v)),         
+            }
+        },
+        None => Err(needs_n_args_only_n_provided("isValidBox", "One", "none")),
+    };
+
+    push_val_or_err(res, s)
+}
+
 //Creates a frame for local variables to use.
 fn create_frame(size: usize) -> Vec<(Value, bool)>{
     let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
@@ -4136,7 +4174,7 @@ impl State{
             write_data_to_file, read_data_from_file, 
             create_file_based_on_string, delete_file_based_on_string, file_exists,
             query_type, leave_scope_if_true, throw_custom_error, 
-            get_args
+            get_args, is_valid_box
         ];
         
         State {
@@ -4341,7 +4379,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "read", "debugPrintStack", "debugPrintHeap",
         "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
         "queryType", "leaveScopeIfTrue", "throwCustomError",
-        "getArgs"
+        "getArgs", "isValidBox"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
@@ -4590,7 +4628,7 @@ fn make_ast_prime(
                 let (fbod, tokens_prime, token_index_prime, _) = 
                     make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
 
-                let fbod_ast = Box::new(ASTNode::Expression(fbod));
+                let fbod_ast = Rc::new(ASTNode::Expression(fbod));
 
                 already_parsed.push(
                     ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
@@ -4672,6 +4710,20 @@ fn make_ast_prime(
                 let (att_branch, err_branch, tokens_prime, token_index_prime) = 
                     parse_att_err(tokens, token_index + 1, loc_nums, curr_loc_num);
                 already_parsed.push(ASTNode::AttErr{attempt: Box::new(att_branch), err: Box::new(err_branch)});
+                make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+            },
+            //Defer case.
+            Token::Word(ref cmd) if cmd.0 == "defer" => {
+                let (defer_body, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(
+                        Vec::new(),
+                        tokens, 
+                        token_index + 1, 
+                        loc_nums,
+                        curr_loc_num,
+                        vec![Token::Word((";".to_string(), 0))]
+                    ); 
+                already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
             },
             _ => {
@@ -4845,8 +4897,24 @@ fn find_var(s: &mut State, num: usize) -> Option<usize>{
     None
 }
 
+//Iterates over vec of deferred code backwards 
+// to replicate stack behavior, 
+fn run_deferred(s: &mut State, deferred: Vec<Rc<ASTNode>>) -> Result<(), String>{
+    for code in deferred.iter().rev(){
+        add_frame(s);
+        match run_program(code, s){
+            Ok(_) => (),
+            Err(e) => return Err(e),
+        }
+    }
+
+    Ok(())
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
+    let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
+
     match ast{
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
@@ -4877,9 +4945,19 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                 Ok(_) => (),
                                 Err(e) => return error_and_remove_frame(state, e),
                             }
-                            //Leaves current scope if necessary.
+                            //Leaves current scope if necessary, running 
+                            // all deferred code that's been encountered and leaves the scope.
                             if state.leaving_scope{
                                 state.leaving_scope = false;
+
+                                //Runs deferred code if any has been deferred in scope.
+                                if let Some(def) = deferred{
+                                    match run_deferred(state, def){
+                                        Ok(_) => (),
+                                        Err(e) => return error_and_remove_frame(state, e),
+                                    }
+                                }
+
                                 remove_frame(state);
                                 return Ok(true);
                             }
@@ -5146,7 +5224,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                             Function \"{}\" is already defined!", &name));
                                     },
                                     None => {
-                                        state.fns.insert(name.clone(), (**bod).clone());
+                                        state.fns.insert(name.clone(), Rc::clone(&bod));
                                     },
                                 }
                             },
@@ -5161,8 +5239,9 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                     }, 
                                 };
 
-                                //THIS WORKS BUT IS EXTREMELY JANKY AND I DON'T LIKE IT.
-                                // MAYBE TRY TO FIND A SAFER WAY.
+                                //This gross blob of unsafe code makes function calls work.
+                                //It's okay though because even though state changes, func_body never will, 
+                                // so it's safe despite the borrow checker's complaints.
                                 unsafe {
                                     add_frame(&mut *(state as *const State as *mut State));
                                     match run_program(func_body, &mut *(state as *const State as *mut State)){
@@ -5284,11 +5363,26 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                             },
                         }
                     },
+                    ASTNode::Defer(body) => {
+                        if let Some(ref mut def) = deferred{
+                            def.push(Rc::clone(body));
+                        }else{
+                            deferred = Some(vec![Rc::clone(body)]);
+                        }
+                    },
                     _ => {},
                 }
             }
         },
         _ => {return Err("Should never get to this point!".to_string());},
+    }
+
+    //Runs deferred code if any has been deferred.
+    if let Some(def) = deferred{
+        match run_deferred(state, def){
+            Ok(_) => (),
+            Err(e) => return error_and_remove_frame(state, e),
+        }
     }
 
     remove_frame(state);
