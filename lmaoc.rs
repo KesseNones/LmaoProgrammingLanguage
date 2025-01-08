@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.9.1
+//Version: 0.9.2
 
 use std::collections::HashMap;
 use std::env;
@@ -5063,13 +5063,12 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
         let invalid_str: &str = if s.heap[i].1{
             \"\"
         }else{
-            \" [INVALID]\"
+            \" [FREE]\"
         };
         println!(\"{} {}{}:\\n\\t{}\", box_type_str, i, invalid_str, s.heap[i].0);
     }
 
     println!(\"{}\", filler_str);
-    println!(\"HEAP SIZE: {}\\n{}\", s.heap.len(), filler_str);
     print!(\"FREE'D BOX NUMBERS: [\");
     for i in 0..(s.free_list.len()){
         if i < (s.free_list.len() - 1){
@@ -5078,9 +5077,10 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
             print!(\"{}\", s.free_list[i]);
         }
     }
-    println!(\"]\n{}\\nFREE'D BOX NUMBERS LENGTH: {}\", filler_str, s.free_list.len());
-    println!(\"{}\\nEND HEAP PRINT\", filler_str);
-    println!(\"{}\", filler_str);
+    println!(\"]\n{}\", filler_str);
+    println!(\"FREE'D BOX COUNT: {}\n{}\", s.free_list.len(), filler_str);
+    println!(\"TOTAL HEAP ITEM COUNT: {}\n{}\", s.heap.len(), filler_str);
+    println!(\"END HEAP PRINT\n{}\", filler_str);
 
     Ok(())
 }
