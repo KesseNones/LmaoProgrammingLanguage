@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.9.2
+//Version: 0.9.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3815,6 +3815,8 @@ fn debug_heap_print(s: &mut State) -> Result<(), String>{
     println!("]\n{}", filler_str);
     println!("FREE'D BOX COUNT: {}\n{}", s.free_list.len(), filler_str);
     println!("TOTAL HEAP ITEM COUNT: {}\n{}", s.heap.len(), filler_str);
+    println!("PERCENT OF HEAP FREE'D: {:.2}\n{}", 
+        (s.free_list.len() as f32) / (s.heap.len() as f32) * 100f32, filler_str);
     println!("END HEAP PRINT\n{}", filler_str);
 
     Ok(())
