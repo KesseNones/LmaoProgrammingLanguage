@@ -6,7 +6,8 @@
 - [1 Using a Stack-Based Approach](#stack-based)
 - [2 Data Types Used](#data-types)
 	- [2.1 Stack Data Types](#stack-types)
-	- [2.2 Heap-Related Data Types](#heap-types)
+	- [2.2 Heap Data Types](#heap-types)
+	- [2.3 Box Data Types](#box-types)
 - [3 Operators](#ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
@@ -38,9 +39,40 @@ Listed below is all data types, also known as values, employed by Lmao both on t
 
 ### <a name = "stack-types"></a> 2.1 Stack Data Types
 #### [**Return to Table of Contents**](#toc)
+Stack data types are data types directly pushed to the stack and not tied to the heap in any way, either to live on the heap or as box data types. These data types are purely primitives. 
+
+Here are all of them:
+- isize
+	- A signed integer optimized to the word size of the given machine's CPU architecture. On most modern machines, isize would be a signed 64 bit integer but earlier systems might have it be a signed 32 bit integer. 
+	- Thus, on modern systems, isize ranges from -2^31 to 2^31 - 1 or `-9223372036854775808` to `9223372036854775807`.
+	- To push an isize to the stack, simply type a positive or negative number in the given range. This is also the default type for integers so you can just type the number alone and it will read it in as an integer. Example `42` is read as an isize. If you want to guarantee that the given number is an isize, you can push it like so: `42isize` which explicitly states that the value pushed is of type isize.  
+- i8
+	- A signed eight bit integer.  
+	- Ranges from -2^7 to 2^7 - 1 or `-128` to `127`.
+	- To push an i8 to the stack, you write an integer in the given range and indicate clearly that it's an i8 like so: `23i8`. Unlike isize, i8 is not the default and so must be explicitly stated that it's an i8 like in the given example.
+- i16
+	- A signed sixteen bit integer.
+	- Ranges from -2^15 to 2^15 - 1 or `-32768` to `32767`.
+	- To push an i16 to the stack, type out an integer and concatenate its data type like so: `5040i16`.
+- i32
+	- A signed thirty two bit integer.
+	- Ranges from -2^31 to 2^31 - 1 or `-2147483648` to `2147483647` 
+	- To push an i32 to the stack, type out an integer and concatenate its data type like so: `1000000000i32`.
+- i64
+	- A signed sixty four bit integer.
+	- Ranges from -2^63 to 2^63 - 1 or `-9223372036854775808` to `9223372036854775807`. 
+	- To push an i64 to the stack, type out an integer and concatenate its data type like so: `29998559671349i64`.
+- i128
+	- A signed one hundred and twenty eight bit integer.
+	- Ranges from -2^127 to 2^127 - 1 or `-170141183460469231731687303715884105728` to `170141183460469231731687303715884105727`. 
+	- To push an i128 to the stack, type out an integer and concatenate its data type like so: `999888777666555444333222111000i128`.
+	- Such a colossal number is rarely needed but it's nice to have. 
+
+### <a name = "heap-types"></a> 2.2 Heap Data Types
+#### [**Return to Table of Contents**](#toc)
 XXX
 
-### <a name = "heap-types"></a> 2.2 Heap-Related Data Types
+### <a name = "box-types"></a> 2.3 Box Data Types
 #### [**Return to Table of Contents**](#toc)
 XXX
 
