@@ -117,6 +117,18 @@ Floating Points:
 		- The case doesn't actually matter, as long as you spell it right and have `f64` at the end.
 		- Valid examples: `INFf64` `NANf64` `inff64` `nanf64` `Inff64` `Nanf64` `InFf64` `NaNf64`, and more.
 
+- Char
+	- An unsigned 32 bit integer encoded into a specific Unicode character value. 
+	- Though an integer under the hood, it looks like a single character when pushed to and shown on the stack. 
+	- To push a Char to the stack, you encase a valid character inside two apostrophes like so: `'9'`.
+	- To push whitespace Chars, the escape character "\" can be used like so: `'\n'` `'\t'` `'\r'` `'\0'`, and more.
+	- Since Char supports full Unicode, non-ascii symbols can also be in characters like emojis, foreign characters, etc. For example: `'😄'` `'十'`, etc.
+- Boolean
+	- An unsinged eight bit integer under the hood but only occupies two possible values of `true` or `false`. 
+	- To push a Boolean to the stack, simply push like so: `true` or `false`.
+	- Capitalization also doesn't matter so you can push a Boolean like this too: `True` or `False`.
+	- This is just to have more options, they both mean the same.
+
 ### <a name = "heap-types"></a> 2.2 Heap Data Types
 #### [**Return to Table of Contents**](#toc)
 XXX
@@ -284,4 +296,4 @@ Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis 
 Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.
 
 
-### [**Return to Table of Contents**](#toc)
+### [**Return to Table of Contents**](#toc)s
