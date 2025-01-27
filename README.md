@@ -35,17 +35,18 @@ What's an `isize`? What are operators? All in good time. The point is that the p
 
 ## <a name = "data-types"></a> 2 Data Types Used
 ### [**Return to Table of Contents**](#toc)
-Listed below is all data types, also known as values, employed by Lmao both on the stack and the heap. The main difference between stack and heap values is that the stack values are pushed directly to the stack while heap values are allocated on the heap and a box type is pushed instead. The following sections explain both main types. 
+Listed below is all data types, also known as values, employed by Lmao both on the stack and the heap. The main difference between stack and heap values is that the stack values are pushed directly to the stack while heap values are allocated on the heap and a box type is pushed instead. The following sections explain both main types and what boxes are.
 
 ### <a name = "stack-types"></a> 2.1 Stack Data Types
 #### [**Return to Table of Contents**](#toc)
 Stack data types are data types directly pushed to the stack and not tied to the heap in any way, either to live on the heap or as box data types. These data types are purely primitives. 
 
 Here are all of them:
+Signed Integers:
 - isize
 	- A signed integer optimized to the word size of the given machine's CPU architecture. On most modern machines, isize would be a signed 64 bit integer but earlier systems might have it be a signed 32 bit integer. 
 	- Thus, on modern systems, isize ranges from -2^31 to 2^31 - 1 or `-9223372036854775808` to `9223372036854775807`.
-	- To push an isize to the stack, simply type a positive or negative number in the given range. This is also the default type for integers so you can just type the number alone and it will read it in as an integer. Example `42` is read as an isize. If you want to guarantee that the given number is an isize, you can push it like so: `42isize` which explicitly states that the value pushed is of type isize.  
+	- To push an isize to the stack, simply type a positive or negative whole number (integer) in the given range. This is also the default type for integers so you can just type the number alone and it will read it in as an integer. Example `42` is read as an isize. If you want to guarantee that the given number is an isize, you can push it like so: `42isize` which explicitly states that the value pushed is of type isize.  
 - i8
 	- A signed eight bit integer.  
 	- Ranges from -2^7 to 2^7 - 1 or `-128` to `127`.
@@ -65,6 +66,33 @@ Here are all of them:
 - i128
 	- A signed one hundred and twenty eight bit integer.
 	- Ranges from -2^127 to 2^127 - 1 or `-170141183460469231731687303715884105728` to `170141183460469231731687303715884105727`. 
+	- To push an i128 to the stack, type out an integer and concatenate its data type like so: `999888777666555444333222111000i128`.
+	- Such a colossal number is rarely needed but it's nice to have. 
+
+Unsigned Integers:
+- usize
+	- An unsigned integer optimized to the word size of the given machine's CPU architecture. On most modern machines, usize would be an unsigned 64 bit integer but earlier systems might have it be an unsigned 32 bit integer. 
+	- Thus, on modern systems, usize ranges from 0 to 2^32 - 1 or `0` to `18446744073709551615`.
+	- To push a usize to the stack, simply type a positive whole number (integer) in the given range like so: `2319usize`. Unlike isize, usize is not the default integer to be interpreted so you have to explicitly say that the value being pushed is a usize, as demonstrated.
+- u8
+	- An unsigned eight bit integer.  
+	- Ranges from 0 to 2^8 - 1 or `0` to `255`.
+	- To push a u8 to the stack, you write an integer in the given range and indicate clearly that it's a u8 like so: `225u8`.
+- u16
+	- An unsigned sixteen bit integer.
+	- Ranges from 0 to 2^16 - 1 or `0` to `65535`.
+	- To push a u16 to the stack, type out a positive integer and concatenate its data type like so: `49999u16`.
+- u32
+	- An usigned thirty two bit integer.
+	- Ranges from 0 to 2^32 - 1 or `0` to `4294967295` 
+	- To push a u32 to the stack, type out a positive integer and concatenate its data type like so: `3297486222u32`.
+- u64
+	- An unsigned sixty four bit integer.
+	- Ranges from 0 to 2^64 - 1 or `0` to `18446744073709551615`. 
+	- To push a u64 to the stack, type out an integer and concatenate its data type like so: `5040u64`.
+- u128
+	- An unsigned one hundred and twenty eight bit integer.
+	- Ranges from 0 to 2^128 - 1 or `0` to `340282366920938463463374607431768211455`. 
 	- To push an i128 to the stack, type out an integer and concatenate its data type like so: `999888777666555444333222111000i128`.
 	- Such a colossal number is rarely needed but it's nice to have. 
 
