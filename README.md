@@ -96,6 +96,27 @@ Unsigned Integers:
 	- To push an i128 to the stack, type out an integer and concatenate its data type like so: `999888777666555444333222111000i128`.
 	- Such a colossal number is rarely needed but it's nice to have. 
 
+Floating Points:
+- f32
+	- A thirty-two bit floating point number.
+	- With 1 bit for the sign, 8 bits for the exponent (biased by 127 for special values), and 23 bits for the mantissa, a range of `-3.4028235e+38` to `3.4028235e+38` is possible.
+	- To push an f32 to the stack, type out a floating point number. Since f32 is the default data type for floats, you can just type it without indicating the type, unless you're typing an integer, then it will think it's an isize so indication is required then. 
+	- Valid ways to push: `3.14` `6f32` `3.14f32` `6.02e23` `1e30f32`
+	- Generally, if there's no decimal point, add an `f32` to the end of the number just to be sure.
+	- You can also do two non-number types like `inf` and `NaN`
+		- To push these, you have to put `f32` at the end, otherwise it'll just think you're trying to type an operator.
+		- The case doesn't actually matter, as long as you spell it right and have `f32` at the end.
+		- Valid examples: `INFf32` `NANf32` `inff32` `nanf32` `Inff32` `Nanf32` `InFf32` `NaNf32`, and more.
+- f64
+	- A sixty-four bit floating point number.
+	- With 1 bit for the sign, 11 bits for the exponent (biased by 1023 for special values), and 52 bits for the mantissa, a range of `-1.7976931348623157e+308` to `1.7976931348623157e+308` is possible.
+	- To push an f64 to the stack, type out a number that can include a decimal point and concatenate `f64` to it. Since f64 isn't the default float, you have to indicate that you're pushing an f64 using `f64` at the end.
+	- Valid ways to push: `42f64` `1e+100f64` `6.02e23f64` `0.0000000002f64` `1.5f64`
+	- You can also do two non-number types like `inf` and `NaN`
+		- To push these, you have to put `f64` at the end, otherwise it'll just think you're trying to type an operator.
+		- The case doesn't actually matter, as long as you spell it right and have `f64` at the end.
+		- Valid examples: `INFf64` `NANf64` `inff64` `nanf64` `Inff64` `Nanf64` `InFf64` `NaNf64`, and more.
+
 ### <a name = "heap-types"></a> 2.2 Heap Data Types
 #### [**Return to Table of Contents**](#toc)
 XXX
