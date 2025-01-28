@@ -11,8 +11,6 @@
 - [3 Operators](#ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
-
-
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
 
@@ -131,8 +129,32 @@ Floating Points:
 
 ### <a name = "heap-types"></a> 2.2 Heap Data Types
 #### [**Return to Table of Contents**](#toc)
-XXX
 
+Instead of being allocated on the stack directly, heap values are written to Lmao's heap, which is an arena, and pushes a box data type pointing to the heap allocated value. Box data types will be explained in the following section. 
+
+These are all the heap data types:
+- String
+	- A collection of bytes encoded in UTF-8 and displayed as text when printed. 
+	- Used in reading and writing user input, and reading and writing files.
+	- To allocate a string to be used, type out a set of text in double-quotes like so: `"Hello, world!"`
+	- Be aware that to type double quotes inside a string, you have to use the backslash escape character to make it work.
+	- Following pushing such a string, the stack will be holding a StringBox pointing to the String on the heap. 
+- List
+	- A collection of stack data types and box data types stored contiguously. 
+	- Lists can be efficiently indexed.
+	- This data type is like Python's lists.
+	- At present, there's no way to push a list with stuff on it so an empty list is the only option to allocate a new list. From there, operators can be used to push data to the list.
+	- To allocate a new list, simply type out the empty list construction like so: `[]`. This creates a brand-new empty list that can store whatever you want. It doesn't care about mixtures of data types. The final stack will then have a ListBox on it.
+- Object
+	- Used to store key-value pairs of Strings to stack data types or box data types. 
+	- These work like JavaScript's objects and can be used for some object oriented programming.
+	- Like Lists, there is no way to create an Object with stuff on it, so an empty object has to be pushed and special operators are needed to then add and alter fields in it.
+	- To create an empty object, simply push the empty Object constructor like so: `{}`.
+	- The empty Object will then be placed on the heap with an ObjectBox on the stack.
+- Primitive
+	- Used by MiscBoxes to store stack data types and box data types on the heap rather than on the stack. 
+	- This is useful for nested boxes that allow for the equivalent of multi-level pointers seen in other languages. 
+	- A Primitive heap value is only allocated after using the `box make ;` fancy operator with something on the stack to encapsulate on the heap.
 ### <a name = "box-types"></a> 2.3 Box Data Types
 #### [**Return to Table of Contents**](#toc)
 XXX
