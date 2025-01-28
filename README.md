@@ -33,6 +33,8 @@ What's an `isize`? What are operators? All in good time. The point is that the p
 
 ## <a name = "data-types"></a> 2 Data Types Used
 ### [**Return to Table of Contents**](#toc)
+An important thing to note is that Lmao is statically typed, meaning that types can't easily change into each other as operations occur. This means that an isize can't implicity become an f32, for example. Instead, explicit casting must be used. This just makes code more consistent and less prone to bugs. 
+
 Listed below is all data types, also known as values, employed by Lmao both on the stack and the heap. The main difference between stack and heap values is that the stack values are pushed directly to the stack while heap values are allocated on the heap and a box type is pushed instead. The following sections explain both main types and what boxes are.
 
 ### <a name = "stack-types"></a> 2.1 Stack Data Types
@@ -157,7 +159,28 @@ These are all the heap data types:
 	- A Primitive heap value is only allocated after using the `box make ;` fancy operator with something on the stack to encapsulate on the heap.
 ### <a name = "box-types"></a> 2.3 Box Data Types
 #### [**Return to Table of Contents**](#toc)
-XXX
+
+Box data types are values that live on the stack but point to values held by the heap. Thus, box types serve as a sort of middle-man, allowing the stack to stay lightweight but still have access to more complex heap values. The general format of a box on the stack is: (SOMETHING)Box n, where n represents the index the data stored by the box lives at on the stack. For instance, after pushing the String `"Hello, world!"`, the stack will have `StringBox 0`, this means that the heap is holding a String at index 0 on the heap. It is possible for boxes to be invalid since freeing is a thing that can happen. In that case, printing from the stack will indicate invalidity like so: `StringBox 0 [INVALID]`. Freeing and box operators in general will be discussed in their own section later on. 
+
+Here are all of the box types:
+- StringBox
+	- Is used to hold Strings.
+	- Is pushed to the stack after a String is given to be stored on the heap.
+- ListBox
+	- Used to hold Lists.
+	- Pushed after empty List construct is given.
+- ObjectBox
+	- Used to hold Objects. 
+	- Pushed after empty Object construct is given.
+- MiscBox
+	- Used to hold whatever is at the top of the stack.
+	- Created using the `box make ;` fancy operator.
+	- Useful for creating nested pointers and other custom boxes.
+- NULLBox
+	- A placeholder box that can be stored in places to indicate that a box will go there just not right now.
+	- Can turn into StringBox, ListBox, ObjectBox, MiscBox, and even itself. 
+	- All other box types can turn into NULLBox.
+	- Created using `box null ;` fancy operator.
 
 ## <a name = "ops"></a> 3 Operators
 
