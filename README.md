@@ -9,6 +9,7 @@
 	- [2.2 Heap Data Types](#heap-types)
 	- [2.3 Box Data Types](#box-types)
 - [3 Operators](#ops)
+	- [3.1 Math Operators](#math-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -183,76 +184,252 @@ Here are all of the box types:
 	- Created using `box null ;` fancy operator.
 
 ## <a name = "ops"></a> 3 Operators
-
-
-Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
-
-Sit quia cum tempora natus commodi deserunt sunt et. Sed unde voluptatibus impedit eaque dolorem quisquam perspiciatis. Ullam voluptas alias praesentium libero assumenda occaecati ut. Nesciunt consectetur sunt enim quia assumenda. In iusto error et delectus officiis.
-
-Voluptatibus architecto sed recusandae laboriosam voluptatem harum voluptates facilis. Quis error fugiat tempore vel perspiciatis laborum voluptatem. Qui est cupiditate repellat autem. Nisi commodi odio est laudantium. In earum cum ipsam voluptas iure ad.
-
-Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis doloremque quaerat. Maxime quia rem provident quia natus velit architecto amet. Eos fuga sit ducimus aliquid voluptatem rerum aspernatur.
-
-Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
-
-Sit quia cum tempora natus commodi deserunt sunt et. Sed unde voluptatibus impedit eaque dolorem quisquam perspiciatis. Ullam voluptas alias praesentium libero assumenda occaecati ut. Nesciunt consectetur sunt enim quia assumenda. In iusto error et delectus officiis.
-
-Voluptatibus architecto sed recusandae laboriosam voluptatem harum voluptates facilis. Quis error fugiat tempore vel perspiciatis laborum voluptatem. Qui est cupiditate repellat autem. Nisi commodi odio est laudantium. In earum cum ipsam voluptas iure ad.
-
-Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis doloremque quaerat. Maxime quia rem provident quia natus velit architecto amet. Eos fuga sit ducimus aliquid voluptatem rerum aspernatur.
-
-Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
-
-Sit quia cum tempora natus commodi deserunt sunt et. Sed unde voluptatibus impedit eaque dolorem quisquam perspiciatis. Ullam voluptas alias praesentium libero assumenda occaecati ut. Nesciunt consectetur sunt enim quia assumenda. In iusto error et delectus officiis.
-
-Voluptatibus architecto sed recusandae laboriosam voluptatem harum voluptates facilis. Quis error fugiat tempore vel perspiciatis laborum voluptatem. Qui est cupiditate repellat autem. Nisi commodi odio est laudantium. In earum cum ipsam voluptas iure ad.
-
-Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis doloremque quaerat. Maxime quia rem provident quia natus velit architecto amet. Eos fuga sit ducimus aliquid voluptatem rerum aspernatur.
-
-Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
-
-Sit quia cum tempora natus commodi deserunt sunt et. Sed unde voluptatibus impedit eaque dolorem quisquam perspiciatis. Ullam voluptas alias praesentium libero assumenda occaecati ut. Nesciunt consectetur sunt enim quia assumenda. In iusto error et delectus officiis.
-
-Voluptatibus architecto sed recusandae laboriosam voluptatem harum voluptates facilis. Quis error fugiat tempore vel perspiciatis laborum voluptatem. Qui est cupiditate repellat autem. Nisi commodi odio est laudantium. In earum cum ipsam voluptas iure ad.
-
-Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis doloremque quaerat. Maxime quia rem provident quia natus velit architecto amet. Eos fuga sit ducimus aliquid voluptatem rerum aspernatur.
-
-Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
-
-Sit quia cum tempora natus commodi deserunt sunt et. Sed unde voluptatibus impedit eaque dolorem quisquam perspiciatis. Ullam voluptas alias praesentium libero assumenda occaecati ut. Nesciunt consectetur sunt enim quia assumenda. In iusto error et delectus officiis.
-
-Voluptatibus architecto sed recusandae laboriosam voluptatem harum voluptates facilis. Quis error fugiat tempore vel perspiciatis laborum voluptatem. Qui est cupiditate repellat autem. Nisi commodi odio est laudantium. In earum cum ipsam voluptas iure ad.
-
-Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis doloremque quaerat. Maxime quia rem provident quia natus velit architecto amet. Eos fuga sit ducimus aliquid voluptatem rerum aspernatur.
-
-Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
-
-Sit quia cum tempora natus commodi deserunt sunt et. Sed unde voluptatibus impedit eaque dolorem quisquam perspiciatis. Ullam voluptas alias praesentium libero assumenda occaecati ut. Nesciunt consectetur sunt enim quia assumenda. In iusto error et delectus officiis.
-
-Voluptatibus architecto sed recusandae laboriosam voluptatem harum voluptates facilis. Quis error fugiat tempore vel perspiciatis laborum voluptatem. Qui est cupiditate repellat autem. Nisi commodi odio est laudantium. In earum cum ipsam voluptas iure ad.
-
-Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis doloremque quaerat. Maxime quia rem provident quia natus velit architecto amet. Eos fuga sit ducimus aliquid voluptatem rerum aspernatur.
-
-Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
-
-Sit quia cum tempora natus commodi deserunt sunt et. Sed unde voluptatibus impedit eaque dolorem quisquam perspiciatis. Ullam voluptas alias praesentium libero assumenda occaecati ut. Nesciunt consectetur sunt enim quia assumenda. In iusto error et delectus officiis.
-
-Voluptatibus architecto sed recusandae laboriosam voluptatem harum voluptates facilis. Quis error fugiat tempore vel perspiciatis laborum voluptatem. Qui est cupiditate repellat autem. Nisi commodi odio est laudantium. In earum cum ipsam voluptas iure ad.
-
-Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis doloremque quaerat. Maxime quia rem provident quia natus velit architecto amet. Eos fuga sit ducimus aliquid voluptatem rerum aspernatur.
-
-Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.
-Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
-
-Sit quia cum tempora natus commodi deserunt sunt et. Sed unde voluptatibus impedit eaque dolorem quisquam perspiciatis. Ullam voluptas alias praesentium libero assumenda occaecati ut. Nesciunt consectetur sunt enim quia assumenda. In iusto error et delectus officiis.
-
-Voluptatibus architecto sed recusandae laboriosam voluptatem harum voluptates facilis. Quis error fugiat tempore vel perspiciatis laborum voluptatem. Qui est cupiditate repellat autem. Nisi commodi odio est laudantium. In earum cum ipsam voluptas iure ad.
-
-Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis doloremque quaerat. Maxime quia rem provident quia natus velit architecto amet. Eos fuga sit ducimus aliquid voluptatem rerum aspernatur.
-
-Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.
-
 ### [**Return to Table of Contents**](#toc)
+Operators are how Lmao gets things done. Operators take values held on the stack, consume them, and produce new ones. They're kind of like functions in other languages. Some operators take no operands and produce nothing on the stack while some only push things to the stack. Generally though, it's an input output scheme.  
+
+### <a name = "math-ops"></a>3.1 Math Operators
+#### [**Return to Table of Contents**](#toc)
+These operators are used to perform calculations in Lmao, from the four basic arithmetic operators to data type specific maxima, and beyond.
+
+These are the operators involved:
+- `+`
+	- Performance: O(1)
+	- Consumes two matching types that are integers or floats and pushes a value on the stack that is the result of the two being added together.
+	- For integers, the `+` operator does allow overflow so be careful about that.
+
+- Example Program:
+
+	```
+	2 3 +
+	3.14 2.718 +
+	5e100f64 6e100f64 +
+	22u8 1u8 +
+	//Overflow!
+	255u8 1u8 +
+	
+	//Indirect subtraction.
+	1i32 -1i32 +
+	
+	//Displays the stack to stdout.
+	debugPrintStack
+	```
+- Resulting Stack: 
+
+	```
+	--------------------------------
+	BEGIN STACK PRINT
+	--------------------------------
+	isize 5
+	f32 5.858
+	f64 1.1e101
+	u8 23
+	u8 0
+	i32 0
+	--------------------------------
+	STACK LENGTH: 6
+	--------------------------------
+	END STACK PRINT
+	--------------------------------
+	```
+
+- `-`
+	- Performance: O(1)
+	- Consumes two matching types that are integers or floats subtracts the top from the second to top item and pushes the resulting subtracted number.
+	- For integers, the `-` operator does allow underflow so be careful about that.
+
+- Example Program:
+
+	```
+	2 3 -
+	3.14 2.718 -
+	5e100f64 6e100f64 -
+	22u8 1u8 -
+	//Underflow!
+	0u8 1u8 -
+
+	//Indirect addition.
+	1i32 -1i32 +
+
+	//Displays the stack to stdout.
+	debugPrintStack
+	```
+- Resulting Stack: 
+
+	```
+	--------------------------------
+	BEGIN STACK PRINT
+	--------------------------------
+	isize -1
+	f32 0.42200017
+	f64 -9.999999999999998e99
+	u8 21
+	u8 255
+	i32 0
+	--------------------------------
+	STACK LENGTH: 6
+	--------------------------------
+	END STACK PRINT
+	--------------------------------
+	```
+
+- `*`
+	- Performance: O(1)
+	- Consumes two matching types that are integers or floats on the stack, multiplies them, and pushes the result.
+	- For integers, the `*` operator does allow overflow so be careful about that. 
+
+- Example Program:
+
+	```
+	6 7 *
+	7 6 5 4 3 2 1 * * * * * * //Seven factorial
+
+	3.14f64 3.14f64 *
+
+	//Overflow!
+	128u8 2u8 * 
+	
+	//Displays the stack to stdout.
+	debugPrintStack
+	```
+- Resulting Stack: 
+
+	```
+	--------------------------------
+	BEGIN STACK PRINT
+	--------------------------------
+	isize 42
+	isize 5040
+	f64 9.8596
+	u8 0
+	--------------------------------
+	STACK LENGTH: 4
+	--------------------------------
+	END STACK PRINT
+	--------------------------------
+	```
+
+- `/`
+	- Performance: O(1)
+	- Consumes two matching types that are integers or floats on the stack, divides the second to top item by the top and pushes the result. 
+	- Overflow can probably still happen though is less likely.
+
+- Example Program:
+
+	```
+	//Integer division.
+	3 2 / 
+
+	//Floating point division.
+	3.0 2.0 / 
+
+	3.14159265358979323f64 2.718f64 / 
+
+	5040.0 12.0 / 
+
+	//Displays the stack to stdout.
+	debugPrintStack
+	```
+- Resulting Stack: 
+
+	```
+	--------------------------------
+	BEGIN STACK PRINT
+	--------------------------------
+	isize 1
+	f32 1.5
+	f64 1.1558471867512117
+	f32 420
+	--------------------------------
+	STACK LENGTH: 4
+	--------------------------------
+	END STACK PRINT
+	--------------------------------
+	```
+
+- `mod` or `%`
+	- Performance: O(1)
+	- Consumes two items from the stack of matching integer types, uses the top item to perform modulo on the second to top item, and pushes the result.
+	- Modulo is the process of performing an integer division and focusing only on the remainder, rather than the resulting whole number, i.e. 5 mod 2 is 1 since 1 is the remainder.
+
+- Example Program:
+
+	```
+	5usize 2usize mod
+
+	//Basic leap year test for 2025.
+	// (It's not a leap year)
+	2025 4 mod
+
+	//% is also a valid symbol for mod operator.
+	931 27 %
+
+	23u8 23u8 mod
+
+	5040 33 %
+
+	2048 8 mod
+
+	//Displays the stack to stdout.
+	debugPrintStack
+	```
+- Resulting Stack: 
+
+	```
+	--------------------------------
+	BEGIN STACK PRINT
+	--------------------------------
+	usize 1
+	isize 1
+	isize 13
+	u8 0
+	isize 24
+	isize 0
+	--------------------------------
+	STACK LENGTH: 6
+	--------------------------------
+	END STACK PRINT
+	--------------------------------
+	```
+
+- `pow`
+	- Performance: O(1)
+	- Consumes two matching floating point types from the stack, exponentiates the second to top value by the top value and pushes the result.
+	- In other words, this is what can be used to raise a number to the power of something. This also works for taking square roots.
+
+- Example Program:
+
+	```
+	2.0 3.0 pow
+
+	2.0f64 10f64 pow
+
+	4761f32 0.5 pow
+
+	2025f32 0.5 pow
+
+	//Cubic root.
+	8.0 0.3333333333333 pow
+
+	//Displays the stack to stdout.
+	debugPrintStack
+	```
+- Resulting Stack: 
+
+	```
+	--------------------------------
+	BEGIN STACK PRINT
+	--------------------------------
+	f32 8
+	f64 1024
+	f32 69
+	f32 45
+	f32 2
+	--------------------------------
+	STACK LENGTH: 5
+	--------------------------------
+	END STACK PRINT
+	--------------------------------
+	```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
