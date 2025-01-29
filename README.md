@@ -206,7 +206,10 @@ These are the operators involved:
 	22u8 1u8 +
 	//Overflow!
 	255u8 1u8 +
-	
+
+	//Floats being funny.
+	0.1f64 0.2f64 +
+
 	//Indirect subtraction.
 	1i32 -1i32 +
 	
@@ -224,9 +227,10 @@ These are the operators involved:
 	f64 1.1e101
 	u8 23
 	u8 0
+	f64 0.30000000000000004
 	i32 0
 	--------------------------------
-	STACK LENGTH: 6
+	STACK LENGTH: 7
 	--------------------------------
 	END STACK PRINT
 	--------------------------------
