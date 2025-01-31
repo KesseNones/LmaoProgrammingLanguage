@@ -10,6 +10,7 @@
 	- [2.3 Box Data Types](#box-types)
 - [3 Operators](#ops)
 	- [3.1 Math Operators](#math-ops)
+	- [3.2 Maximum Integer Operators](#max-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -434,6 +435,56 @@ These are the operators involved:
 	END STACK PRINT
 	--------------------------------
 	```
+
+### <a name = "max-ops"></a>3.2 Maximum Integer Operators
+#### [**Return to Table of Contents**](#toc)
+- These operators are useful for finding the exact parameters maximum values of integers. These operators are very simple, pushing the max value of their given data type to the stack. This can then be used to find the minimum value of the given data type by doing a bitwise not of the max using  the `bitNot` operator.
+- For the sake of conciseness, all max operators work the same so they're all shown in the example program below. Otherwise it's a repetition of a lot of the same information.
+- Example Program:
+
+	```
+	isizeMax
+	i8Max
+	i16Max
+	i32Max
+	i64Max
+	i128Max
+	
+	usizeMax
+	u8Max
+	u16Max
+	u32Max
+	u64Max
+	u128Max
+
+	debugPrintStack
+	```
+- Resulting Stack:
+
+	```
+	--------------------------------
+	BEGIN STACK PRINT
+	--------------------------------
+	isize 9223372036854775807
+	i8 127
+	i16 32767
+	i32 2147483647
+	i64 9223372036854775807
+	i128 170141183460469231731687303715884105727
+	usize 18446744073709551615
+	u8 255
+	u16 65535
+	u32 4294967295
+	u64 18446744073709551615
+	u128 340282366920938463463374607431768211455
+	--------------------------------
+	STACK LENGTH: 12
+	--------------------------------
+	END STACK PRINT
+	--------------------------------
+	```
+
+- isize and usize would be smaller on your machine if you use a 32-bit architecture.
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
