@@ -11,6 +11,7 @@
 - [3 Operators](#ops)
 	- [3.1 Math Operators](#math-ops)
 	- [3.2 Maximum Integer Operators](#max-ops)
+	- [3.3 Stack Operators](#stack-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -198,243 +199,243 @@ These are the operators involved:
 	- Consumes two matching types that are integers or floats and pushes a value on the stack that is the result of the two being added together.
 	- For integers, the `+` operator does allow overflow so be careful about that.
 
-- Example Program:
-
-	```
-	2 3 +
-	3.14 2.718 +
-	5e100f64 6e100f64 +
-	22u8 1u8 +
-	//Overflow!
-	255u8 1u8 +
-
-	//Floats being funny.
-	0.1f64 0.2f64 +
-
-	//Indirect subtraction.
-	1i32 -1i32 +
+	- Example Program:
 	
-	//Displays the stack to stdout.
-	debugPrintStack
-	```
-- Resulting Stack: 
-
-	```
-	--------------------------------
-	BEGIN STACK PRINT
-	--------------------------------
-	isize 5
-	f32 5.858
-	f64 1.1e101
-	u8 23
-	u8 0
-	f64 0.30000000000000004
-	i32 0
-	--------------------------------
-	STACK LENGTH: 7
-	--------------------------------
-	END STACK PRINT
-	--------------------------------
-	```
+		```
+		2 3 +
+		3.14 2.718 +
+		5e100f64 6e100f64 +
+		22u8 1u8 +
+		//Overflow!
+		255u8 1u8 +
+	
+		//Floats being funny.
+		0.1f64 0.2f64 +
+	
+		//Indirect subtraction.
+		1i32 -1i32 +
+		
+		//Displays the stack to stdout.
+		debugPrintStack
+		```
+	- Resulting Output: 
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 5
+		f32 5.858
+		f64 1.1e101
+		u8 23
+		u8 0
+		f64 0.30000000000000004
+		i32 0
+		--------------------------------
+		STACK LENGTH: 7
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 - `-`
 	- Performance: O(1)
 	- Consumes two matching types that are integers or floats subtracts the top from the second to top item and pushes the resulting subtracted number.
 	- For integers, the `-` operator does allow underflow so be careful about that.
 
-- Example Program:
-
-	```
-	2 3 -
-	3.14 2.718 -
-	5e100f64 6e100f64 -
-	22u8 1u8 -
-	//Underflow!
-	0u8 1u8 -
-
-	//Indirect addition.
-	1i32 -1i32 +
-
-	//Displays the stack to stdout.
-	debugPrintStack
-	```
-- Resulting Stack: 
-
-	```
-	--------------------------------
-	BEGIN STACK PRINT
-	--------------------------------
-	isize -1
-	f32 0.42200017
-	f64 -9.999999999999998e99
-	u8 21
-	u8 255
-	i32 0
-	--------------------------------
-	STACK LENGTH: 6
-	--------------------------------
-	END STACK PRINT
-	--------------------------------
-	```
+	- Example Program:
+	
+		```
+		2 3 -
+		3.14 2.718 -
+		5e100f64 6e100f64 -
+		22u8 1u8 -
+		//Underflow!
+		0u8 1u8 -
+	
+		//Indirect addition.
+		1i32 -1i32 +
+	
+		//Displays the stack to stdout.
+		debugPrintStack
+		```
+	- Resulting Output: 
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize -1
+		f32 0.42200017
+		f64 -9.999999999999998e99
+		u8 21
+		u8 255
+		i32 0
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 - `*`
 	- Performance: O(1)
 	- Consumes two matching types that are integers or floats on the stack, multiplies them, and pushes the result.
 	- For integers, the `*` operator does allow overflow so be careful about that. 
 
-- Example Program:
-
-	```
-	6 7 *
-	7 6 5 4 3 2 1 * * * * * * //Seven factorial
-
-	3.14f64 3.14f64 *
-
-	//Overflow!
-	128u8 2u8 * 
+	- Example Program:
 	
-	//Displays the stack to stdout.
-	debugPrintStack
-	```
-- Resulting Stack: 
-
-	```
-	--------------------------------
-	BEGIN STACK PRINT
-	--------------------------------
-	isize 42
-	isize 5040
-	f64 9.8596
-	u8 0
-	--------------------------------
-	STACK LENGTH: 4
-	--------------------------------
-	END STACK PRINT
-	--------------------------------
-	```
+		```
+		6 7 *
+		7 6 5 4 3 2 1 * * * * * * //Seven factorial
+	
+		3.14f64 3.14f64 *
+	
+		//Overflow!
+		128u8 2u8 * 
+		
+		//Displays the stack to stdout.
+		debugPrintStack
+		```
+	- Resulting Output: 
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 42
+		isize 5040
+		f64 9.8596
+		u8 0
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 - `/`
 	- Performance: O(1)
 	- Consumes two matching types that are integers or floats on the stack, divides the second to top item by the top and pushes the result. 
 	- Overflow can probably still happen though is less likely.
 
-- Example Program:
-
-	```
-	//Integer division.
-	3 2 / 
-
-	//Floating point division.
-	3.0 2.0 / 
-
-	3.14159265358979323f64 2.718f64 / 
-
-	5040.0 12.0 / 
-
-	//Displays the stack to stdout.
-	debugPrintStack
-	```
-- Resulting Stack: 
-
-	```
-	--------------------------------
-	BEGIN STACK PRINT
-	--------------------------------
-	isize 1
-	f32 1.5
-	f64 1.1558471867512117
-	f32 420
-	--------------------------------
-	STACK LENGTH: 4
-	--------------------------------
-	END STACK PRINT
-	--------------------------------
-	```
+	- Example Program:
+	
+		```
+		//Integer division.
+		3 2 / 
+	
+		//Floating point division.
+		3.0 2.0 / 
+	
+		3.14159265358979323f64 2.718f64 / 
+	
+		5040.0 12.0 / 
+	
+		//Displays the stack to stdout.
+		debugPrintStack
+		```
+	- Resulting Output: 
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 1
+		f32 1.5
+		f64 1.1558471867512117
+		f32 420
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 - `mod` or `%`
 	- Performance: O(1)
 	- Consumes two items from the stack of matching integer types, uses the top item to perform modulo on the second to top item, and pushes the result.
 	- Modulo is the process of performing an integer division and focusing only on the remainder, rather than the resulting whole number, i.e. 5 mod 2 is 1 since 1 is the remainder.
 
-- Example Program:
-
-	```
-	5usize 2usize mod
-
-	//Basic leap year test for 2025.
-	// (It's not a leap year)
-	2025 4 mod
-
-	//% is also a valid symbol for mod operator.
-	931 27 %
-
-	23u8 23u8 mod
-
-	5040 33 %
-
-	2048 8 mod
-
-	//Displays the stack to stdout.
-	debugPrintStack
-	```
-- Resulting Stack: 
-
-	```
-	--------------------------------
-	BEGIN STACK PRINT
-	--------------------------------
-	usize 1
-	isize 1
-	isize 13
-	u8 0
-	isize 24
-	isize 0
-	--------------------------------
-	STACK LENGTH: 6
-	--------------------------------
-	END STACK PRINT
-	--------------------------------
-	```
+	- Example Program:
+	
+		```
+		5usize 2usize mod
+	
+		//Basic leap year test for 2025.
+		// (It's not a leap year)
+		2025 4 mod
+	
+		//% is also a valid symbol for mod operator.
+		931 27 %
+	
+		23u8 23u8 mod
+	
+		5040 33 %
+	
+		2048 8 mod
+	
+		//Displays the stack to stdout.
+		debugPrintStack
+		```
+	- Resulting Output: 
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 1
+		isize 1
+		isize 13
+		u8 0
+		isize 24
+		isize 0
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 - `pow`
 	- Performance: O(1)
 	- Consumes two matching floating point types from the stack, exponentiates the second to top value by the top value and pushes the result.
 	- In other words, this is what can be used to raise a number to the power of something. This also works for taking square roots.
 
-- Example Program:
-
-	```
-	2.0 3.0 pow
-
-	2.0f64 10f64 pow
-
-	4761f32 0.5 pow
-
-	2025f32 0.5 pow
-
-	//Cubic root.
-	8.0 0.3333333333333 pow
-
-	//Displays the stack to stdout.
-	debugPrintStack
-	```
-- Resulting Stack: 
-
-	```
-	--------------------------------
-	BEGIN STACK PRINT
-	--------------------------------
-	f32 8
-	f64 1024
-	f32 69
-	f32 45
-	f32 2
-	--------------------------------
-	STACK LENGTH: 5
-	--------------------------------
-	END STACK PRINT
-	--------------------------------
-	```
+	- Example Program:
+	
+		```
+		2.0 3.0 pow
+	
+		2.0f64 10f64 pow
+	
+		4761f32 0.5 pow
+	
+		2025f32 0.5 pow
+	
+		//Cubic root.
+		8.0 0.3333333333333 pow
+	
+		//Displays the stack to stdout.
+		debugPrintStack
+		```
+	- Resulting Output: 
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		f32 8
+		f64 1024
+		f32 69
+		f32 45
+		f32 2
+		--------------------------------
+		STACK LENGTH: 5
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ### <a name = "max-ops"></a>3.2 Maximum Integer Operators
 #### [**Return to Table of Contents**](#toc)
@@ -459,7 +460,7 @@ These are the operators involved:
 
 	debugPrintStack
 	```
-- Resulting Stack:
+- Resulting Output:
 
 	```
 	--------------------------------
@@ -485,6 +486,596 @@ These are the operators involved:
 	```
 
 - isize and usize would be smaller on your machine if you use a 32-bit architecture.
+
+### <a name = "stack-ops"></a>3.3 Stack Operators
+#### [**Return to Table of Contents**](#toc)
+Stack operators are the operators you use when directly manipulating the stack itself. Data types don't matter here, only the number of operands needed for each operator. 
+
+These are all of them:
+- `swap` 
+	- Performance: O(1)
+	- Given two items at the second-to-top and top of the stack, pops them both and pushes them to the stack in reverse-order. 
+	- General form: stack `x y` after `swap` becomes stack `y x`
+	- Example Program:
+
+		```
+		'a' 'b' debugPrintStack
+		swap debugPrintStack
+		
+		"foo" "bar" debugPrintStack
+		swap debugPrintStack
+		
+		[] {} debugPrintStack
+		swap debugPrintStack
+		```
+
+	- Resulting Output: 
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'a'
+		Char 'b'
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'b'
+		Char 'a'
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'b'
+		Char 'a'
+		StringBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'b'
+		Char 'a'
+		StringBox 1
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'b'
+		Char 'a'
+		StringBox 1
+		StringBox 0
+		ListBox 2
+		ObjectBox 3
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'b'
+		Char 'a'
+		StringBox 1
+		StringBox 0
+		ObjectBox 3
+		ListBox 2
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `drop` 
+	- Performance: O(1)
+	- Given an item at the top of the stack, removes it.
+	- Unlike other operators, this just erases a value from the stack, so be sure you either didn't need that value anymore or you save it in a variable or something.
+	- General form: stack `x` after `drop` becomes stack ``
+	- Example Program:
+
+		```
+		1 2 3 4 5 666 debugPrintStack
+		drop debugPrintStack
+		```
+
+	- Resulting Output: 
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 1
+		isize 2
+		isize 3
+		isize 4
+		isize 5
+		isize 666
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 1
+		isize 2
+		isize 3
+		isize 4
+		isize 5
+		--------------------------------
+		STACK LENGTH: 5
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `dropStack` 
+	- Performance: O(1)
+	- Clears the stack, regardless of its original state.
+	- This means that you can have anything or nothing on the stack and it will clear it all the same.
+	- Be aware that any boxes removed from the stack through this operation means that those boxes are lost and the memory is still on the heap. To remedy this, free boxes before doing this operation or save the respective box values to variables to be freed later.
+	- Example Program:
+
+		```
+		//Clears stack with stuff on it.
+		1 2 3 4 5 666 debugPrintStack
+		dropStack debugPrintStack
+		
+		//Does nothing to empty stack.
+		debugPrintStack dropStack debugPrintStack
+		
+		//Different set of stuff cleared off.
+		"foo" "bar" "baz" {} [] debugPrintStack
+		dropStack debugPrintStack
+		```
+
+	- Resulting Output: 
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 1
+		isize 2
+		isize 3
+		isize 4
+		isize 5
+		isize 666
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		--------------------------------
+		STACK LENGTH: 0
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		--------------------------------
+		STACK LENGTH: 0
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		--------------------------------
+		STACK LENGTH: 0
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		StringBox 1
+		StringBox 2
+		ObjectBox 3
+		ListBox 4
+		--------------------------------
+		STACK LENGTH: 5
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		--------------------------------
+		STACK LENGTH: 0
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `rot` 
+	- Performance: O(1)
+	- Given the existence of items in the top three elements of the stack, rot pops all three items, pushes the former top item, then pushes the other two in the same order they were in previously. 
+	- General form: stack `x y z` after `rot` becomes stack `z x y`
+	- Example Program:
+
+		```
+		'x' 'y' 'z' debugPrintStack
+		rot debugPrintStack
+		
+		1 2.718 3.14 debugPrintStack
+		rot debugPrintStack
+		
+		"foo" "bar" "baz" debugPrintStack
+		rot debugPrintStack
+		
+		```
+
+	- Resulting Output: 
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'y'
+		Char 'z'
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'z'
+		Char 'x'
+		Char 'y'
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'z'
+		Char 'x'
+		Char 'y'
+		isize 1
+		f32 2.718
+		f32 3.14
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'z'
+		Char 'x'
+		Char 'y'
+		f32 3.14
+		isize 1
+		f32 2.718
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'z'
+		Char 'x'
+		Char 'y'
+		f32 3.14
+		isize 1
+		f32 2.718
+		StringBox 0
+		StringBox 1
+		StringBox 2
+		--------------------------------
+		STACK LENGTH: 9
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'z'
+		Char 'x'
+		Char 'y'
+		f32 3.14
+		isize 1
+		f32 2.718
+		StringBox 2
+		StringBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 9
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `dup` 
+	- Performance: O(1)
+	- Given one item at the top of the stack, pops the item, duplicates it, and pushes both the original and clone to the stack. 
+	- General form: stack `x` after `dup` becomes stack `x x'` where `x'` is the same as `x`.
+	- For box types be aware that it doesn't copy the memory underneath; it only duplicates the box itself which is a constant time copy. Both the box and the copied box still have the same number and thus point to the same memory. The `dup` operator can also copy invalid boxes since all it does is just copy the box itself.
+	- Example Program:
+
+		```
+		'x' debugPrintStack dup debugPrintStack
+		
+		1 2 3 debugPrintStack dup debugPrintStack
+		
+		//Only copies box and not underlying memory!
+		"foo" debugPrintStack dup debugPrintStack
+		
+		//Can copy invalid boxes too!
+		[] dup box free ; debugPrintStack 
+		dup debugPrintStack
+		```
+
+	- Resulting Output: 
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		isize 1
+		isize 2
+		isize 3
+		--------------------------------
+		STACK LENGTH: 5
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		isize 1
+		isize 2
+		isize 3
+		isize 3
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		isize 1
+		isize 2
+		isize 3
+		isize 3
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 7
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		isize 1
+		isize 2
+		isize 3
+		isize 3
+		StringBox 0
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 8
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		isize 1
+		isize 2
+		isize 3
+		isize 3
+		StringBox 0
+		StringBox 0
+		ListBox 1 [INVALID]
+		--------------------------------
+		STACK LENGTH: 9
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		isize 1
+		isize 2
+		isize 3
+		isize 3
+		StringBox 0
+		StringBox 0
+		ListBox 1 [INVALID]
+		ListBox 1 [INVALID]
+		--------------------------------
+		STACK LENGTH: 10
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `deepDup` 
+	- Performance: 
+		- O(1) for stack data types and `NULLBox`
+		- O(n) for valid box data types
+	- Given one item at the top of the stack, pops the item, duplicates it, and pushes both the original and clone to the stack. 
+	- General form: 
+		- Stack value or `NULLBox`: stack `x` after `deepDup` becomes stack `x x'` where `x'` is the same as `x`.
+		- Valid box value: stack `x` after `deepDup` becomes stack `x y` where `y` holds new memory allocated on the heap that is identical to `x`'s contents.
+	- If you try to use `deepDup` on an invalid box, it throws an error since it can't copy the underlying data the box holds.
+	- Example Program:
+
+		```
+		//Same as dup for regular values.
+		'x' debugPrintStack
+		deepDup debugPrintStack
+		
+		//Same as dup for NULLBox
+		box null ; debugPrintStack
+		deepDup debugPrintStack
+		
+		//Memory duplication.
+		"foo" debugPrintStack
+		deepDup debugPrintStack
+		//Shows off heap.
+		debugPrintHeap
+		```
+
+	- Resulting Output: 
+		
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		NULLBox
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		NULLBox
+		NULLBox
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		NULLBox
+		NULLBox
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 5
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'x'
+		Char 'x'
+		NULLBox
+		NULLBox
+		StringBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 6
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "foo"
+		StringBox 1:
+		        String "foo"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
