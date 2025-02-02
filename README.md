@@ -12,6 +12,7 @@
 	- [3.1 Math Operators](#math-ops)
 	- [3.2 Maximum Integer Operators](#max-ops)
 	- [3.3 Stack Operators](#stack-ops)
+	- [3.4 Comparison Operators](#comp-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -1075,6 +1076,131 @@ These are all of them:
 		////////////////////////////////
 		END HEAP PRINT
 		////////////////////////////////
+		```
+
+### <a name = "comp-ops"></a>3.4 Comparison Operators
+#### [**Return to Table of Contents**](#toc)
+Comparison operators are used for exactly what they're called: comparison. These are used largely for branching and loop determinations but are also useful in other ways. These operators are used for testing equality, less than, greater than, and more. With the exception of `stringCompare`, the other operators listed also work with box types. Box types are included to make pointer-like comparisons possible, which can be useful for seeing if a chunk of memory is allocated later than another or if two boxes point to the same memory. 
+
+Listed are all comparison operators:
+- `==` 
+	- Performance: O(1)
+	- Given two items on the stack of the same data type, pops both of them and performs an equality comparison between them, pushing a Boolean to the stack based on whether or not the two consumed items are equal to each other. 
+	- General form: 
+		- Stack `x y` where both `x` and `y` are matching types of type `t` where `t` can be any type. After applying `==` stack `x y` becomes stack `b` where `b` is a Boolean that states whether or not `x` is equal to `y`.
+		- A notable exception to the general form is that if `x` and `y` are box types, then `x` or `y` can be a NULLBox, meaning that NULLBox can be compared with itself, a StringBox, ListBox, ObjectBox, or a MiscBox. This exception is made so that it's possible to check if something holding a box is a NULLBox.  
+	- The following example program has some advanced code that hasn't been discussed yet but the output is formatted so that it's human-readable. The resulting stack is also still printed too.
+	- Example Program:
+
+		```
+		//Takes in two operands and checks for equality between them, 
+		// printing the result in a nice formatted print statement 
+		// and pushing the original operands 
+		// and the comparison result 
+		// to the stack for the later stack print.
+		//This function makes no effort to free memory used 
+		// but it's fine since it's a small program overall.
+		func def compareAndPrint
+			loc mak y ;
+			loc mak x ;
+		
+			//Compares two inputs and saves result.
+			loc get x ; loc get y ; ==
+			loc mak b ;
+		
+			//Fetches the inputs, converts them to strings,
+			// puts them into a new string that gets formatted
+			// with output of comparison and prints is as one
+			// big old string.
+			""
+			loc get x ; "String" cast ++ 
+			" equals " ++
+			loc get y ; "String" cast ++
+			' ' push '?' push ' ' push
+			loc get b ; "String" cast ++
+			printLine
+		
+			//Puts original values back on stack, 
+			// as well as comparison.
+			loc get x ; 
+			loc get y ;
+			loc get b ;
+		;
+		
+		2 3 func call compareAndPrint ;
+		6 6 func call compareAndPrint ;
+		3.14 3.14 func call compareAndPrint ;
+		
+		//This will be false since floats use binary.
+		0.1f64 0.2f64 + 0.3f64 func call compareAndPrint ;
+		
+		'a' 'b' func call compareAndPrint ;
+		'a' 'a' func call compareAndPrint ;
+		'\n' '
+		' func call compareAndPrint ;
+
+		//Is equal because the box numbers are the same.
+		"foo" dup func call compareAndPrint ;
+		
+		//False because the contents may be the same 
+		// but the box numbers aren't equal, 
+		// which is what it's actually comparing.
+		"bar" "bar" func call compareAndPrint ; 
+
+		//This more clearly shows the StringBox comparisons.
+		debugPrintStack
+		
+		```
+
+	- Resulting Output: 
+		
+		```
+		2 equals 3 ? false
+		6 equals 6 ? true
+		3.14 equals 3.14 ? true
+		0.30000000000000004 equals 0.3 ? false
+		a equals b ? false
+		a equals a ? true
+		
+		 equals
+		 ? true
+		foo equals foo ? true
+		bar equals bar ? false
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 2
+		isize 3
+		Boolean false
+		isize 6
+		isize 6
+		Boolean true
+		f32 3.14
+		f32 3.14
+		Boolean true
+		f64 0.30000000000000004
+		f64 0.3
+		Boolean false
+		Char 'a'
+		Char 'b'
+		Boolean false
+		Char 'a'
+		Char 'a'
+		Boolean true
+		Char '\n'
+		Char '\n'
+		Boolean true
+		StringBox 56
+		StringBox 56
+		Boolean true
+		StringBox 63
+		StringBox 64
+		Boolean false
+		--------------------------------
+		STACK LENGTH: 27
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
 		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
