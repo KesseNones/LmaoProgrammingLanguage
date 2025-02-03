@@ -1588,6 +1588,137 @@ Listed are all comparison operators:
 		--------------------------------
 		```
 
+- `>=` 
+	- Performance: O(1)
+	- Given two non-NULLBox items on the stack, pops both of them and compares the former second-to-top with the former top of the stack and determines if the second-to-top is greater than or equal to the top, pushing a Boolean to the stack to reflect the results. 
+	- General form: 
+		- Stack `x y` where both `x` and `y` are matching types of type `t` where `t` can be any type that isn't NULLBox. After applying `>=` stack `x y` becomes stack `b` where `b` is a Boolean that states whether or not `x` is greater than or equal to `y`.
+	- Example Program:
+
+		```
+		//Takes in two operands and checks 
+		// to see if the second-to-top item 
+		// is greater than or equal to the top item, 
+		// printing the result in a nice formatted print statement 
+		// and pushing the original operands 
+		// and the comparison result 
+		// to the stack for the later stack print.
+		//This function makes no effort to free memory used 
+		// but it's fine since it's a small program overall.
+		func def compareAndPrint
+			loc mak y ;
+			loc mak x ;
+		
+			//Compares two inputs and saves result.
+			loc get x ; loc get y ; >=
+			loc mak b ;
+		
+			//Fetches the inputs, converts them to strings,
+			// puts them into a new string that gets formatted
+			// with output of comparison and prints is as one
+			// big old string.
+			""
+			loc get x ; "String" cast ++ 
+			" is greater than or equal to " ++
+			loc get y ; "String" cast ++
+			' ' push '?' push ' ' push
+			loc get b ; "String" cast ++
+			printLine
+		
+			//Puts original values back on stack, 
+			// as well as comparison.
+			loc get x ; 
+			loc get y ;
+			loc get b ;
+		;
+		
+		2 3 func call compareAndPrint ;
+		6 6 func call compareAndPrint ;
+		3.14 3.14 func call compareAndPrint ;
+		
+		//This will be true since floats use binary.
+		0.1f64 0.2f64 + 0.3f64 func call compareAndPrint ;
+		
+		'a' 'b' func call compareAndPrint ;
+		'a' 'a' func call compareAndPrint ;
+		'z' 'a' func call compareAndPrint ;
+		'\n' '
+		' func call compareAndPrint ;
+		
+		//True since it's the same box.
+		"foo" dup func call compareAndPrint ;
+		
+		//False because first "bar" is allocated earlier, 
+		// making its box number lower and thus not greater.
+		"bar" "bar" func call compareAndPrint ; 
+		
+		//True because the second ListBox was swapped, 
+		// making it greater than the top since it's at the top.
+		[] deepDup swap func call compareAndPrint ;
+		
+		debugPrintStack
+		
+		```
+
+	- Resulting Output: 
+		
+		```
+		2 is greater than or equal to 3 ? false
+		6 is greater than or equal to 6 ? true
+		3.14 is greater than or equal to 3.14 ? true
+		0.30000000000000004 is greater than or equal to 0.3 ? true
+		a is greater than or equal to b ? false
+		a is greater than or equal to a ? true
+		z is greater than or equal to a ? true
+		
+		 is greater than or equal to
+		 ? true
+		foo is greater than or equal to foo ? true
+		bar is greater than or equal to bar ? false
+		[] is greater than or equal to [] ? true
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 2
+		isize 3
+		Boolean false
+		isize 6
+		isize 6
+		Boolean true
+		f32 3.14
+		f32 3.14
+		Boolean true
+		f64 0.30000000000000004
+		f64 0.3
+		Boolean true
+		Char 'a'
+		Char 'b'
+		Boolean false
+		Char 'a'
+		Char 'a'
+		Boolean true
+		Char 'z'
+		Char 'a'
+		Boolean true
+		Char '\n'
+		Char '\n'
+		Boolean true
+		StringBox 64
+		StringBox 64
+		Boolean true
+		StringBox 71
+		StringBox 72
+		Boolean false
+		ListBox 80
+		ListBox 79
+		Boolean true
+		--------------------------------
+		STACK LENGTH: 33
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
