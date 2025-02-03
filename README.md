@@ -1203,6 +1203,127 @@ Listed are all comparison operators:
 		--------------------------------
 		```
 
+- `!=` 
+	- Performance: O(1)
+	- Given two items on the stack of the same data type, pops both of them and performs an inequality comparison between them, pushing a Boolean to the stack based on whether or not the two consumed items are not equal to each other. 
+	- General form: 
+		- Stack `x y` where both `x` and `y` are matching types of type `t` where `t` can be any type. After applying `!=` stack `x y` becomes stack `b` where `b` is a Boolean that states whether or not `x` is not equal to `y`.
+		- A notable exception to the general form is that if `x` and `y` are box types, then `x` or `y` can be a NULLBox, meaning that NULLBox can be compared with itself, a StringBox, ListBox, ObjectBox, or a MiscBox. This exception is made so that it's possible to check if something isn't a NULLBox. This is good for null checking boxes in data structures.
+	- The following example code is advanced but what matters is the comparison itself and the outcomes.
+	- Example Program:
+
+		```
+		//Takes in two operands and checks 
+		// for inequality between them, 
+		// printing the result in a nice formatted print statement 
+		// and pushing the original operands 
+		// and the comparison result 
+		// to the stack for the later stack print.
+		//This function makes no effort to free memory used 
+		// but it's fine since it's a small program overall.
+		func def compareAndPrint
+			loc mak y ;
+			loc mak x ;
+		
+			//Compares two inputs and saves result.
+			loc get x ; loc get y ; !=
+			loc mak b ;
+		
+			//Fetches the inputs, converts them to strings,
+			// puts them into a new string that gets formatted
+			// with output of comparison and prints is as one
+			// big old string.
+			""
+			loc get x ; "String" cast ++ 
+			" doesn't equal " ++
+			loc get y ; "String" cast ++
+			' ' push '?' push ' ' push
+			loc get b ; "String" cast ++
+			printLine
+		
+			//Puts original values back on stack, 
+			// as well as comparison.
+			loc get x ; 
+			loc get y ;
+			loc get b ;
+		;
+		
+		2 3 func call compareAndPrint ;
+		6 6 func call compareAndPrint ;
+		3.14 3.14 func call compareAndPrint ;
+		
+		//This will be true since floats use binary.
+		0.1f64 0.2f64 + 0.3f64 func call compareAndPrint ;
+		
+		'a' 'b' func call compareAndPrint ;
+		'a' 'a' func call compareAndPrint ;
+		'\n' '
+		' func call compareAndPrint ;
+		
+		//Isn't inequal because the box numbers are the same.
+		"foo" dup func call compareAndPrint ;
+		
+		//True because the contents may be the same 
+		// but the box numbers aren't equal, 
+		// which is what it's actually comparing.
+		"bar" "bar" func call compareAndPrint ; 
+		
+		//This more clearly shows the StringBox comparisons.
+		debugPrintStack
+		
+		```
+
+	- Resulting Output: 
+		
+		```
+		2 doesn't equal 3 ? true
+		6 doesn't equal 6 ? false
+		3.14 doesn't equal 3.14 ? false
+		0.30000000000000004 doesn't equal 0.3 ? true
+		a doesn't equal b ? true
+		a doesn't equal a ? false
+		
+		 doesn't equal
+		 ? false
+		foo doesn't equal foo ? false
+		bar doesn't equal bar ? true
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 2
+		isize 3
+		Boolean true
+		isize 6
+		isize 6
+		Boolean false
+		f32 3.14
+		f32 3.14
+		Boolean false
+		f64 0.30000000000000004
+		f64 0.3
+		Boolean true
+		Char 'a'
+		Char 'b'
+		Boolean true
+		Char 'a'
+		Char 'a'
+		Boolean false
+		Char '\n'
+		Char '\n'
+		Boolean false
+		StringBox 56
+		StringBox 56
+		Boolean false
+		StringBox 63
+		StringBox 64
+		Boolean true
+		--------------------------------
+		STACK LENGTH: 27
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 
