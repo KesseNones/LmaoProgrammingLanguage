@@ -1849,6 +1849,98 @@ Listed are all comparison operators:
 		--------------------------------
 		```
 
+- `stringCompare`
+	- Performance:
+		- O(n)
+		- Where n is the length of the shorter String.
+	- Given a stack with two valid `StringBox`es, `stringCompare` pops the two `StringBox`es and compares their contents to each other, pushing an isize to the stack based on the result. 
+		- If the second-to-top string is less than the top String, a -1 is pushed.
+		- If the Strings are equal, a 0 is pushed.
+		- If the second-to-top String is greater than the top String, a 1 is pushed.
+	- General form: stack `x y` where `x` and `y` are type String, `stringCompare` yields stack `c` where `c` is an isize that represents the comparison result.
+	- The result from `stringCompare` can be used in other comparison operators to determine if Strings are equal or other.
+	- The example code shows instances of branching but also demonstrates how `stringCompare` works.
+	- Example Program:
+
+		```
+		//Takes two StringBoxes, 
+		// displays a debug output to see 
+		// which one is bigger or not, 
+		// then puts it all back on stack, 
+		// including the comparisons.
+		//This function will be careful about extra memory.
+		func def strCmpPrint
+			loc mak str1 ;
+			loc mak str2 ;
+		
+			loc get str1 ; loc get str2 ;
+			stringCompare loc mak cmp ;
+		
+			loc get cmp ; 0 >
+			if
+				loc get str1 ; print
+				" is bigger than " dup print box free ;
+				loc get str2 ; print 
+				'!' printChar '\n' printChar
+			;
+		
+			loc get cmp ; 0 <
+			if
+				loc get str1 ; print
+				" is smaller than " dup print box free ;
+				loc get str2 ; print 
+				'!' printChar '\n' printChar
+			;
+		
+			loc get cmp ; 0 ==
+			if
+				loc get str1 ; print
+				" is equal to " dup print box free ;
+				loc get str2 ; print 
+				'!' printChar '\n' printChar
+			;
+		
+			loc get str1 ;
+			loc get str2 ;
+			loc get cmp ;
+		;
+		
+		"foo" "bar" func call strCmpPrint ;
+		
+		"foo" "foo" func call strCmpPrint ;
+		
+		"bar" "foo" func call strCmpPrint ;
+		
+		debugPrintStack
+		
+		```
+
+	- Resulting Output: 
+
+		```
+		bar is smaller than foo!
+		foo is equal to foo!
+		foo is bigger than bar!
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 1
+		StringBox 0
+		isize -1
+		StringBox 3
+		StringBox 2
+		isize 0
+		StringBox 5
+		StringBox 4
+		isize 1
+		--------------------------------
+		STACK LENGTH: 9
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+	
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
