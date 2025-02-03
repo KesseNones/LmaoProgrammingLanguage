@@ -1514,7 +1514,7 @@ Listed are all comparison operators:
 		'\n' '
 		' func call compareAndPrint ;
 		
-		//True since it's the same box.
+		//False since it's the same box.
 		"foo" dup func call compareAndPrint ;
 		
 		//True because first "bar" is allocated earlier, 
@@ -1712,6 +1712,136 @@ Listed are all comparison operators:
 		ListBox 80
 		ListBox 79
 		Boolean true
+		--------------------------------
+		STACK LENGTH: 33
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `<=` 
+	- Performance: O(1)
+	- Given two non-NULLBox items on the stack, pops both of them and compares the former second-to-top with the former top of the stack and determines if the second-to-top is less than or equal to the top, pushing a Boolean to the stack to reflect the results. 
+	- General form: 
+		- Stack `x y` where both `x` and `y` are matching types of type `t` where `t` can be any type that isn't NULLBox. After applying `<=` stack `x y` becomes stack `b` where `b` is a Boolean that states whether or not `x` is less than or equal to `y`.
+	- Example Program:
+
+		```
+		//Takes in two operands and checks 
+		// to see if the second-to-top item 
+		// is less than or equal to the top item, 
+		// printing the result in a nice formatted print statement 
+		// and pushing the original operands 
+		// and the comparison result 
+		// to the stack for the later stack print.
+		//This function makes no effort to free memory used 
+		// but it's fine since it's a small program overall.
+		func def compareAndPrint
+			loc mak y ;
+			loc mak x ;
+		
+			//Compares two inputs and saves result.
+			loc get x ; loc get y ; <=
+			loc mak b ;
+		
+			//Fetches the inputs, converts them to strings,
+			// puts them into a new string that gets formatted
+			// with output of comparison and prints is as one
+			// big old string.
+			""
+			loc get x ; "String" cast ++ 
+			" is less than or equal to " ++
+			loc get y ; "String" cast ++
+			' ' push '?' push ' ' push
+			loc get b ; "String" cast ++
+			printLine
+		
+			//Puts original values back on stack, 
+			// as well as comparison.
+			loc get x ; 
+			loc get y ;
+			loc get b ;
+		;
+		
+		2 3 func call compareAndPrint ;
+		6 6 func call compareAndPrint ;
+		3.14 3.14 func call compareAndPrint ;
+		
+		0.1f64 0.2f64 + 0.3f64 func call compareAndPrint ;
+		
+		'a' 'b' func call compareAndPrint ;
+		'a' 'a' func call compareAndPrint ;
+		'z' 'a' func call compareAndPrint ;
+		'\n' '
+		' func call compareAndPrint ;
+		
+		//True since it's the same box.
+		"foo" dup func call compareAndPrint ;
+		
+		//True because first "bar" is allocated earlier, 
+		// making its box number lower and thus less than.
+		"bar" "bar" func call compareAndPrint ; 
+		
+		//False because the second ListBox was swapped, 
+		// making it not less than the top.
+		[] deepDup swap func call compareAndPrint ;
+		
+		debugPrintStack
+		
+		```
+
+	- Resulting Output: 
+		
+		```
+		2 is less than or equal to 3 ? true
+		6 is less than or equal to 6 ? true
+		3.14 is less than or equal to 3.14 ? true
+		0.30000000000000004 is less than or equal to 0.3 ? false
+		a is less than or equal to b ? true
+		a is less than or equal to a ? true
+		z is less than or equal to a ? false
+		
+		 is less than or equal to
+		 ? true
+		foo is less than or equal to foo ? true
+		bar is less than or equal to bar ? true
+		[] is less than or equal to [] ? false
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 2
+		isize 3
+		Boolean true
+		isize 6
+		isize 6
+		Boolean true
+		f32 3.14
+		f32 3.14
+		Boolean true
+		f64 0.30000000000000004
+		f64 0.3
+		Boolean false
+		Char 'a'
+		Char 'b'
+		Boolean true
+		Char 'a'
+		Char 'a'
+		Boolean true
+		Char 'z'
+		Char 'a'
+		Boolean false
+		Char '\n'
+		Char '\n'
+		Boolean true
+		StringBox 64
+		StringBox 64
+		Boolean true
+		StringBox 71
+		StringBox 72
+		Boolean true
+		ListBox 80
+		ListBox 79
+		Boolean false
 		--------------------------------
 		STACK LENGTH: 33
 		--------------------------------
