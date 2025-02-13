@@ -13,6 +13,7 @@
 	- [3.2 Maximum Integer Operators](#max-ops)
 	- [3.3 Stack Operators](#stack-ops)
 	- [3.4 Comparison Operators](#comp-ops)
+	- [3.5 Logical Operators](#logic-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -1857,7 +1858,7 @@ Listed are all comparison operators:
 		- If the second-to-top string is less than the top String, a -1 is pushed.
 		- If the Strings are equal, a 0 is pushed.
 		- If the second-to-top String is greater than the top String, a 1 is pushed.
-	- General form: stack `x y` where `x` and `y` are type String, `stringCompare` yields stack `c` where `c` is an isize that represents the comparison result.
+	- General form: stack `x y` where `x` and `y` are type StringBox, `stringCompare` yields stack `c` where `c` is an isize that represents the comparison result.
 	- The result from `stringCompare` can be used in other comparison operators to determine if Strings are equal or other.
 	- The example code shows instances of branching but also demonstrates how `stringCompare` works.
 	- Example Program:
@@ -1940,6 +1941,170 @@ Listed are all comparison operators:
 		--------------------------------
 		```
 	
+
+### <a name = "logic-ops"></a>3.5 Logical Operators
+#### [**Return to Table of Contents**](#toc)
+Logical operators perform operations of Boolean logic. These operators are useful to determine how if statements branch and how loops run. They have other uses too. Anything in Lmao that involves Boolean logic is covered by these operators.
+
+These are the operators:
+- `and` or `&&`
+	- Performance: O(1)
+	- Pops two booleans from the stack, performs a logical AND on them, and pushes a resulting boolean based on the result.
+	- General form: Given stack `x` `y` where `x` and `y` are both type `t` where `t` is type `Boolean`,  applying `and` results in stack `z` where `z` is the `Boolean` result of the operation.
+	- The logical AND itself is an expression where the result is only `true` if both items are also `true`, otherwise the result is `false`.
+	- Example Program:
+	
+		```
+		false false and
+		false true and
+		true false and
+		true true and
+		
+		//Can also use && instead of and
+		false false &&
+		false true &&
+		true false &&
+		true true &&
+		
+		//Final output
+		debugPrintStack
+		```
+	
+	- Resulting Output:
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean false
+		Boolean false
+		Boolean false
+		Boolean true
+		Boolean false
+		Boolean false
+		Boolean false
+		Boolean true
+		--------------------------------
+		STACK LENGTH: 8
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `or` or `||`
+	- Performance: O(1)
+	- Pops two `Boolean`s from the stack, performs a logical OR on them, and pushes a resulting `Boolean` based on the result.
+	- General form: Given stack `x` `y` where `x` and `y` are both type `t` where `t` is type `Boolean`,  applying `or` results in stack `z` where `z` is the `Boolean` result of the operation.
+	- The logical OR works in such a way that it's `true` as long as at least one of the items is `true`, and is `false` if both are `false`.
+	- Example Program:
+	
+		```
+		false false or
+		false true or
+		true false or
+		true true or
+		
+		//Can also use || instead of or
+		false false ||
+		false true ||
+		true false ||
+		true true ||
+		
+		//Displays stack for example output.
+		debugPrintStack
+		```
+	
+	- Resulting Output:
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean false
+		Boolean true
+		Boolean true
+		Boolean true
+		Boolean false
+		Boolean true
+		Boolean true
+		Boolean true
+		--------------------------------
+		STACK LENGTH: 8
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `xor`
+	- Performance: O(1)
+	- Pops two `Boolean`s from the stack, performs a logical XOR (e**X**clusive **OR**) on them, and pushes a resulting `Boolean` based on the result.
+	- General form: Given stack `x` `y` where `x` and `y` are both type `t` where `t` is type `Boolean`,  applying `xor` results in stack `z` where `z` is the `Boolean` result of the operation.
+	- Logical XOR is `true` when exactly one item is `true` and one item is `false`, order irrelevant. This means that if both values are `true` or both values are `false`, the result is false. This makes it a more exclusive or than the regular or, hence the name.
+	- It's also possible to just use the `!=` operator between the two items on the stack and get the same result, but having a formal `xor` operator is nice and improves readability. 
+	- Example Program:
+	
+		```
+		false false xor
+		false true xor
+		true false xor
+		true true xor
+		
+		//Displays stack for example output.
+		debugPrintStack
+		```
+	
+	- Resulting Output:
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean false
+		Boolean true
+		Boolean true
+		Boolean false
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `not` or `!`
+	- Performance: O(1)
+	- Pops one `Boolean` from the stack and performs a logical NOT operation on it, pushing the resulting inverted `Boolean` to the stack.
+	- General form: Given stack `x` where `x` is type `Boolean`, applying `not` results in stack `y` where `y` is a `Boolean` with the opposite value.
+	- Logical NOT simply flips the value of the `Boolean` to the opposing value.
+	- Example Program:
+	
+		```
+		true not
+		false not
+		
+		//Can also use ! instead of not
+		true !
+		false !
+		
+		//Displays stack for example output.
+		debugPrintStack
+		```
+	
+	- Resulting Output:
+	
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean false
+		Boolean true
+		Boolean false
+		Boolean true
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
