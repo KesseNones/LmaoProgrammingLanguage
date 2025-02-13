@@ -14,6 +14,7 @@
 	- [3.3 Stack Operators](#stack-ops)
 	- [3.4 Comparison Operators](#comp-ops)
 	- [3.5 Logical Operators](#logic-ops)
+	- [3.6 List & String Operators](#ls-str-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -2105,6 +2106,246 @@ These are the operators:
 		END STACK PRINT
 		--------------------------------
 		```
+
+### <a name = "ls-str-ops"></a>3.6 List & String Operators
+#### [**Return to Table of Contents**](#toc)
+These operators are used to operate on Lists and Strings held by `ListBox`es and `StringBox`es respectively. These operators are how you mutate the underlying data held by these boxes and how you do some pretty neat stuff.
+
+These are all of the operators associated with this category:
+- `push` or `p`
+	- Performance:
+		- O(1) average case
+		- O(n) worse case during resizes
+	- For Lists:
+		- With the second-to-top of the stack being a ListBox and the top of the stack being any other value, the two values are consumed and the top value is pushed to the end of the List, mutating the contents. The ListBox holding the mutated List is then pushed back to the stack for more potential mutation.
+		- General form: given stack `l` `v` where `l` is of type `ListBox` and `v` is any data type, applying `push` results in stack `l'` where `l'` is a `ListBox` with the same box number as before but now holding a `List` that has `v` added to the end.
+		- Since Lists can hold any mixture of data types, it doesn't matter what value is involved when using `push`
+	- For Strings:
+		- With the second-to-top of the stack being a StringBox and the top of the stack being a Char, consumes both the StringBox and Char, pushes the Char to the end of the String held by the StringBox, mutating it, and pushes the StringBox back to the stack where it holds the mutated String.
+		- General form: given stack `s` `c` where `s` is type `StringBox`and `c` is type `Char`, applying `push` results in stack `s'` where `s'` is a `StringBox` with the same box number as `s` but holds a mutated string with `c` added to the end of it.
+		- Unlike for Lists, the item being pushed to the end of a String must be a Char, since a String is a list of Chars.
+	- Example Program:
+
+		```
+		//List actions.
+		[]
+		debugPrintStack
+		debugPrintHeap
+		1 push 
+		debugPrintStack
+		debugPrintHeap
+		//The operator p can also be used as an alias for push
+		// This is easier when building lists 
+		// instead of having to type push over and over.
+		2u8 p 
+		debugPrintHeap
+		3.14 push
+		debugPrintHeap
+		
+		//String Actions.
+		"The first three alphabet letters are: "
+		debugPrintStack
+		debugPrintHeap
+		'A' p
+		debugPrintStack
+		debugPrintHeap
+		'B' p
+		debugPrintHeap
+		'C' p
+		debugPrintHeap
+		debugPrintStack
+		
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List []
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, u8 2]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, u8 2, f32 3.14]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, u8 2, f32 3.14]
+		StringBox 1:
+		        String "The first three alphabet letters are: "
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, u8 2, f32 3.14]
+		StringBox 1:
+		        String "The first three alphabet letters are: A"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, u8 2, f32 3.14]
+		StringBox 1:
+		        String "The first three alphabet letters are: AB"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, u8 2, f32 3.14]
+		StringBox 1:
+		        String "The first three alphabet letters are: ABC"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
