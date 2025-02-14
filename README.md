@@ -2828,6 +2828,254 @@ These are all of the operators associated with this category:
 		--------------------------------
 		```
 
+- `fpop` or `fpo`
+	- Performance: O(n)
+	- For Lists:
+		- Given a valid non-empty ListBox on the stack, consumes it, pops the first item from the list, and pushes the ListBox and the popped item to the stack, with the ListBox holding a List that's one item smaller.
+		- General form: given stack `l` where `l` is type `ListBox` and is not empty, applying `fpop` results in stack `l' v` where `l'` is a `ListBox` with the same box number as `l` but with mutated contents and `v` is the item popped from the front of the List with whatever data type it has.
+	- For Strings:
+		- Given a valid non-empty StringBox on the stack, consumes it, pops the first Char from the String, and pushes the StringBox holding the mutated String and the Char that was popped to the stack.
+		- General form: given stack `s` where `s` is type `StringBox` and is not empty, applying `pop` results in stack `s'` `c` where `s'` is a `StringBox` with the same box number as `s` but holds the mutated `String`, and `c` is the `Char` popped from the front of the `String`.
+	- Be aware that an error will be thrown for both `ListBox`es and `StringBox`es if you try to use `fpop` when they're empty, since there's nothing to pop from the List or String. It's just like how `drop` needs something on the stack to drop.
+	- Example Program for Lists:
+
+		```
+		//Builds initial List with stuff to pop from the front.
+		[] 'A' p 6.9 p 1 p 2 p 3 p 
+		debugPrintStack
+		debugPrintHeap
+		
+		//Gets rid of 'A' from List.
+		fpop swap 
+		debugPrintStack
+		debugPrintHeap
+		
+		//Gets rid of 6.9 from List.
+		fpop swap
+		debugPrintStack
+		debugPrintHeap
+		
+		```
+
+	- Resulting Output of List Program:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [Char 'A', f32 6.9, isize 1, isize 2, isize 3]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'A'
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [f32 6.9, isize 1, isize 2, isize 3]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'A'
+		f32 6.9
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+	
+	- Example Program for Strings:
+
+		```
+		//Created basic hello world string 
+		// with extra stuff at the front that must leave. 
+		"42😂Hello, world!"
+		debugPrintStack
+		debugPrintHeap
+		
+		//Gets rid of 4.
+		fpop swap
+		debugPrintStack
+		debugPrintHeap
+		
+		//Gets rid of 2.
+		fpop swap
+		debugPrintStack
+		debugPrintHeap
+		
+		//Gets rid of emoji.
+		fpop swap
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Resulting Output of String Program:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "42😂Hello, world!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char '4'
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "2😂Hello, world!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char '4'
+		Char '2'
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "😂Hello, world!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char '4'
+		Char '2'
+		Char '\u{1f602}'
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "Hello, world!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
