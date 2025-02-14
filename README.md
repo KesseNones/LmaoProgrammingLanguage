@@ -2594,6 +2594,239 @@ These are all of the operators associated with this category:
 		////////////////////////////////
 		```
 
+- `fpush` or `fp`
+	- Performance: O(n)
+	- For Lists:
+		- With the second-to-top of the stack being a ListBox and the top of the stack being any other value, the two values are consumed and the top value is pushed to the front of the List, mutating the contents. The ListBox holding the mutated List is then pushed back to the stack for more potential mutation.
+		- General form: given stack `l` `v` where `l` is of type `ListBox` and `v` is any data type, applying `fpush` results in stack `l'` where `l'` is a `ListBox` with the same box number as before but now holding a `List` that has `v` added to the front.
+		- Since Lists can hold any mixture of data types, it doesn't matter what value is involved when using `fpush`
+	- For Strings:
+		- With the second-to-top of the stack being a StringBox and the top of the stack being a Char, consumes both the StringBox and Char, pushes the Char to the front of the String held by the StringBox, mutating it, and pushes the StringBox back to the stack where it holds the mutated String.
+		- General form: given stack `s` `c` where `s` is type `StringBox`and `c` is type `Char`, applying `push` results in stack `s'` where `s'` is a `StringBox` with the same box number as `s` but holds a mutated string with `c` added to the front of it.
+		- Unlike for Lists, the item being pushed to the front of a String must be a Char, since a String is a list of Chars.
+	- Be aware that pushing to the front costs linear time complexity since every subsequent item in the List or String must be shifted forward by one, which is a linear operation. It's often more efficient to build a list backwards using `push` and then reverse it by popping from it and pushing to a new List. 
+	- The following example program is the same as for `push` but it can be seen in the output how the List built is reversed to the previous example since items are pushed to the front instead of the back.
+	- Example Program:
+
+		```
+		//List actions.
+		[]
+		debugPrintStack
+		debugPrintHeap
+		1 fpush 
+		debugPrintStack
+		debugPrintHeap
+		//The operator p can also be used as an alias for push
+		// This is easier when building lists 
+		// instead of having to type push over and over.
+		2u8 fp 
+		debugPrintHeap
+		3.14 fpush
+		debugPrintHeap
+		
+		//String Actions.
+		" Are the first three letters of the alphabet."
+		debugPrintStack
+		debugPrintHeap
+		'C' fp
+		debugPrintStack
+		debugPrintHeap
+		'B' fp
+		debugPrintHeap
+		'A' fp
+		debugPrintHeap
+		debugPrintStack
+		
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List []
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [u8 2, isize 1]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [f32 3.14, u8 2, isize 1]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [f32 3.14, u8 2, isize 1]
+		StringBox 1:
+		        String " Are the first three letters of the alphabet."
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [f32 3.14, u8 2, isize 1]
+		StringBox 1:
+		        String "C Are the first three letters of the alphabet."
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [f32 3.14, u8 2, isize 1]
+		StringBox 1:
+		        String "BC Are the first three letters of the alphabet."
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [f32 3.14, u8 2, isize 1]
+		StringBox 1:
+		        String "ABC Are the first three letters of the alphabet."
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
