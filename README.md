@@ -1,6 +1,10 @@
 # The Lmao Programming Language - The Spiritual Successor of EcksDee
 ## By Jesse A. Jones (KesseNones)
 
+# ==**Warning!!!**==
+Jesse! You still need to write documentation for `++` and `contains` !!!
+*Get rid of this when you've written docs for them!*
+
 # <a name = "toc"></a> Table of Contents
 - [0 Introduction](#intro)
 - [1 Using a Stack-Based Approach](#stack-based)
@@ -3571,7 +3575,7 @@ These are all of the operators associated with this category:
 - `clear`
 	- Performance: O(1)
 	- Given a stack where the top item is a valid ListBox or valid StringBox, pops the item from the stack, clears its contents, and pushes it back to the stack.
-	- General form: given stack `v` where `v` is a valid box of type `ListBox` or `StringBox`, applying `clear` yields stack `v'` where `v'` has the same box number as `v` but holds the updated `List`/`String` with the contents cleared.
+	- General Form: given stack `v` where `v` is a valid box of type `ListBox` or `StringBox`, applying `clear` yields stack `v'` where `v'` has the same box number as `v` but holds the updated `List`/`String` with the contents cleared.
 	- This operates in constant time because Lists only hold primitives, meaning the underlying Vec can be cleared by its length being set to zero, without needing to iterate through to clear memory, same for Strings which have a Vec of u8 as the underlying data structure.
 	- Example Program:
 
@@ -3730,6 +3734,81 @@ These are all of the operators associated with this category:
 		FREE'D BOX COUNT: 0
 		////////////////////////////////
 		TOTAL HEAP ITEM COUNT: 5
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
+- `changeItemAt`
+	- Performance: O(1)
+	- Given a stack with the third-to-top item being a valid ListBox, the second-to-top item being a usize, and the top item being any data type, pops the three items and alters the value held at the position indicated by usize to the new value, provided the usize index points to a valid index in the List held by the ListBox, pushing the ListBox back to the stack with the mutated List held by it.
+	- General Form: given stack `l` `i` `v` where `l` is a valid `ListBox`, `i` is type `usize` and is smaller than the length of `l`, and `v` is any data type, applying `changeItemAt` produces stack `l'` where `l'` holds the same box number as `l` but contains a new `List` that has position `i` updated to `v`.
+	- Example Program:
+
+		```
+		//Creates a List where the third position is wrong 
+		// and must be fixed.
+		[] 1 p 2 p 5 p 4 p 5 p 6 p
+		debugPrintStack
+		debugPrintHeap
+		
+		//Fixes value to the correct one.
+		2usize 3 changeItemAt
+		debugPrintStack
+		debugPrintHeap
+		
+		```
+	
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 5, isize 4, isize 5, isize 6]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3, isize 4, isize 5, isize 6]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
 		////////////////////////////////
 		PERCENT OF HEAP FREE'D: 0.00
 		////////////////////////////////
