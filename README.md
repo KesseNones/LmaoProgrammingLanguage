@@ -3568,6 +3568,175 @@ These are all of the operators associated with this category:
 		////////////////////////////////
 		```
 
+- `clear`
+	- Performance: O(1)
+	- Given a stack where the top item is a valid ListBox or valid StringBox, pops the item from the stack, clears its contents, and pushes it back to the stack.
+	- General form: given stack `v` where `v` is a valid box of type `ListBox` or `StringBox`, applying `clear` yields stack `v'` where `v'` has the same box number as `v` but holds the updated `List`/`String` with the contents cleared.
+	- This operates in constant time because Lists only hold primitives, meaning the underlying Vec can be cleared by its length being set to zero, without needing to iterate through to clear memory, same for Strings which have a Vec of u8 as the underlying data structure.
+	- Example Program:
+
+		```
+		//List created and stuff put into it.
+		[] "wan" p "tu" p "mute" p
+		debugPrintStack
+		debugPrintHeap
+		
+		//Clears list, causing the Strings 
+		// held by the StringBoxes to be lost 
+		// but it's fine because it's an example 
+		// and the heap gets cleaned up at the end anyway.
+		clear
+		debugPrintStack
+		debugPrintHeap
+		
+		//Creates a string with stuff in it to be cleared.
+		"Please don't clear me! I want to live!"
+		debugPrintStack
+		debugPrintHeap
+		
+		//Clears the string; no memory lost here 
+		// since no boxes are contained in a String.
+		clear
+		debugPrintStack
+		debugPrintHeap
+		
+		```
+	
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [StringBox 1, StringBox 2, StringBox 3]
+		StringBox 1:
+		        String "wan"
+		StringBox 2:
+		        String "tu"
+		StringBox 3:
+		        String "mute"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 4
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List []
+		StringBox 1:
+		        String "wan"
+		StringBox 2:
+		        String "tu"
+		StringBox 3:
+		        String "mute"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 4
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 4
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List []
+		StringBox 1:
+		        String "wan"
+		StringBox 2:
+		        String "tu"
+		StringBox 3:
+		        String "mute"
+		StringBox 4:
+		        String "Please don't clear me! I want to live!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 5
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 4
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List []
+		StringBox 1:
+		        String "wan"
+		StringBox 2:
+		        String "tu"
+		StringBox 3:
+		        String "mute"
+		StringBox 4:
+		        String ""
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 5
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
