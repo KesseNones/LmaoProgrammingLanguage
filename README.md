@@ -3076,6 +3076,153 @@ These are all of the operators associated with this category:
 		////////////////////////////////
 		```
 
+- `index`
+	- Performance: 
+		- Lists: O(1)
+		- Strings: O(n)
+	- Lists:
+		- Given a stack where the second-to-top element is a valid ListBox and the top is a usize, pops both items from the stack, uses the usize to index into the List held by the ListBox, and pushes the item held at the index to the stack.
+		- General Form: Given stack `l` `i` where `l` is type `ListBox` with at least one item in it and `i` is type `usize` and is a value smaller than the length of `l`, applying `index` yields stack `v` where `v` is a value of any data type held in the `List` held by `ListBox` `l` at position `i`. 
+	- Strings:
+		- Given a stack where the second-to-top element is a valid StringBox and the top is a usize, pops both items from the stack, uses the usize to index into the String held by the StringBox, and pushes the Char held at the usize index to the stack.
+		- General Form: Given stack `s` `i` where `s` is type `StringBox` with at least one `Char` in it and `i` is type `usize` and is a value smaller than the length of `s`, applying `index` yields stack `c` where `c` is a `Char` held in the `String` held by `StringBox` `s` at position `i`. 
+	- **Be aware!** The index must be within the value range 0 to length of the List/String inclusive, or else an error is thrown.
+	- The performance difference between Lists and Strings is due to the fact that a List just directly indexes at the given index, which is constant time, while the String needs to travel to that Char using an iterator approach, since the String is a Vec of u8 under the hood. 
+	- The index itself is a usize instead of an isize, to ensure that it is at least a non-negative integer. 
+	- Example Program:
+
+		```
+		//LIST PART
+		
+		//Builds example list and shows debug output 
+		// of it on stack and in heap.
+		[] 1 p 2 p 3 p 5040 p 2319 p 666 p 42 p
+		debugPrintStack
+		debugPrintHeap
+		
+		//Indexes to List at position 3.
+		// This does cause the ListBox 
+		// to be lost but it's fine for this little example.
+		// To save it, you'd want to use 
+		// the dup operator before 
+		// then pushing the usize to index.
+		3usize debugPrintStack index
+		debugPrintStack
+		
+		//STRING PART
+		
+		//Creates example String.
+		"This is a sentence!"
+		debugPrintStack
+		debugPrintHeap
+		
+		//Indexes into string at position 4, 
+		// showing space Char support. 
+		//The memory is lost here too but again 
+		// it's just a little example so who cares.
+		4usize debugPrintStack index
+		debugPrintStack
+		
+		```
+	
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3, isize 5040, isize 2319, isize 666, isize 42]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		usize 3
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 5040
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 5040
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3, isize 5040, isize 2319, isize 666, isize 42]
+		StringBox 1:
+		        String "This is a sentence!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 5040
+		StringBox 1
+		usize 4
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 5040
+		Char ' '
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
