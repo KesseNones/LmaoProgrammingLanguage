@@ -3505,6 +3505,69 @@ These are all of the operators associated with this category:
 		////////////////////////////////
 		```
 
+- `isEmpty`
+	- Performance: O(1)
+	- Given a stack with the top being either a valid ListBox or a valid StringBox, consumes the ListBox or StringBox and pushes a Boolean that indicates whether or not the List/String contained within is empty.
+	- General form: given a stack 'v' where `v` is either a valid `ListBox` or a valid `StringBox`, applying `isEmpty` results in stack `b` where `b` is a `Boolean` indicating whether or not the `List`/`String` contained by the `ListBox`/`StringBox` is empty.
+	- Example Program:
+
+		```
+		//Lists!
+		[] dup isEmpty
+		[] 3.14 push dup isEmpty
+		
+		//Strings!
+		"" dup isEmpty
+		"" 'A' p 'B' p 'C' p dup isEmpty
+		
+		debugPrintStack
+		debugPrintHeap
+		
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		Boolean true
+		ListBox 1
+		Boolean false
+		StringBox 2
+		Boolean true
+		StringBox 3
+		Boolean false
+		--------------------------------
+		STACK LENGTH: 8
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List []
+		ListBox 1:
+		        List [f32 3.14]
+		StringBox 2:
+		        String ""
+		StringBox 3:
+		        String "ABC"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 4
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
