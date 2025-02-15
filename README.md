@@ -3223,6 +3223,288 @@ These are all of the operators associated with this category:
 		--------------------------------
 		```
 
+- `length` or `len`
+	- Performance: O(1)
+	- Given a stack with the top being either a valid ListBox or a valid StringBox, consumes the ListBox or StringBox and pushes a usize to the stack representing the length of the List/String held by the ListBox/StringBox. 
+	- General form: given a stack 'v' where `v` is either a valid `ListBox` or a valid `StringBox`, applying `length` results in stack `l` where `l` is a `usize` representing the number of items/`Char`s in `v`.
+	- Example Program:
+
+		```
+		func def dispCollection
+			loc mak i ;
+			//Defer explained later!
+			defer loc get i ; box free ; ;
+			
+			loc get i ; 
+			debugPrintStack
+			debugPrintHeap
+		
+			//Can also use len here!
+			length
+			debugPrintStack
+		
+			drop
+		;
+		
+		//Lists!
+		
+		"\t\t\tLIST OUTPUT:" dup printLine box free ;
+		
+		//Empty List case.
+		[] func call dispCollection ;
+		
+		//Non-empty List case.
+		[] 'x' p func call dispCollection ;
+		
+		//Multi-item List case.
+		[] 1 p 2 p 3 p func call dispCollection ;
+		
+		//Strings!
+		
+		"\t\t\tSTRING OUTPUT:" dup printLine box free ;
+		
+		//Empty String case.
+		"" func call dispCollection ;
+		
+		//Single-Char String case.
+		"A" func call dispCollection ;
+		
+		//Multi-Char String case.
+		"This is a longer String!" func call dispCollection ;
+		
+		//This is printed to show 
+		// that the heap is totally free'd!
+		debugPrintHeap
+		
+		```
+
+	- Resulting Output:
+
+		```
+		                        LIST OUTPUT:
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List []
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [Char 'x']
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 1
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 3
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		                        STRING OUTPUT:
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String ""
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "A"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 1
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "This is a longer String!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 24
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0 [FREE]:
+		        String "This is a longer String!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: [0]
+		////////////////////////////////
+		FREE'D BOX COUNT: 1
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 100.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
