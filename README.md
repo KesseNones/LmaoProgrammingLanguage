@@ -3852,6 +3852,48 @@ These are the operators below:
 		--------------------------------
 		```
 
+- `isAlphaChar`
+	- Performance: O(1)
+	- Given a stack where the top is of type Char, consumes the Char and pushes a Boolean to the stack based on whether the Char is an English alphabetical character like `A`, `b`, `C`, etc.
+	- General form: given stack `c` where `c` is type `Char`, applying `isAlphaChar` results in stack `b` where `b` is type `Boolean` and holds a value based on whether `c` is an English alphabetical character or not.
+	- Example Program:
+
+		```
+		'A' isAlphaChar
+		'B' isAlphaChar
+		'C' isAlphaChar
+		'd' isAlphaChar
+		'e' isAlphaChar
+		'f' isAlphaChar
+		'9' isAlphaChar
+		' ' isAlphaChar
+		'😂' isAlphaChar
+		
+		debugPrintStack
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean true
+		Boolean true
+		Boolean true
+		Boolean true
+		Boolean true
+		Boolean true
+		Boolean false
+		Boolean false
+		Boolean false
+		--------------------------------
+		STACK LENGTH: 9
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
