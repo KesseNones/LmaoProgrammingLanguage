@@ -19,6 +19,7 @@ Jesse! You still need to write documentation for `++` and `contains` !!!
 	- [3.4 Comparison Operators](#comp-ops)
 	- [3.5 Logical Operators](#logic-ops)
 	- [3.6 List & String Operators](#ls-str-ops)
+	- [3.7 Character Operators](#char-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -3814,6 +3815,41 @@ These are all of the operators associated with this category:
 		////////////////////////////////
 		END HEAP PRINT
 		////////////////////////////////
+		```
+
+### <a name = "char-ops"></a>3.7 Character Operators
+#### [**Return to Table of Contents**](#toc)
+These three operators are quite simple. They are used to operate on the Char data type for useful checks to occur.
+
+These are the operators below:
+- `isWhitespaceChar`
+	- Performance: O(1)
+	- Given a stack where the top is of type Char, consumes the Char and pushes a Boolean to the stack based on whether the Char is a white space character like `\n`, ` `, `\t`, etc.
+	- General form: given stack `c` where `c` is type `Char`, applying `isWhitespaceChar` results in stack `b` where `b` is type `Boolean` and holds a value based on whether `c` is a white space character or not.
+	- Example Program:
+
+		```
+		' ' isWhitespaceChar
+		'\t' isWhitespaceChar
+		'A' isWhitespaceChar
+		
+		debugPrintStack
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean true
+		Boolean true
+		Boolean false
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
 		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
