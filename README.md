@@ -20,6 +20,7 @@ Jesse! You still need to write documentation for `++` and `contains` !!!
 	- [3.5 Logical Operators](#logic-ops)
 	- [3.6 List & String Operators](#ls-str-ops)
 	- [3.7 Character Operators](#char-ops)
+	- [3.8 Object Operators](#obj-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -3929,6 +3930,167 @@ These are the operators below:
 		END STACK PRINT
 		--------------------------------
 		```
+
+### <a name = "obj-ops"></a>3.8 Object Operators
+#### [**Return to Table of Contents**](#toc)
+These operators are used expressly to operate on the Object data type and change what a given object contains.
+
+These are the operators:
+- `objAddField`
+	- Performance: O(n) where n is the number of Chars in the field name.
+	- Given a stack where the third-to-top item is an ObjectBox, the second-to-top is a StringBox, and the top is any data type, consumes the three items on the stack, adds the field with the name held by the String in the StringBox with a value of the top item on the stack, pushing the same ObjectBox as before but now holding an Object with a new field added to it. 
+	- General form: given stack `o` `s` `v` where `o` is a valid `ObjectBox`, `s` is a valid `StringBox`, and `v` is any data type, applying `objAddField` results in stack `o'` where `o'` has the same box number as before but holds the mutated `Object` with the field of name `s` and a value of `v`.
+	- **NOTE:** Be aware that the field being added to the Object must not already exist, or an error is thrown. Also, be aware that even though the StringBox is consumed, it is not free'd. This must be done yourself later! 
+	- Example Program:
+
+		```
+		//Creates empty Object on heap and shows that it's empty.
+		{}
+		debugPrintStack
+		debugPrintHeap
+		
+		//Creates String on heap that will 
+		// end up being used as the field name. 
+		"foo"
+		
+		//Value of field.
+		42
+		
+		//Stack and heap before adding field to Object.
+		debugPrintStack
+		debugPrintHeap
+		
+		//Adds field to Object held in ObjectBox.
+		objAddField
+		
+		//Stack and heap after adding field to Object.
+		debugPrintStack
+		debugPrintHeap
+		
+		//Adding more values to showcase object with multiple fields.
+		"bar" 3.14 objAddField
+		"baz" "This is a String held by the object!" objAddField
+		"qux" [] objAddField
+		
+		//Heap after more stuff was added to Object.
+		debugPrintHeap
+		
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0 
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+			Object {}
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0 
+		StringBox 1 
+		isize 42
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+			Object {}
+		StringBox 1:
+			String "foo"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0 
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+			Object {foo: isize 42}
+		StringBox 1:
+			String "foo"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+			Object {foo: isize 42, baz: StringBox 4, qux: ListBox 6, bar: f32 3.14}
+		StringBox 1:
+			String "foo"
+		StringBox 2:
+			String "bar"
+		StringBox 3:
+			String "baz"
+		StringBox 4:
+			String "This is a String held by the object!"
+		StringBox 5:
+			String "qux"
+		ListBox 6:
+			List []
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 7
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
