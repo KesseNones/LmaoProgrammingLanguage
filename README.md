@@ -4091,6 +4091,87 @@ These are the operators:
 		////////////////////////////////
 		```
 
+- `objGetField`
+	- Performance: O(n) where n is the number of Chars in the field name.
+	- Given a stack where the second-to-top item is a valid ObjectBox and the top item is a valid StringBox, consumes the two items, indexes into the ObjectBox by the String held in the StringBox and pushes the value of the field to the stack.
+	- General form: given stack `o` `s` where `o` is a valid `ObjectBox` and `s` is a valid `StringBox` where the `String` it holds exists in the `Object` held by the `ObjectBox`. Applying `objGetField` yields stack `v` where `v` is the value held by the `String` in the `Object`.
+	- Be aware that the field must exist in the Object, if not an error is thrown. 
+	- Example Program:
+
+		```
+		//Be aware that this program is incredibly wasteful for memory usage.
+		// Since it's just a little example, it's fine 
+		// but in a real program you'd absolutely want to free 
+		// what you don't need anymore.
+		
+		//Creates Object with some fields.
+		{} 
+		"foo" 42 objAddField 
+		"bar" 3.14 objAddField
+		"baz" "String, wow!" objAddField
+		
+		debugPrintStack
+		debugPrintHeap
+		
+		//Queries each field in constructed object. 
+		// Dup is used to preserve Object for more lookups. 
+		dup "foo" objGetField swap
+		dup "bar" objGetField swap
+		dup "baz" objGetField swap
+		
+		debugPrintStack
+		
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+		        Object {baz: StringBox 4, bar: f32 3.14, foo: isize 42}
+		StringBox 1:
+		        String "foo"
+		StringBox 2:
+		        String "bar"
+		StringBox 3:
+		        String "baz"
+		StringBox 4:
+		        String "String, wow!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 5
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 42
+		f32 3.14
+		StringBox 4
+		ObjectBox 0
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
