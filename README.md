@@ -4173,6 +4173,99 @@ These are the operators:
 		--------------------------------
 		```
 
+- `objMutField`
+	- Performance: O(n) where n is the number of Chars in the field name.
+	- Given a stack where the third-to-top item is a valid ObjectBox, the second-to-top item is a valid StringBox, and the top is an item with a datatype matching what is stored in the ObjectBox with the field name held by the StringBox, pops all three items, changes the item at the StringBox to hold the new item, pushing the ObjectBox holding the mutated Object to the stack.
+	- General form: given stack `o` `s` `v` where `o` is a valid `ObjectBox`, `s` is a valid `StringBox`, and `v` is a datatype matching the value stored at `s`, applying `objMutField` results in stack `o'` where `o'` is an `ObjectBox` with the same box number as `o` but contains the mutated `Object`.
+	- Be aware that the desired field must exist in the given object and be the same data type as the value held at the top of the stack.
+	- Example Program:
+
+		```
+		//Nothing in this program is freed 
+		// but that's fine since it's small.
+		{} "foo" 41 objAddField
+		debugPrintStack
+		debugPrintHeap
+		"foo" 42 
+		debugPrintStack
+		objMutField
+		debugPrintStack
+		debugPrintHeap
+		
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+		        Object {foo: isize 41}
+		StringBox 1:
+		        String "foo"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0
+		StringBox 2
+		isize 42
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+		        Object {foo: isize 42}
+		StringBox 1:
+		        String "foo"
+		StringBox 2:
+		        String "foo"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 3
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
