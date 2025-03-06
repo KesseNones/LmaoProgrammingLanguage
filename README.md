@@ -4266,6 +4266,131 @@ These are the operators:
 		////////////////////////////////
 		```
 
+- `objRemField`
+	- Performance: O(n) where n is the number of Chars of the desired field name.
+	- Given a stack where the second-to-top item is a valid ObjectBox and the top is a valid StringBox holding a String that exists in the ObjectBox, consumes the two items and removes the field from the Object with the desired name contained in the String, pushing the same ObjectBox back to the stack holding the now mutated Object.
+	- General form: given stack `o` `s` where `o` is a valid `ObjectBox` and `s` is a valid `StringBox` holding a `String` that is the name of an existing field in `o`, applying `objRemField` results in `o'` where `o'` is an `ObjectBox` with the same number as `o` but holds the updated `Object`
+	- Example Program:
+
+		```
+		//Constructs test Object, not bothering 
+		// to free the heap-allocated values 
+		// because it's just a demo.
+		{} 
+		"foo" 42 objAddField
+		"bar" 3.14 objAddField
+		"baz" {} objAddField
+		"qux" [] objAddField
+		"REMOVE ME" "I SHOULDN'T BE IN AN OBJECT!!!" objAddField
+		debugPrintStack
+		debugPrintHeap
+		
+		//Gets rid of bad field.
+		"REMOVE ME" debugPrintStack objRemField
+		debugPrintStack
+		debugPrintHeap
+		
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+		        Object {foo: isize 42, bar: f32 3.14, qux: ListBox 6, REMOVE ME: StringBox 8, baz: ObjectBox 4}
+		StringBox 1:
+		        String "foo"
+		StringBox 2:
+		        String "bar"
+		StringBox 3:
+		        String "baz"
+		ObjectBox 4:
+		        Object {}
+		StringBox 5:
+		        String "qux"
+		ListBox 6:
+		        List []
+		StringBox 7:
+		        String "REMOVE ME"
+		StringBox 8:
+		        String "I SHOULDN'T BE IN AN OBJECT!!!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 9
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0
+		StringBox 9
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ObjectBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+		        Object {foo: isize 42, bar: f32 3.14, qux: ListBox 6, baz: ObjectBox 4}
+		StringBox 1:
+		        String "foo"
+		StringBox 2:
+		        String "bar"
+		StringBox 3:
+		        String "baz"
+		ObjectBox 4:
+		        Object {}
+		StringBox 5:
+		        String "qux"
+		ListBox 6:
+		        List []
+		StringBox 7:
+		        String "REMOVE ME"
+		StringBox 8:
+		        String "I SHOULDN'T BE IN AN OBJECT!!!"
+		StringBox 9:
+		        String "REMOVE ME"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 10
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
