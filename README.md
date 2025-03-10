@@ -4496,6 +4496,79 @@ These are the operators employed below:
 		--------------------------------
 		```
 
+- `bitNot`
+	- Performance: O(1)
+	- Given a stack with the top being an integer type, consumes the item, pushing a version with the bitwise NOT operation applied to it. The bitwise NOT operation simply inverts the bits of a given integer when creating the new integer. 
+	- General form: given stack `x` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitNot` results in stack `y` where `y` is the same data type as `x` but with inverted bits thanks to bitwise NOT.
+	- When combined with one of the max operators such as `usizeMax`, `bitNot` can be used to find the minimum value of the various kinds of integers.
+	- Example Program:
+
+		```
+		//Signed maxes paired with their mins.
+		isizeMax dup bitNot
+		i8Max dup bitNot
+		i16Max dup bitNot
+		i32Max dup bitNot
+		i64Max dup bitNot
+		i128Max dup bitNot
+		
+		//Unsigned maxes paired with their mins.
+		usizeMax dup bitNot
+		u8Max dup bitNot
+		u16Max dup bitNot
+		u32Max dup bitNot
+		u64Max dup bitNot
+		u128Max dup bitNot
+		
+		//Other examples
+		64 dup bitNot
+		0u8 dup bitNot
+		
+		debugPrintStack
+		
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 9223372036854775807
+		isize -9223372036854775808
+		i8 127
+		i8 -128
+		i16 32767
+		i16 -32768
+		i32 2147483647
+		i32 -2147483648
+		i64 9223372036854775807
+		i64 -9223372036854775808
+		i128 170141183460469231731687303715884105727
+		i128 -170141183460469231731687303715884105728
+		usize 18446744073709551615
+		usize 0
+		u8 255
+		u8 0
+		u16 65535
+		u16 0
+		u32 4294967295
+		u32 0
+		u64 18446744073709551615
+		u64 0
+		u128 340282366920938463463374607431768211455
+		u128 0
+		isize 64
+		isize -65
+		u8 0
+		u8 255
+		--------------------------------
+		STACK LENGTH: 28
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
