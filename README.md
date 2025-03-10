@@ -1,8 +1,8 @@
 # The Lmao Programming Language - The Spiritual Successor of EcksDee
 ## By Jesse A. Jones (KesseNones)
 
-# ==**Warning!!!**==
-Jesse! You still need to write documentation for `++` and `contains` !!!
+# **Warning!!!**
+Jesse! You still need to write documentation for `++`,  `contains`, and `cast` !!!
 *Get rid of this when you've written docs for them!*
 
 # <a name = "toc"></a> Table of Contents
@@ -4564,6 +4564,65 @@ These are the operators employed below:
 		u8 255
 		--------------------------------
 		STACK LENGTH: 28
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+- `bitShift`
+	- Performance: O(1)
+	- Given a stack where the second to top item is an integer and the top item is an isize, consumes the two items and pushes an integer based on the original integer shifted by n bits forward or backwards based on the isize.
+	- General form: given stack `x` `y` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, and `y` is type `isize`, applying `bitShift` results in stack `z` where `z` is the same data type as `x` but is shifted by `y` bits forward or backward.
+	- The sign of the shift argument determines which direction the number is bit-shifted:
+		- A positive number shifts the number to the left by n bits, making it bigger by some number of factors of two.
+		- Zero does nothing to the number, pushing a number unchanged, effectively acting as a no-op.
+		- A negative number shifts the number to the right n bits, making it smaller by some number of factors of two.
+	- Be aware that there might be some edge cases not addressed with overflows with `bitShift`. Generally, the idea is that if you shift a number really far one way or another, it becomes zero because you shifted all of the bits off the map one way or another.
+	- Example Program:
+
+		```
+		//An interesting way of multiplying 8 by 3.
+		8 dup 1 bitShift +
+
+		//:)
+		315 4 bitShift
+		
+		//Just chops off any bits excluded.
+		2025 -1 bitShift
+		
+		//Really far bit shift to right.
+		42 -999 bitShift
+		
+		//Really far bit shift to left.
+		666usize 666 bitShift
+		
+		//Easy way of constructing limits 
+		// to integers within bigger integers.
+		//In this case, it's a display 
+		// of the 32 bit signed integer limit, 
+		// contained inside a signed 128 bit integer.
+		1i128 31 bitShift 1i128 -
+		
+		//Of course, there are many more fun ways to use this.
+		
+		debugPrintStack
+		
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 24
+		isize 5040
+		isize 1012
+		isize 0
+		usize 0
+		i128 2147483647
+		--------------------------------
+		STACK LENGTH: 6
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
