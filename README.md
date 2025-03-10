@@ -21,6 +21,7 @@ Jesse! You still need to write documentation for `++` and `contains` !!!
 	- [3.6 List & String Operators](#ls-str-ops)
 	- [3.7 Character Operators](#char-ops)
 	- [3.8 Object Operators](#obj-ops)
+	- [3.9 Bitwise Operators](#bit-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -4390,6 +4391,13 @@ These are the operators:
 		END HEAP PRINT
 		////////////////////////////////
 		```
+
+### <a name = "bit-ops"></a> 3.9 Bitwise Operators
+#### [**Return to Table of Contents**](#toc)
+Bitwise operators are used to make alterations to the bits of integers directly. These are useful in complex hashing algorithms, flipping the value of a number quickly, checking for particular bitwise flags, etc. 
+
+These are the operators employed below:
+- X
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
