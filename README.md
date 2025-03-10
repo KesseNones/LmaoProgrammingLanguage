@@ -4397,7 +4397,36 @@ These are the operators:
 Bitwise operators are used to make alterations to the bits of integers directly. These are useful in complex hashing algorithms, flipping the value of a number quickly, checking for particular bitwise flags, etc. 
 
 These are the operators employed below:
-- X
+- `bitOr`
+	- Performance: O(1)
+	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise OR operation on them, pushing the result to the stack. A bitwise OR involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. As long as at least one of the bits is a 1, the result is 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
+	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitOr` results in stack `z` where `z` is also type `t` and is the result of a bitwise OR between `x` and `y`.
+	- Example Program:
+
+		```
+		1 2 bitOr
+		1 1 bitOr
+		23u8 64u8 bitOr
+		64usize 1usize bitOr
+		debugPrintStack
+		```
+
+	- Resulting Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 3
+		isize 1
+		u8 87
+		usize 65
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
