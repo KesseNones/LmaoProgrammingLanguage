@@ -4635,7 +4635,7 @@ Input-Output operators, or IO operators, are operators that either write data in
 
 Listed below are all of the existing regular IO operators.
 - `print`
-	- Performance: O(n) where n is the number of Chars in the string being printed.
+	- Performance: O(n) where `n` is the number of Chars in the String being printed.
 	- Given a stack where the top item is a valid StringBox, consumes the StringBox and writes the contents of its String to stdout, flushing stdout after completion.
 	- General form: given stack `s` where `s` is a valid `StringBox`, applying `print` results in stack ` ` where there's nothing because `s` was consumed for printing.
 	- Be aware that `print` doesn't free the `StringBox` involved however! Be sure to save that StringBox before printing it, either in a variable or using `dup` so it can be freed later on.
@@ -4653,6 +4653,111 @@ Listed below are all of the existing regular IO operators.
 
 		```
 		Hello, World!
+		```
+- `read`
+	- Performance: O(n) where `n` is the number of Chars in stdin being read.
+	- Given a stack with nothing on it required, reads in stdin and allocates a StringBox to hold the String that was read in from user input in stdin, pushing the StringBox to the stack.
+	- General form: given stack ` `, applying `read` results in stack `s` where `s` is a `StringBox` holding a `String` matching the contents of stdin consumed by `read`.
+	- Be aware that this allocates memory on the heap via the StringBox.
+	- Also know that to complete the read, `CTRL-D` or `CMD-D`, depending on the system, will have to be pressed up to a couple times to close stdin to allow `read` to consume the contents and allocate the String. However, the key combo really only needs to be pressed once if a newline is given at the end of the input which flushes the buffer and leads to a more easy close of stdin.
+	- Example Program:
+
+		```
+		read
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Program Input:
+
+		```
+		This is some text to be read in, wow!
+		```
+	
+	- Program Output (Following pressing CTRL-D a couple times):
+
+		```
+		This is some text to be read in, wow!--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "This is some text to be read in, wow!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		
+		```
+
+	- Second Program with Newline at End:
+
+		```
+		read
+		debugPrintStack
+		debugPrintHeap
+		
+		//Output is same as input.
+		print
+		```
+
+	- Second Input:
+
+		```
+		This is some more text!
+		This time it's multi-line text :O
+		Wowzers! 
+		This time I'll be good and end it with a newline.
+		
+		```
+
+	- Second Output (After pressing CTRL-D once):
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "This is some more text!\nThis time it's multi-line text :O\nWowzers! \nThis time I'll be good and end it with a newline.\n"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		This is some more text!
+		This time it's multi-line text :O
+		Wowzers!
+		This time I'll be good and end it with a newline.
 		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
