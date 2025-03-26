@@ -22,6 +22,7 @@ Jesse! You still need to write documentation for `++`,  `contains`, and `cast` !
 	- [3.7 Character Operators](#char-ops)
 	- [3.8 Object Operators](#obj-ops)
 	- [3.9 Bitwise Operators](#bit-ops)
+	- [3.10 IO Operators](#io-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -4626,6 +4627,32 @@ These are the operators employed below:
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
+		```
+
+### <a name = "io-ops"></a> 3.10 IO Operators
+#### [**Return to Table of Contents**](#toc)
+Input-Output operators, or IO operators, are operators that either write data in the form of Strings to stdout, the area in a terminal or otherwise that displays output, or read data from stdin, the file that holds input from users or other programs. Chars also make an appearance in IO but that's separate. Lmao also has operators that generate output in regular files and work for debugging purposes, but those will be covered in a later section. 
+
+Listed below are all of the existing regular IO operators.
+- `print`
+	- Performance: O(n) where n is the number of Chars in the string being printed.
+	- Given a stack where the top item is a valid StringBox, consumes the StringBox and writes the contents of its String to stdout, flushing stdout after completion.
+	- General form: given stack `s` where `s` is a valid `StringBox`, applying `print` results in stack ` ` where there's nothing because `s` was consumed for printing.
+	- Be aware that `print` doesn't free the `StringBox` involved however! Be sure to save that StringBox before printing it, either in a variable or using `dup` so it can be freed later on.
+	- To output anything that isn't a StringBox, casting is required via the `cast` operator which will be covered later.
+	- Example Program:
+
+		```
+		//Newline needs to be manually added since 
+		// it just outputs all of the String's Chars.
+		"Hello, World!\n"
+		print
+		```
+
+	- Program Output:
+
+		```
+		Hello, World!
 		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
