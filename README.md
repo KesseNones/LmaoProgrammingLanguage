@@ -4779,6 +4779,46 @@ Listed below are all of the existing regular IO operators.
 		abc
 		```
 
+- `readChar`
+	- Performance: O(1)
+	- Given a stack with nothing on it, reads in a Char from stdin and pushes it to the stack.
+	- General form: given stack ` `, applying `readChar` results in stack `c` where `c` is a `Char` read in from stdin.
+	- Since this operator merely reads in a Char, nothing is allocated on the heap.
+	- `readChar` merely consumes the Char at the start of stdin. If more input is typed, future calls consume Chars of that input, not new stuff, which can lead to some unexpected results at times.
+	- Example Program:
+
+		```
+		readChar
+		readChar 
+		readChar
+		readChar
+		debugPrintStack
+		```
+
+	- Program Input:
+
+		```
+		abc
+		
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Char 'a'
+		Char 'b'
+		Char 'c'
+		Char '\n'
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
@@ -4864,4 +4904,4 @@ Perspiciatis deserunt voluptas libero voluptatibus et dolorem. Delectus facilis 
 Officiis sequi accusamus illo aut aut incidunt iusto. Et sit et blanditiis neque aliquam ut iure. Omnis sed sed quos dolor asperiores voluptate ut veritatis. Officiis qui illum et sed dolores minus distinctio. Et aspernatur numquam illum odit molestiae labore.
 
 
-### [**Return to Table of Contents**](#toc)s
+### [**Return to Table of Contents**](#toc)
