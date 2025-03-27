@@ -4760,6 +4760,25 @@ Listed below are all of the existing regular IO operators.
 		This time I'll be good and end it with a newline.
 		```
 
+- `printChar`
+	- Performance: O(1)
+	- Given a stack with a Char on the top of the stack, consumes the Char and writes it to stdout. 
+	- General form: given stack `c` where `c` is type `Char`, applying `printChar` yields stack ` `  with `c` being written to stdout.
+	- This is basically the same as print except it's just one Char. 
+	- This also doesn't need any heap allocations to run since it's just spitting out a Char which is a primitive.
+	- Example Program:
+
+		```
+		//Prints out abc and a newline.
+		'a' printChar 'b' printChar 'c' printChar '\n' printChar
+		```
+
+	- Program Output:
+
+		```
+		abc
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
