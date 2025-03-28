@@ -4819,6 +4819,24 @@ Listed below are all of the existing regular IO operators.
 		--------------------------------
 		```
 
+- `printLine`
+	- Performance: O(n) where `n` is the number of Chars in the output String.
+	- Given a stack where the top item is a valid StringBox, consumes the StringBox and writes its contents to stdout plus a newline Char. 
+	- General form: Given stack `s` where `s` is a valid `StringBox`, applying `printLine` results in stack ` ` where the contents of `s` where written to stdout as well as a newline `Char \n`.
+	- This operator is basically the same as `print` except that it also outputs a newline at the end, meaning you don't have to. This is a good operator for regular print operations that don't need specific endpoints to be specified.
+	- Example Program:
+
+		```
+		//No newline needs to be specified at the end!
+		"Hello, World!" printLine
+		```
+
+	- Example Output:
+
+		```
+		Hello, World!
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
