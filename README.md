@@ -4837,6 +4837,37 @@ Listed below are all of the existing regular IO operators.
 		Hello, World!
 		```
 
+- `readLine`
+	- Performance: O(n) where `n` is the number of Chars being read from a line of stdin.
+	- Given a stack needing nothing on it, reads a line ending with a `\n` Char from stdin and allocates the String on the heap, pushing a StringBox pointing to it.
+	- General form: given stack ` `, applying `readLine` results in stack `s` where `s` is a valid StringBox holding a `String` representing the line of input read in from stdin.
+	- Unlike `read`, simply pressing enter at the end of the input line is enough to close stdin and write that line to the file, since enter puts a `\n` Char into it which flushes stdin. 
+	- Like read, this allocates something on the heap, so be sure to save the StringBox in a variable or via `dup` if you want to free it later.
+	- Example Program:
+
+		```
+		"Enter your age: " print
+		readLine
+		"You are " print print
+		" years old!" printLine
+		```
+
+	- Program Input:
+
+		```
+		Enter your age: 42
+		
+		```
+
+	- Program Output:
+
+		```
+		You are 42 years old!
+		```
+
+	- Program Explanation:
+		- This program takes in `42` as user input and writes it out with some strings to indicate the user's input age. Since this input wasn't actually cast to an integer, any input would've worked. For instance, it could've said as output: `You are mute years old!`.
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
