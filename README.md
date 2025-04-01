@@ -4924,6 +4924,136 @@ Below are the operators that fall into this category:
 		--------------------------------
 		```
 
+- `debugPrintHeap`
+	- Performance: 
+		- O(n^2)
+		- Prints worst case n items on heap containing n items.
+	- Given any stack, prints the contents of the heap at that moment.
+	- General form isn't needed because it doesn't even involve the stack.
+	- This is a debug operator that allows you to gaze into the heap and understand its workings. 
+	- Beyond learning and debugging, `debugPrintHeap` is also useful for seeing how free or not free the heap is with statistics on free cells versus not and a percentage given at the bottom. This is useful for tracking memory leaks and what blobs of data actually get freed. 
+	- Example Program:
+
+		```
+		//Empty heap
+		debugPrintHeap
+		
+		//Some stuff!
+		"foo" "bar" "baz"
+		debugPrintHeap
+		
+		//Heap with item freed
+		box free ;
+		debugPrintHeap
+		
+		//Memory cell re-use.
+		[] debugPrintHeap
+		
+		//Freeing everything!
+		box free ; box free ; box free ;
+		debugPrintHeap
+		```
+	
+	- Program Output:
+
+		```
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 0
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: NaN
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "foo"
+		StringBox 1:
+		        String "bar"
+		StringBox 2:
+		        String "baz"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 3
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "foo"
+		StringBox 1:
+		        String "bar"
+		StringBox 2 [FREE]:
+		        String "baz"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: [2]
+		////////////////////////////////
+		FREE'D BOX COUNT: 1
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 3
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 33.33
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "foo"
+		StringBox 1:
+		        String "bar"
+		ListBox 2:
+		        List []
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 3
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0 [FREE]:
+		        String "foo"
+		StringBox 1 [FREE]:
+		        String "bar"
+		ListBox 2 [FREE]:
+		        List []
+		////////////////////////////////
+		FREE'D BOX NUMBERS: [2, 1, 0]
+		////////////////////////////////
+		FREE'D BOX COUNT: 3
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 3
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 100.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
