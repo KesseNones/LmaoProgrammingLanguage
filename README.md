@@ -23,6 +23,7 @@ Jesse! You still need to write documentation for `++`,  `contains`, and `cast` !
 	- [3.8 Object Operators](#obj-ops)
 	- [3.9 Bitwise Operators](#bit-ops)
 	- [3.10 IO Operators](#io-ops)
+		- [3.10.1 Debug IO Operators](#debug-io-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -4867,6 +4868,61 @@ Listed below are all of the existing regular IO operators.
 
 	- Program Explanation:
 		- This program takes in `42` as user input and writes it out with some strings to indicate the user's input age. Since this input wasn't actually cast to an integer, any input would've worked. For instance, it could've said as output: `You are mute years old!`.
+
+#### <a name = "debug-io-ops"></a> 3.10.1 Debug IO Operators
+##### [**Return to Table of Contents**](#toc)
+Debug IO operators are operators that are in the category of IO but only because they write to stdout when called. These operators are useful for debugging purposes and not meant for typical use beyond debugging.
+
+Below are the operators that fall into this category:
+- `debugPrintStack`
+	- Performance: O(n) where `n` is the number of items on the stack.
+	- Given a stack with anything on it, writes the contents of the stack to stdout in a debug format readable by humans. 
+	- General form: given stack `x` where `x` is a stack composed of any combination of values, applying `debugPrintStack` yields stack `x` where `x` is the same stack with nothing changed where the contents of `x` are written to stdout.
+	- This operator involves many string allocations and system calls under the hood, so only use this when trying to see what the stack is doing for debugging or if you just want to show off the final stack like in many of the previous example programs.
+	- Example Program:
+
+		```
+		//Can print an empty stack.
+		debugPrintStack
+		
+		//Can print a stack with anything else!
+		1 2usize 3i8 5040i128 3.14 6.28e23f64 'a' false 
+		"foo" [] {} box null ;
+		debugPrintStack
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		--------------------------------
+		STACK LENGTH: 0
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 1
+		usize 2
+		i8 3
+		i128 5040
+		f32 3.14
+		f64 6.28e23
+		Char 'a'
+		Boolean false
+		StringBox 0
+		ListBox 1
+		ObjectBox 2
+		NULLBox
+		--------------------------------
+		STACK LENGTH: 12
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
