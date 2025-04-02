@@ -24,6 +24,7 @@ Jesse! You still need to write documentation for `++`,  `contains`, and `cast` !
 	- [3.9 Bitwise Operators](#bit-ops)
 	- [3.10 IO Operators](#io-ops)
 		- [3.10.1 Debug IO Operators](#debug-io-ops)
+	- [3.11 File Operators](#file-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -5053,6 +5054,60 @@ Below are the operators that fall into this category:
 		////////////////////////////////
 		```
 
+### <a name = "file-ops"></a> 3.11 File Operators
+#### [**Return to Table of Contents**](#toc)
+File Operators are operators involving files. Who would've guessed that? Jokes aside, these are used to perform file system operations on the system. Through these operators, it's possible to do things like save files from programs, allowing for games that survive a reboot and other fun things. 
+
+Below are all the existing file operators:
+- `fileExists` 
+	- Performance: O(n) where `n` is the number of Chars in the file name.
+	- Given a stack where the top item is a valid StringBox, `fileExists` consumes the StringBox and checks to see if the file exists within the current program directory or if the file exists as per a provided absolute directory, pushing a Boolean based on the result.
+	- General form: given stack `s` where `s` is a valid `StringBox`, applying `fileExists` results in stack `b` where `b` is a `Boolean` that is based on whether or not the file with name `s` exists.
+	- Be aware that a file will be deemed non-existent if it has no access permissions, even though it does exist. 
+	- Example Current Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr  2 02:53 .
+		drwxr-xr-x 5 janJesi users    4096 Apr  2 02:49 ..
+		-rw-r--r-- 1 janJesi users       0 Apr  2 02:50 foo
+		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
+		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
+		```
+
+	- Example Program:
+
+		```
+		//These exist
+		"lmao" fileExists
+		"foo" fileExists
+		
+		//This doesn't exist.
+		"bar" fileExists
+		
+		//This exists but is marked as non-existent 
+		// due to lack of permissions.
+		"NuclearCodes.txt" fileExists
+		
+		debugPrintStack
+		
+		```
+	
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean true
+		Boolean true
+		Boolean false
+		Boolean false
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
