@@ -5109,6 +5109,38 @@ Below are all the existing file operators:
 		--------------------------------
 		```
 
+- `fileCreate`
+	- Performance: O(n) where `n` is the number of Chars of the file name.
+	- Given a stack where the top item is a valid StringBox, consumes the StringBox and creates a file with the name held by the String in the StringBox.
+	- General form: given stack `s` where `s` is a valid `StringBox`, applying `fileCreate` yields stack ` ` with the `String` held by `s` being used as the basis for the file name.
+	- Be aware that an error will be thrown if the file already exists!
+	- Example Current Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr  2 02:53 .
+		drwxr-xr-x 5 janJesi users    4096 Apr  2 02:49 ..
+		-rw-r--r-- 1 janJesi users       0 Apr  2 02:50 foo
+		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
+		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
+		```
+
+	- Example Program:
+	
+		```
+		"toki.txt" fileCreate
+		```
+	
+	- Updated Current Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr  3 06:00 .
+		drwxr-xr-x 5 janJesi users    4096 Apr  2 02:49 ..
+		-rw-r--r-- 1 janJesi users       0 Apr  2 02:50 foo
+		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
+		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
+		-rw-r--r-- 1 janJesi users       0 Apr  3 06:00 toki.txt
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
