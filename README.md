@@ -5141,6 +5141,44 @@ Below are all the existing file operators:
 		-rw-r--r-- 1 janJesi users       0 Apr  3 06:00 toki.txt
 		```
 
+- `fileWrite`
+	- O(n) where `n` is the number of Chars in the String to be written to a file or the name, whichever is bigger.
+	- Given a stack with two valid StringBoxes on top, consumes the two and writes the top StringBox's String to a file by the name held in the String of the second-to-top StringBox.
+	- General form: given stack `x y` where `x` and `y` are type `t` where `t` is type `StringBox` and is valid, applying `fileWrite` results in stack ` ` where the contents of the `String` held by `y` were written to an existing file by the name of the `String` held by `x`.
+	- Be aware that `fileWrite` needs the file to exist to write to, otherwise it throws an error!
+	- Also know that even though the two StringBoxes are consumed, their contents aren't freed, so be sure to save the boxes if you intend on freeing them.
+	- Example Current Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr  3 06:00 .
+		drwxr-xr-x 5 janJesi users    4096 Apr  4 02:03 ..
+		-rw-r--r-- 1 janJesi users       0 Apr  2 02:50 foo
+		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
+		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
+		-rw-r--r-- 1 janJesi users       0 Apr  3 06:00 toki.txt
+		```
+
+	- Example Program:
+	
+		```
+		"toki.txt" 
+		"toki! mi jan Jesi. mi ken toki kepeken toki pona. sina ken ala ken pali e ni?\n"
+		fileWrite
+		```
+	
+	- Updated Current Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr  3 06:00 .
+		drwxr-xr-x 5 janJesi users    4096 Apr  4 02:03 ..
+		-rw-r--r-- 1 janJesi users       0 Apr  2 02:50 foo
+		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
+		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
+		-rw-r--r-- 1 janJesi users      78 Apr  4 02:09 toki.txt
+		```
+
+	- Notice that the size of `toki.txt` increased and the date modified changed. This means the String in the example was written to the file.
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
