@@ -5179,6 +5179,73 @@ Below are all the existing file operators:
 
 	- Notice that the size of `toki.txt` increased and the date modified changed. This means the String in the example was written to the file.
 
+- `fileRead`
+	- Performance: O(n) where `n` is the number of Chars in the file being read in.
+	- Given a stack where the top item is a valid StringBox, consumes the StringBox, reads the String it holds, opens a file based on that String, and reads the contents into a new allocated String that's then contained by a new StringBox which is pushed to the stack.
+	- General form: given stack: `x` where `x` is a valid `StringBox`, applying `fileRead` results in stack `y` where `y` is a `StringBox` holding a `String` based on the contents of file `x`.
+	- Just because `fileRead` consumes the StringBox doesn't mean that it frees it. Be sure to save that box if you want to free it, either by using `dup` or a variable.
+	- `fileRead` also allocates new data on the heap that can potentially be massive if the file is large.
+	- Of course, the file being read from needs to exist and have necessary permissions. For instance, trying to read `NuclearCodes.txt` would throw an error even though it exists.
+	- Example Current Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr  3 06:00 .
+		drwxr-xr-x 5 janJesi users    4096 Apr  4 02:03 ..
+		-rw-r--r-- 1 janJesi users       0 Apr  2 02:50 foo
+		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
+		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
+		-rw-r--r-- 1 janJesi users      78 Apr  4 02:09 toki.txt
+		```
+
+	- Example Program:
+	
+		```
+		//Reads in file data to new StringBox.
+		"toki.txt" fileRead
+		
+		//Debugs to show file contents are allocated.
+		debugPrintStack
+		debugPrintHeap
+		
+		//Prints file contents to stdout, following indicator.
+		"FILE CONTENTS:" printLine
+		print
+		```
+	
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 1
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "toki.txt"
+		StringBox 1:
+		        String "toki! mi jan Jesi. mi ken toki kepeken toki pona. sina ken ala ken pali e ni?\n"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		FILE CONTENTS:
+		toki! mi jan Jesi. mi ken toki kepeken toki pona. sina ken ala ken pali e ni?
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
