@@ -5246,6 +5246,59 @@ Below are all the existing file operators:
 		toki! mi jan Jesi. mi ken toki kepeken toki pona. sina ken ala ken pali e ni?
 		```
 
+- `fileRemove`
+	- Performance: O(n) where `n` is the number of Chars in the file name.
+	- Given a stack with a valid StringBox on the top, consumes the StringBox and removes the file at the path given by the file name String held by the StringBox.
+	- General form: given stack `s` where `s` is a valid `StringBox`, applying `fileRemove` results in stack ` ` where the `String` held by `s` was used to remove a file, provided it exists and the permissions were allowed.
+	- Be aware that the file must exist to be removed, otherwise an error is thrown.
+	- Example Current Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr  3 06:00 .
+		drwxr-xr-x 5 janJesi users    4096 Apr  4 02:03 ..
+		-rw-r--r-- 1 janJesi users       0 Apr  2 02:50 foo
+		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
+		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
+		-rw-r--r-- 1 janJesi users      78 Apr  4 02:09 toki.txt
+		```
+
+	- Example Program:
+
+		```
+		//File exists.
+		"toki.txt" fileExists
+		//Removing file.
+		"toki.txt" fileRemove
+		//File doesn't exist after deletion.
+		"toki.txt" fileExists
+		debugPrintStack
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean true
+		Boolean false
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
+	- Updated Current Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr  3 06:00 .
+		drwxr-xr-x 5 janJesi users    4096 Apr  4 02:03 ..
+		-rw-r--r-- 1 janJesi users       0 Apr  2 02:50 foo
+		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
+		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
