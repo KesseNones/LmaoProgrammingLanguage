@@ -2,7 +2,7 @@
 ## By Jesse A. Jones (KesseNones)
 
 # **Warning!!!**
-Jesse! You still need to write documentation for `++`,  `contains`, and `cast` !!!
+Jesse! You still need to write documentation for `contains` and `cast` !!!
 *Get rid of this when you've written docs for them!*
 
 # <a name = "toc"></a> Table of Contents
@@ -3815,6 +3815,161 @@ These are all of the operators associated with this category:
 		FREE'D BOX COUNT: 0
 		////////////////////////////////
 		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
+- `++`
+	- Performance: O(n) where `n` is the length of the List/String at the top of the stack.
+	- Given a stack with two matching valid ListBoxes or StringBoxes, consumes both of them, copies the contents of the top List/String to the second-to-top List/String, and pushes the StringBox/ListBox holding the mutated collection to the stack.
+	- General form: given stack `x y` where `x` and `y` are type `t` which is either type `ListBox` or `StringBox` and is valid, applying `++` results in stack `x'` where `x` is type `t` and holds a mutated collection that is the result of appending the contents of `y`'s collection to `x`'s collection.
+	- Be aware that `y`'s contents aren't freed, merely copied and appended to `x`. If you don't need `y` anymore, be sure to have it saved elsewhere before using `++` and then free `y` afterwards.
+	- Example Program:
+
+		```
+		//Initial list.
+		[] 1 p 2 p 3 p
+		//List to add to initial.
+		[] 4 p 5 p 6 p 
+		
+		debugPrintStack
+		debugPrintHeap
+		++
+		debugPrintStack
+		debugPrintHeap
+		
+		//String version of example.
+		"My name is " 
+		"Egarakth the Destroyer."
+		
+		debugPrintStack
+		debugPrintHeap
+		++
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		ListBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3]
+		ListBox 1:
+		        List [isize 4, isize 5, isize 6]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3, isize 4, isize 5, isize 6]
+		ListBox 1:
+		        List [isize 4, isize 5, isize 6]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 2
+		StringBox 3
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3, isize 4, isize 5, isize 6]
+		ListBox 1:
+		        List [isize 4, isize 5, isize 6]
+		StringBox 2:
+		        String "My name is "
+		StringBox 3:
+		        String "Egarakth the Destroyer."
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 4
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		StringBox 2
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List [isize 1, isize 2, isize 3, isize 4, isize 5, isize 6]
+		ListBox 1:
+		        List [isize 4, isize 5, isize 6]
+		StringBox 2:
+		        String "My name is Egarakth the Destroyer."
+		StringBox 3:
+		        String "Egarakth the Destroyer."
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 4
 		////////////////////////////////
 		PERCENT OF HEAP FREE'D: 0.00
 		////////////////////////////////
