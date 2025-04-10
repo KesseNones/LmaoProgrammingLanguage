@@ -25,6 +25,7 @@ Jesse! You still need to write documentation for `contains` and `cast` !!!
 	- [3.10 IO Operators](#io-ops)
 		- [3.10.1 Debug IO Operators](#debug-io-ops)
 	- [3.11 File Operators](#file-ops)
+	- [3.12 Type Operators](#type-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -5453,6 +5454,13 @@ Below are all the existing file operators:
 		-rwxr-xr-x 1 janJesi users 1429848 Apr  2 02:51 lmao
 		---------- 1 janJesi users      15 Apr  2 02:53 NuclearCodes.txt
 		```
+
+### <a name = "type-ops"></a> 3.12 Type Operators
+#### [**Return to Table of Contents**](#toc)
+These operators are employed for matters related to datatypes specifically. These are useful for changing or looking at the data types of items on the stack.
+
+Below are all operators of this category:
+
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
