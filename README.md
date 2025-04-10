@@ -5460,7 +5460,195 @@ Below are all the existing file operators:
 These operators are employed for matters related to datatypes specifically. These are useful for changing or looking at the data types of items on the stack.
 
 Below are all operators of this category:
+- `queryType`
+	- Performance: O(1)
+	- Given a stack with the top being any data type, consumes the item, allocates a String based on its data type and pushes a StringBox holding said String.
+	- General form: given stack `v` where `v` is any data type, applying `queryType` results in stack `d` where `d` is a `StringBox` holding a `String` representation of `v`'s data type.
+	- Example Program:
 
+		```
+		//An exhaustive list of all types in Lmao.
+		
+		//CPU-optimal integers 
+		2319 dup queryType dup printLine
+		666usize dup queryType dup printLine
+		
+		//Signed integers
+		42i8 dup queryType dup printLine
+		5040i16 dup queryType dup printLine
+		2025i32 dup queryType dup printLine
+		8000000000i64 dup queryType dup printLine
+		i128Max dup queryType dup printLine
+		
+		//Unsigned integers
+		215u8 dup queryType dup printLine
+		52375u16 dup queryType dup printLine
+		3000000000u32 dup queryType dup printLine
+		89u64 dup queryType dup printLine
+		999999999999999999999999999999999u128 dup queryType dup printLine
+		
+		//Floats
+		3.14 dup queryType dup printLine
+		6.02e23f64 dup queryType dup printLine
+		
+		//Char and Boolean
+		'A' dup queryType dup printLine
+		false dup queryType dup printLine
+		
+		//Heap allocated stuff
+		"This is some text!" dup queryType dup printLine
+		[] dup queryType dup printLine
+		{} dup queryType dup printLine
+		
+		//Extra boxes
+		35235 box make ; dup queryType dup printLine
+		box null ; dup queryType dup printLine
+		
+		debugPrintStack
+		debugPrintHeap
+		
+		```
+
+	- Program Output:
+
+		```
+		isize
+		usize
+		i8
+		i16
+		i32
+		i64
+		i128
+		u8
+		u16
+		u32
+		u64
+		u128
+		f32
+		f64
+		Char
+		Boolean
+		StringBox
+		ListBox
+		ObjectBox
+		MiscBox
+		NULLBox
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 2319
+		StringBox 0
+		usize 666
+		StringBox 1
+		i8 42
+		StringBox 2
+		i16 5040
+		StringBox 3
+		i32 2025
+		StringBox 4
+		i64 8000000000
+		StringBox 5
+		i128 170141183460469231731687303715884105727
+		StringBox 6
+		u8 215
+		StringBox 7
+		u16 52375
+		StringBox 8
+		u32 3000000000
+		StringBox 9
+		u64 89
+		StringBox 10
+		u128 999999999999999999999999999999999
+		StringBox 11
+		f32 3.14
+		StringBox 12
+		f64 6.02e23
+		StringBox 13
+		Char 'A'
+		StringBox 14
+		Boolean false
+		StringBox 15
+		StringBox 16
+		StringBox 17
+		ListBox 18
+		StringBox 19
+		ObjectBox 20
+		StringBox 21
+		MiscBox 22
+		StringBox 23
+		NULLBox
+		StringBox 24
+		--------------------------------
+		STACK LENGTH: 42
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+				String "isize"
+		StringBox 1:
+				String "usize"
+		StringBox 2:
+				String "i8"
+		StringBox 3:
+				String "i16"
+		StringBox 4:
+				String "i32"
+		StringBox 5:
+		        String "i64"
+		StringBox 6:
+				String "i128"
+		StringBox 7:
+				String "u8"
+		StringBox 8:
+				String "u16"
+		StringBox 9:
+				String "u32"
+		StringBox 10:
+				String "u64"
+		StringBox 11:
+				String "u128"
+		StringBox 12:
+				String "f32"
+		StringBox 13:
+				String "f64"
+		StringBox 14:
+				String "Char"
+		StringBox 15:
+				String "Boolean"
+		StringBox 16:
+		        String "This is some text!"
+		StringBox 17:
+				String "StringBox"
+		ListBox 18:
+				List []
+		StringBox 19:
+				String "ListBox"
+		ObjectBox 20:
+				Object {}
+		StringBox 21:
+				String "ObjectBox"
+		MiscBox 22:
+				isize 35235
+		StringBox 23:
+				String "MiscBox"
+		StringBox 24:
+				String "NULLBox"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 25
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
