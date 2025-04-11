@@ -5650,6 +5650,118 @@ Below are all operators of this category:
 		////////////////////////////////
 		```
 
+- `cast`
+	- Performance: O(n) -> linear cast of linear data structures like String to List.
+	- Given a stack where the second-to-top element can be any data type and the top element is a valid StringBox, consumes both items and attempts to cast the second-to-top item to the data type specified by the String held by the top `StringBox` or throws an error on failure.
+	- General form: given stack `v s` where `v` is any data type and `s` is a valid `StringBox`, applying `cast` results in `x` where `x` is the same data type as what is specified by the `String` held by `s`. If the cast is invalid, an error is thrown, i.e. a `ListBox` to an `isize`. 
+	- The following example program is nowhere near exhaustive but showcases some common and interesting uses for `cast`.
+	- Like other operators, `cast` doesn't actually free any memory of consumed boxes, it simply uses the data. Be sure to save and free any unneeded boxes.
+	- Example Program:
+
+		```
+		//Useful for Boolean-based array indexing.
+		false "usize" cast
+		
+		//Necessary for input parsing.
+		"3.14" "f32" cast
+		"666" "i16" cast
+		
+		//Necessary for showing computation results.
+		2 3 + "String" cast
+		
+		//Cool way to turn a String into a list of Chars.
+		"This is a String? NO!" "List" cast
+		
+		//Useful for turning a List to a String.
+		[] 1 p 2 p 2.718 p [] p {} p 
+		"String" cast
+		
+		//Object stringification.
+		{} "foo" 42 objAddField 
+		"bar" box null ; objAddField
+		"baz" false objAddField
+		"String" cast
+		
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 0
+		f32 3.14
+		i16 666
+		StringBox 6
+		ListBox 9
+		StringBox 14
+		StringBox 20
+		--------------------------------
+		STACK LENGTH: 7
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "usize"
+		StringBox 1:
+		        String "3.14"
+		StringBox 2:
+		        String "f32"
+		StringBox 3:
+		        String "666"
+		StringBox 4:
+		        String "i16"
+		StringBox 5:
+		        String "String"
+		StringBox 6:
+		        String "5"
+		StringBox 7:
+		        String "This is a String? NO!"
+		StringBox 8:
+		        String "List"
+		ListBox 9:
+		        List [Char 'T', Char 'h', Char 'i', Char 's', Char ' ', Char 'i', Char 's', Char ' ', Char 'a', Char ' ', Char 'S', Char 't', Char 'r', Char 'i', Char 'n', Char 'g', Char '?', Char ' ', Char 'N', Char 'O', Char '!']
+		ListBox 10:
+		        List [isize 1, isize 2, f32 2.718, ListBox 11, ObjectBox 12]
+		ListBox 11:
+		        List []
+		ObjectBox 12:
+		        Object {}
+		StringBox 13:
+		        String "String"
+		StringBox 14:
+		        String "[isize 1, isize 2, f32 2.718, ListBox 11, ObjectBox 12]"
+		ObjectBox 15:
+		        Object {bar: NULLBox, baz: Boolean false, foo: isize 42}
+		StringBox 16:
+		        String "foo"
+		StringBox 17:
+		        String "bar"
+		StringBox 18:
+		        String "baz"
+		StringBox 19:
+		        String "String"
+		StringBox 20:
+		        String "{bar: NULLBox, baz: Boolean false, foo: isize 42}"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 21
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
