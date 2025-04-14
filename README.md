@@ -5767,6 +5767,27 @@ Below are all operators of this category:
 #### [**Return to Table of Contents**](#toc)
 These operators are ones that break the control flow of a program, causing the program to no longer run from top to bottom.
 
+- `throwCustomError`
+	- Performance: O(n) where `n` is the number of Chars in the error message String.
+	- Given a stack where the top is a valid StringBox, consumes the StringBox throws an error with the contents being the same as the given StringBox.
+	- General form: given stack `s` where `s` is a valid `StringBox`, applying `throwCustomError` results in stack ` ` where `s` was consumed for the error's contents. 
+	- Obviously, this operator always throws errors, even if used correctly. These errors thus can be let free to stop the program or caught by an `attempt` `onError` fancy operator. 
+	- This operator is largely useful for things akin to asserts in other languages, deliberately throwing an error if some condition is not met. It can also just be used for a more violent form of print debugging.
+	- The error being printed itself works like `printLine` where it adds a `\n` character at the end of the String automatically. 
+	- Example Program:
+
+		```
+		"ERROR! Something broke! AAAHHHGHH!" throwCustomError
+		
+		"This shouldn't print if there's an error!" printLine
+		"Other thing that shouldn't print!" printLine
+		```
+
+	- Program Output:
+
+		```
+		ERROR! Something broke! AAAHHHGHH!
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
