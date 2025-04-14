@@ -26,6 +26,7 @@ Jesse! You still need to write documentation for `contains`!!!
 		- [3.10.1 Debug IO Operators](#debug-io-ops)
 	- [3.11 File Operators](#file-ops)
 	- [3.12 Type Operators](#type-ops)
+	- [3.13 Meta Operators](#meta-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -5761,6 +5762,11 @@ Below are all operators of this category:
 		END HEAP PRINT
 		////////////////////////////////
 		```
+
+### <a name = "meta-ops"></a>3.13 Meta Operators
+#### [**Return to Table of Contents**](#toc)
+These operators are ones that break the control flow of a program, causing the program to no longer run from top to bottom.
+
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
