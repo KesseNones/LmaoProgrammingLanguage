@@ -2,7 +2,7 @@
 ## By Jesse A. Jones (KesseNones)
 
 # **Warning!!!**
-Jesse! You still need to write documentation for `contains` and `cast` !!!
+Jesse! You still need to write documentation for `contains`!!!
 *Get rid of this when you've written docs for them!*
 
 # <a name = "toc"></a> Table of Contents
