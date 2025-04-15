@@ -5789,6 +5789,47 @@ These operators are ones that break the control flow of a program, causing the p
 		ERROR! Something broke! AAAHHHGHH!
 		```
 
+- `leaveScopeIfTrue`
+	- Performance: O(1)
+	- Given a stack where the top item is a Boolean, consumes the Boolean and leaves the present program scope if the value is `True`, otherwise does nothing.
+	- General form: given stack `b` where `b` is type `Boolean`, applying `leaveScopeIfTrue` results in stack ` ` where `b` was consumed to determine if the current scope needs to be left.
+	- If this operator is used at the global scope, the program stops running early if the Boolean is `true`.
+	- If this operator is used in the scope of a fancy operator, it leaves that scope early if `true`, skipping to whatever's next for the code to run.
+	- Since this operator breaks control flow, it's useful for exiting things early, like `while` loops, `func`tions, and more.
+	- Example Program:
+
+		```
+		true
+		if
+			"THIS PRINTS!"
+			printLine
+		
+			//Leaves if statement early.
+			true
+			leaveScopeIfTrue
+		
+			"THIS SHOULD NEVER PRINT!"
+			printLine
+		
+			"ERROR THAT SHOULD NEVER HAPPEN!"
+			throwCustomError
+		;
+		
+		"AFTER IF STATEMENT" printLine
+		
+		true leaveScopeIfTrue
+		
+		"FINAL FUNNY ERROR THAT'S SKIPPED!"
+		throwCustomError
+		```
+
+	- Program Output:
+
+		```
+		THIS PRINTS!
+		AFTER IF STATEMENT
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
