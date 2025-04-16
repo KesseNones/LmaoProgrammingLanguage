@@ -1,10 +1,6 @@
 # The Lmao Programming Language - The Spiritual Successor of EcksDee
 ## By Jesse A. Jones (KesseNones)
 
-# **Warning!!!**
-Jesse! You still need to write documentation for `contains`!!!
-*Get rid of this when you've written docs for them!*
-
 # <a name = "toc"></a> Table of Contents
 - [0 Introduction](#intro)
 - [1 Using a Stack-Based Approach](#stack-based)
@@ -5834,6 +5830,68 @@ These operators are ones that break the control flow of a program, causing the p
 ### <a name = "other-ops"></a>3.14 Other Operators
 #### [**Return to Table of Contents**](#toc)
 These operators are simply ones that don't fit in any of the previous categories quite right, so they go here. For instance: `contains` might seem like a List and String operator until you realize that it also works with Objects but it's not an Object operator either. So it goes here. 
+
+Listed below are all the operators of this category:
+- `contains`
+	- Performance: O(n)
+	- Given a stack where the second-to-top item is a ListBox/StringBox/ObjectBox and the top item is a Value/Char/StringBox, consumes the two items and pushes a Boolean based on whether or not the ListBox/StringBox/ObjectBox contains the Value/Char/StringBox (as a field). 
+	- General form: given stack `c v` where `c` is a valid `ListBox`, `StringBox`, or `ObjectBox`, and `v` is a `Value`, `Char`, or `StringBox` respectively, applying `contains` results in stack `b` where `b` is a `Boolean` based on whether `c` contains `v`.
+	- Regarding Objects, the StringBox that is being searched for is the name of a field in the Object. If the Object doesn't have the field, the Boolean is `False`.
+	- Example Program:
+
+		```
+		//Constructs List example.
+		[] 'a' p 42 p 666 push 5040 p
+		
+		//Tests for containment of three possible values.
+		dup 'a' contains
+		swap dup 42 contains
+		swap dup 6.02e23f64 contains
+		swap
+		
+		//Constructs example String.
+		"This is a sentence!"
+		
+		//Tests for existence of two different Chars in String.
+		dup 'i' contains
+		swap dup 'Z' contains
+		swap
+		
+		//Example Object construction.
+		{} "foo" 42 objAddField
+		"bar" box null ; objAddField
+		"baz" 3.14 objAddField
+		
+		//Checks for membership of two field names.
+		dup "foo" contains
+		swap dup "qux" contains
+		swap 
+		
+		debugPrintStack
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		Boolean true
+		Boolean true
+		Boolean false
+		ListBox 0
+		Boolean true
+		Boolean false
+		StringBox 1
+		Boolean true
+		Boolean false
+		ObjectBox 2
+		--------------------------------
+		STACK LENGTH: 10
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
