@@ -27,6 +27,7 @@ Jesse! You still need to write documentation for `contains`!!!
 	- [3.11 File Operators](#file-ops)
 	- [3.12 Type Operators](#type-ops)
 	- [3.13 Meta Operators](#meta-ops)
+	- [3.14 Other Operators](#other-ops)
 - [4 Fancy Operators](#fancy-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -5829,6 +5830,10 @@ These operators are ones that break the control flow of a program, causing the p
 		THIS PRINTS!
 		AFTER IF STATEMENT
 		```
+
+### <a name = "other-ops"></a>3.14 Other Operators
+#### [**Return to Table of Contents**](#toc)
+These operators are simply ones that don't fit in any of the previous categories quite right, so they go here. For instance: `contains` might seem like a List and String operator until you realize that it also works with Objects but it's not an Object operator either. So it goes here. 
 
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
