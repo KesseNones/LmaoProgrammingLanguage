@@ -5893,6 +5893,92 @@ Listed below are all the operators of this category:
 		--------------------------------
 		```
 
+- `isValidBox`
+	- Performance: O(1)
+	- Given a stack where the top is a box type, consumes the box and pushes a Boolean based on whether or not the box is valid. 
+	- General form: given stack `v` where `v` is type `StringBox`/`ListBox`/`ObjectBox`/`MiscBox`/`NULLBox`, applying `isValidBox` results in stack `b` where `b` is a `Boolean` that expresses whether or not `v` is a valid (non-freed) box.
+	- This operator is useful for checking if a box is useable, like in a data structure. This is equivalent to a pointer validity check in other languages.
+	- Example Program:
+
+		```
+		//Valid and invalid StringBoxes.
+		"foo" dup isValidBox
+		"bar" dup box free ; dup isValidBox
+		
+		//Valid and invalid ListBoxes.
+		[] dup isValidBox
+		[] 1 p 2 p 3 p dup box free ; dup isValidBox
+		
+		//Valid and invalid ObjectBoxes.
+		{} dup isValidBox
+		{} dup box free ; dup isValidBox
+		
+		//Valid and invalid MiscBoxes.
+		7 box make ; dup isValidBox
+		666i16 box make ; dup box free ; dup isValidBox
+		
+		//NULLBox is NEVER valid!
+		box null ; dup isValidBox
+		
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		Boolean true
+		StringBox 1 [INVALID]
+		Boolean false
+		ListBox 1
+		Boolean true
+		ListBox 2 [INVALID]
+		Boolean false
+		ObjectBox 2
+		Boolean true
+		ObjectBox 3 [INVALID]
+		Boolean false
+		MiscBox 3
+		Boolean true
+		MiscBox 4 [INVALID]
+		Boolean false
+		NULLBox
+		Boolean false
+		--------------------------------
+		STACK LENGTH: 18
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "foo"
+		ListBox 1:
+		        List []
+		ObjectBox 2:
+		        Object {}
+		MiscBox 3:
+		        isize 7
+		MiscBox 4 [FREE]:
+		        i16 666
+		////////////////////////////////
+		FREE'D BOX NUMBERS: [4]
+		////////////////////////////////
+		FREE'D BOX COUNT: 1
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 5
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 20.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
