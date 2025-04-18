@@ -5979,6 +5979,76 @@ Listed below are all the operators of this category:
 		////////////////////////////////
 		```
 
+- `getArgs`
+	- Performance: O(n) where `n` is the number of Chars that make up the command-line arguments. 
+	- Given a stack with anything on it, the operator pulls the command-line arguments for the program and allocates them on the heap as a ListBox containing a List of StringBoxes holding the arguments, pushing this ListBox to the stack.
+	- General form: given stack ` `, applying `getArgs` results in stack `A` where `A` is type `ListBox` that holds all `StringBox`es from the arguments.
+	- This operator is effectively Lmao's equivalent of something like `argv` or `String[] args` from C or Java respectively. In other words, when calling the program to run, any extra arguments provided are allocated from a call of `getArgs`.
+	- Be aware that if many command-line arguments were provided, a massive amount of space will be allocated on the heap, both for the ListBox itself as well as all of the StringBoxes inside it holding the Strings representing the command-line arguments. This means that a loop will be needed to go through and free all the items of the ListBox and then free the ListBox itself.
+	- Like the idea of something like argv, the first item in the ListBox is the name of the program.
+	- Example Directory:
+
+		```
+		drwxr-xr-x 2 janJesi users    4096 Apr 18 16:10 .
+		drwxr-xr-x 6 janJesi users    4096 Apr 18 16:06 ..
+		-rw-r--r-- 1 janJesi users      23 Apr 18 16:10 example.lmao
+		-rwxr-xr-x 1 janJesi users 1429848 Apr 18 16:07 lmao
+		```
+
+	- Example Program (`example.lmao`):
+	
+		```
+		//Gets arguments and shows them allocated on the heap
+		// and the ListBox on the stack.
+		getArgs
+		debugPrintStack
+		debugPrintHeap
+		```
+	
+	- Example Program Command-Line:
+	
+		```
+		./lmao example.lmao foo bar baz
+		```
+	
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 4
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "example.lmao"
+		StringBox 1:
+		        String "foo"
+		StringBox 2:
+		        String "bar"
+		StringBox 3:
+		        String "baz"
+		ListBox 4:
+		        List [StringBox 0, StringBox 1, StringBox 2, StringBox 3]
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 5
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
