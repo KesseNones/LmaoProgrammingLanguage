@@ -6058,11 +6058,119 @@ of Lmao beyond merely interfacing with the stack. Such functionality includes if
 These operators are called "Fancy Operators" because they require more than one word to invoke them. 
 A regular operator like `dup` needs just the one word but something like a `box` operator requires several to make
 such as `box free ;`. The primary difference between regular operators and fancy operators is the presence of the semi-colon 
-at the end of the operator, to signify completion of the operator invocation.  
+at the end of the operator, to signify completion of the operator invocation.
+
+**NOTE**: All fancy operators need at least a space *and* a semi-colon at their end, so `box free;` isn't valid but `box free ;` is.
+Even though one space is needed before the semi-colon, more space can be added. For instance, `box free                          ; ` is also valid.
 
 ### <a name = "box-fan-ops"></a>4.1 Box Fancy Operators
 #### [**Return to Table of Contents**](#toc)
 These are the operators that not only allow for the freeing of heap-allocated memory to be freed but also allow for the creation and interfacing with `MiscBox`es, boxes that can contain primitives from the stack, which allows for fun things like nested boxes and other powerful features.
+
+Below are all of the kinds of fancy box operators.
+- `box free ;`
+	- Performance: O(1)
+	- Given a stack with any kind of valid non-null box on top, consumes the box and frees it on the heap, allowing that memory cell to be reused, freeing up the box number to be used by another kind of box or even the same one.
+	- General form: given stack `b` where `b` is valid and type `StringBox`, `ListBox`, `ObjectBox`, or `MiscBox`, applying `box free ;` results in stack ` ` where the data held by `b` on the heap is freed. 
+	- If the box in question has already been freed, an error is thrown.
+	- This fancy operator is incredibly useful for maintaining programs that allocate a large amount of data on the heap, as this is how it's freed. Think of `box free ;` like the `free()` function in C.
+	- Example Program:
+
+		```
+		"This is some data allocated on the heap!" 
+		debugPrintStack
+		debugPrintHeap
+
+		//Freeing StringBox.
+		box free ;
+		debugPrintStack
+		debugPrintHeap
+
+		//Allocating new data.
+		[]
+		debugPrintStack
+		debugPrintHeap
+
+		``` 
+
+	- Example Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "This is some data allocated on the heap!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		--------------------------------
+		STACK LENGTH: 0
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0 [FREE]:
+		        String "This is some data allocated on the heap!"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: [0]
+		////////////////////////////////
+		FREE'D BOX COUNT: 1
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 100.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		ListBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ListBox 0:
+		        List []
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
 
 
 ### [**Return to Table of Contents**](#toc)
