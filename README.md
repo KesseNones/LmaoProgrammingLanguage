@@ -25,6 +25,7 @@
 	- [3.13 Meta Operators](#meta-ops)
 	- [3.14 Other Operators](#other-ops)
 - [4 Fancy Operators](#fancy-ops)
+	- [4.1 Box Fancy Operators](#box-fan-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -6058,6 +6059,10 @@ These operators are called "Fancy Operators" because they require more than one 
 A regular operator like `dup` needs just the one word but something like a `box` operator requires several to make
 such as `box free ;`. The primary difference between regular operators and fancy operators is the presence of the semi-colon 
 at the end of the operator, to signify completion of the operator invocation.  
+
+### <a name = "box-fan-ops"></a>4.1 Box Fancy Operators
+#### [**Return to Table of Contents**](#toc)
+These are the operators that not only allow for the freeing of heap-allocated memory to be freed but also allow for the creation and interfacing with `MiscBox`es, boxes that can contain primitives from the stack, which allows for fun things like nested boxes and other powerful features.
 
 
 ### [**Return to Table of Contents**](#toc)
