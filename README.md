@@ -6172,6 +6172,64 @@ Below are all of the kinds of fancy box operators.
 		////////////////////////////////
 		```
 
+- `box null ;`
+	- Performance: O(1)
+	- Given a stack with anything on it, calling this operator pushes a NULLBox, a box that points nowhere. 
+	- General form: given stack ` `, applying `box null ;` results in stack `n` where `n` is type `NULLBox`.
+	- This program is useful for giving Objects fields meant for boxes a default value that points nowhere. This is equivelent to nullpointers in other languages where the NULLBox acts purely as a placeholder for a real box. It's an IOU for a box.
+	- Example Program:
+
+		```
+		//Pure example of pushing NULLBox to stack.
+		box null ; 
+
+		//Example of it being used in an Object.
+		// In this case, it's a BST node.
+		//This looks weird because I'm freeing the memory 
+		// of the Strings being used for the field names.
+		{} 
+		"val" dup rot 0 objAddField swap box free ;
+		"left" dup rot box null ; objAddField swap box free ;
+		"right" dup rot box null ; objAddField swap box free ;
+
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		NULLBox
+		ObjectBox 0
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		ObjectBox 0:
+		        Object {val: isize 0, left: NULLBox, right: NULLBox}
+		StringBox 1 [FREE]:
+		        String "right"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: [1]
+		////////////////////////////////
+		FREE'D BOX COUNT: 1
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 50.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
+	- This program featured the `box free ;` operator to showcase how memory can be reused. Instead of wasting heap cells on each of the field names for the Object, one cell could be reused.
 
 ### [**Return to Table of Contents**](#toc)
 
