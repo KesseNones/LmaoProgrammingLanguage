@@ -6231,6 +6231,88 @@ Below are all of the kinds of fancy box operators.
 
 	- This program featured the `box free ;` operator to showcase how memory can be reused. Instead of wasting heap cells on each of the field names for the Object, one cell could be reused.
 
+- `box make ;`
+	- Performance: O(1)
+	- Given a stack with at least one item contained therein, consumes the top item allocates space for it on the heap and pushes a MiscBox pointing to that item. 
+	- General form: given stack `v` where `v` is any data type, applying `box make ;` results in stack `m` where `m` is type `MiscBox` and contains `v` on the heap.
+	- This fancy operator is really useful for things like nested-boxes, where a MiscBox can contain a MiscBox that contains a MiscBox and so on, allowing for more interesting data structures to be created.
+	- This also allows for the equivalent of things like integer pointers in other languages to be created through MiscBoxes.
+	- Example Program:
+
+		```
+		//Integer pointer equivalent.
+		42 box make ;
+
+		//Can hold things like Booleans or Chars.
+		'A' box make ;
+		false box make ;
+
+		//Can hold other kinds of Boxes!
+		box null ; box make ;
+		"foo" box make ;
+		[] box make ;
+
+		//Can even hold itself!
+		1.616 box make ; box make ;
+
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		MiscBox 0
+		MiscBox 1
+		MiscBox 2
+		MiscBox 3
+		MiscBox 5
+		MiscBox 7
+		MiscBox 9
+		--------------------------------
+		STACK LENGTH: 7
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		MiscBox 0:
+		        isize 42
+		MiscBox 1:
+		        Char 'A'
+		MiscBox 2:
+		        Boolean false
+		MiscBox 3:
+		        NULLBox
+		StringBox 4:
+		        String "foo"
+		MiscBox 5:
+		        StringBox 4
+		ListBox 6:
+		        List []
+		MiscBox 7:
+		        ListBox 6
+		MiscBox 8:
+		        f32 1.616
+		MiscBox 9:
+		        MiscBox 8
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 10
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ### [**Return to Table of Contents**](#toc)
 
 ## <a name = "conclusion"></a> 5 Conclusion 
