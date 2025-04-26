@@ -6233,7 +6233,7 @@ Below are all of the kinds of fancy box operators.
 
 - `box make ;`
 	- Performance: O(1)
-	- Given a stack with at least one item contained therein, consumes the top item allocates space for it on the heap and pushes a MiscBox pointing to that item. 
+	- Given a stack with at least one item contained therein, consumes the top item, allocates space for it on the heap, and pushes a MiscBox pointing to that item. 
 	- General form: given stack `v` where `v` is any data type, applying `box make ;` results in stack `m` where `m` is type `MiscBox` and contains `v` on the heap.
 	- This fancy operator is really useful for things like nested-boxes, where a MiscBox can contain a MiscBox that contains a MiscBox and so on, allowing for more interesting data structures to be created.
 	- This also allows for the equivalent of things like integer pointers in other languages to be created through MiscBoxes.
