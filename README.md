@@ -6313,6 +6313,62 @@ Below are all of the kinds of fancy box operators.
 		////////////////////////////////
 		```
 
+- `box open ;`
+	- Performance: O(1)
+	- Given a stack with a valid MiscBox on top, consumes the MiscBox and pushes its contents to the stack.
+	- General form: given stack `m` where `m` is type `MiscBox`, applying `box open ;` yields stack `v` where `v` is any stack-based data type. 
+	- This program only works for MiscBoxes and no other boxes because since MiscBoxes are directly allocated, they are directly dereferenced too, where other Box types are implicitly dereferenced in their operation.
+	- Be aware that `box open ;` does not give the MiscBox back, even though it's still allocated on the heap, so be sure to save it in a variable or using the `dup` operator.
+	- Example Program:
+
+		```
+		42usize box make ;
+		debugPrintStack
+
+		box open ;
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		MiscBox 0
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		usize 42
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		MiscBox 0:
+		        usize 42
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ### [**Return to Table of Contents**](#toc)
 
 ## <a name = "conclusion"></a> 5 Conclusion 
