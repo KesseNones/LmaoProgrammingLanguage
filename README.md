@@ -6369,6 +6369,91 @@ Below are all of the kinds of fancy box operators.
 		////////////////////////////////
 		```
 
+- `box altr ;`
+	- Performance: O(1)
+	- Given a stack where the second-to-top item is a valid MiscBox and the top item is a value with a data type matching the value held by the MiscBox, consumes the two items and mutates the contents of the MiscBox to the top item's value, pushing the MiscBox with the mutated contents back to the stack.
+	- General form: given stack `m v` where `m` is a valid `MiscBox` and `v` has a data type matching the value held by `m`, applying `box altr ;` results in stack `m'` where `m'` has the same Box number as `m` but contains `v` instead of its old value.
+	- `altr` is short for `alter`. It was cut off so that way all box command keywords are four letters long.
+	- Example Program:
+
+		```
+		//Boxes made with isize and NULLBox.
+		42 box make ;
+		box null ; box make ;
+		debugPrintStack
+		debugPrintHeap
+
+		//Mutating both boxes to hold different values.
+		swap 666 box altr ;
+		swap [] box altr ;
+
+		debugPrintStack
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		MiscBox 0
+		MiscBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		MiscBox 0:
+		        isize 42
+		MiscBox 1:
+		        NULLBox
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 2
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		MiscBox 0
+		MiscBox 1
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		MiscBox 0:
+		        isize 666
+		MiscBox 1:
+		        ListBox 2
+		ListBox 2:
+		        List []
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 3
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ### [**Return to Table of Contents**](#toc)
 
 ## <a name = "conclusion"></a> 5 Conclusion 
