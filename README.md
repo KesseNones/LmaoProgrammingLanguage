@@ -26,6 +26,7 @@
 	- [3.14 Other Operators](#other-ops)
 - [4 Fancy Operators](#fancy-ops)
 	- [4.1 Box Fancy Operators](#box-fan-ops)
+	- [4.2 Variable Fancy Operators](#var-fan-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -6454,7 +6455,11 @@ Below are all of the kinds of fancy box operators.
 		////////////////////////////////
 		```
 
-### [**Return to Table of Contents**](#toc)
+### <a name = "var-fan-ops"></a>4.2 Variable Fancy Operators
+#### [**Return to Table of Contents**](#toc)
+Variables are incredibly useful. These allow for the saving of values 
+on the stack to create more generalized programs. Unlike the local variables to be described later, 
+these variables don't adhere to scope. These variables simply exist until deleted or until the program ends.
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
