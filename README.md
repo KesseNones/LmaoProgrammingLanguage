@@ -6461,10 +6461,23 @@ Variables are incredibly useful. These allow for the saving of values
 on the stack to create more generalized programs. Unlike the local variables to be described later, 
 these variables don't adhere to scope. These variables simply exist until deleted or until the program ends.
 
+Below are all the valid operators associated with variables:
+- `var mak [NAME] ;`
+	- Performance: O(1)
+	- Given a stack with anything on top, consumes that item and saves it in variables with the given name `[NAME]`.
+	- General form: given stack `v`, applying `var mak x ;` results in stack ` ` where `v` is stored in a variable by name of `x`.
+	- Example Program:
+
+		```
+		42 var mak foo ;
+		3.14 var mak bar ; 
+		5040u16 var mak baz ;
+		"Hello" var mak qux ;
+		```
+
+	- Since there's no way to currently show saved variables, there is no output for this program.
+
 ## <a name = "conclusion"></a> 5 Conclusion 
-
-
-
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
 
