@@ -6466,6 +6466,7 @@ Below are all the valid operators associated with variables:
 	- Performance: O(1)
 	- Given a stack with anything on top, consumes that item and saves it in variables with the given name `[NAME]`.
 	- General form: given stack `v`, applying `var mak x ;` results in stack ` ` where `v` is stored in a variable by name of `x`.
+	- Be aware that `[NAME]` can only exist once with an error being thrown if the variable is already created.
 	- Example Program:
 
 		```
@@ -6476,6 +6477,55 @@ Below are all the valid operators associated with variables:
 		```
 
 	- Since there's no way to currently show saved variables, there is no output for this program.
+
+- `var get [NAME] ;`
+	- Performance: O(1)
+	- Given a stack with anything on it, pushes the contents held by the variable `[NAME]` to the stack.
+	- General form: given stack ` `, using `var get x ;` results in stack `v` where `v` is the value held by variable `x`.
+	- The variable `[NAME]` has to exist, with an error being thrown if it hasn't been created yet.
+	- Example Program:
+
+		```
+		//Some variables created with a resulting empty stack.
+		42 var mak foo ;
+		3.14 var mak bar ; 
+		5040u16 var mak baz ;
+		"Hello" var mak qux ;
+		debugPrintStack
+
+		//Getting the values held by the variables reveals 
+		// a stack with items from the variables.
+		var get qux ;
+		var get bar ;
+		var get baz ;
+		var get foo ;
+		debugPrintStack
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		--------------------------------
+		STACK LENGTH: 0
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		StringBox 0
+		f32 3.14
+		u16 5040
+		isize 42
+		--------------------------------
+		STACK LENGTH: 4
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
