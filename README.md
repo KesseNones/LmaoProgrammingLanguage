@@ -6527,6 +6527,77 @@ Below are all the valid operators associated with variables:
 		--------------------------------
 		```
 
+- `var mut [NAME] ;`
+	- Performance: O(1)
+	- Given a stack with an item on it with a data type matching the data held by the existing `[NAME]` variable, consumes the item from the stack and mutates the contents of `[NAME]` to the new value.
+	- General form: given stack `v` where `v` is a data type matching the contents of variable `x`, applying `var mak x ;` results in stack ` ` where `v` was consumed to mutate the contents of `x`.
+	- Example Program:
+
+		```
+		42 var mak x ;
+		box null ; var mak y ;
+
+		//Initial variable contents.
+		var get x ; 
+		var get y ;
+		debugPrintStack
+
+		//Mutating variables to new values of matching data types.
+		// A Null Box can turn into any kind of box and vice versa.
+		var get x ; box make ; var mut y ;
+		5040 var mut x ;
+
+		//Getting updated variable contents after clearing out the old ones.
+		dropStack
+		var get x ;
+		var get y ;
+		debugPrintStack
+
+		//Showing heap to show that the MiscBox holds the old x value.
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 42
+		NULLBox
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 5040
+		MiscBox 0
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		MiscBox 0:
+		        isize 42
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
 ## <a name = "conclusion"></a> 5 Conclusion 
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
