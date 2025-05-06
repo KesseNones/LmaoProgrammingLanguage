@@ -6598,6 +6598,76 @@ Below are all the valid operators associated with variables:
 		////////////////////////////////
 		```
 
+- `var del [NAME] ;`
+	- Performance: O(1)
+	- Deletes variable `[NAME]` from existence, allowing the variable `[NAME]` to be reused for a different data type. For instance, normally an error is thrown when you attempt to mutate a given variable to a value of a different data type. To get around this, you can delete the variable and remake it with the new value.
+	- Be aware that `[NAME]` needs to exist for it to be deleted, otherwise an error is thrown.
+	- This fancy operator allows variables to be re-used in blocks of code run more than once.
+	- Example Program:
+
+		```
+		42 var mak foo ;
+
+		//Fetches value of foo, which is an isize data type.
+		var get foo ;
+		debugPrintStack
+
+		//This would cause an error if uncommented!
+		//"cheese" var mut foo ;
+
+		//This is a way of changing foo to a StringBox without an error!
+		var del foo ;
+		"cheese" var mak foo ;
+
+		//Now holds a StringBox!
+		var get foo ;
+		debugPrintStack
+
+		//Showing off heap for extra information.
+		debugPrintHeap
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 42
+		--------------------------------
+		STACK LENGTH: 1
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		isize 42
+		StringBox 0
+		--------------------------------
+		STACK LENGTH: 2
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		////////////////////////////////
+		BEGIN HEAP PRINT
+		////////////////////////////////
+		StringBox 0:
+		        String "cheese"
+		////////////////////////////////
+		FREE'D BOX NUMBERS: []
+		////////////////////////////////
+		FREE'D BOX COUNT: 0
+		////////////////////////////////
+		TOTAL HEAP ITEM COUNT: 1
+		////////////////////////////////
+		PERCENT OF HEAP FREE'D: 0.00
+		////////////////////////////////
+		END HEAP PRINT
+		////////////////////////////////
+		```
+
+
 ## <a name = "conclusion"></a> 5 Conclusion 
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
