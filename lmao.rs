@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.9.4
+//Version: 0.9.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5003,7 +5003,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                                 *old_v = new_v;
                                             }else{
                                                 let mut_err = invalid_mutation_error("var mut", 
-                                                    "variable", name, &new_v, &new_v); 
+                                                    "variable", name, &old_v, &new_v); 
                                                 return error_and_remove_frame(state, mut_err);
                                             }
                                         },
