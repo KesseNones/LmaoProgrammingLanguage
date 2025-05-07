@@ -27,6 +27,7 @@
 - [4 Fancy Operators](#fancy-ops)
 	- [4.1 Box Fancy Operators](#box-fan-ops)
 	- [4.2 Variable Fancy Operators](#var-fan-ops)
+	- [4.3 If Fancy Operators](#if-fan-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -6667,6 +6668,80 @@ Below are all the valid operators associated with variables:
 		////////////////////////////////
 		```
 
+### <a name = "if-fan-ops"></a>4.3 If Fancy Operators
+#### [**Return to Table of Contents**](#toc)
+If fancy operators are a means of control flow. These are the if statements of Lmao.
+
+The actual branching is constant time but the performance of an If Fancy Operator is only as good as the code that runs inside it.
+
+Given a stack with a Boolean value, the If consumes the Boolean and runs one block of code or another, depending on whether or not the Boolean is true.
+
+General form: given stack `b` where `b` is type `Boolean`, applying an if statement results in stack ` ` where `b` is consumed to branch recursively into another set of code where stack ` ` then becomes stack `A` where `A` can be anything in any amount.
+
+If Fancy Operators are constructed following this format:
+```
+if 
+	[CODE_IF_TRUE]
+else
+	[CODE_IF_FALSE]
+;
+```
+
+OR
+
+```
+if 
+	[CODE_IF_TRUE]
+;
+```
+
+If the Boolean value on top of the stack is a `True`, the `[CODE_IF_TRUE]` block is run, otherwise `[CODE_IF_FALSE]` is run. If no `else` branch is given, nothing happens if the boolean is `False`, since there's no `[CODE_IF_FALSE]` to run.
+
+Be aware that if there is no Boolean for an If, an error is thrown. 
+
+Also note that `[CODE_IF_TRUE]` and `[CODE_IF_FALSE]` can be **any** code whatever, including more Ifs, allowing for recursive code structures and a major boost in Lmao's power.
+
+Example Program:
+
+```
+//Basic branching.
+true
+if
+	"THIS IS TRUE!" printLine
+else
+	"THIS IS FALSE!!!" printLine
+;
+
+false
+if
+	"THIS IS TRUE!" printLine
+else
+	"THIS IS FALSE!!!" printLine
+;
+
+//Will only run code if true.
+True
+if
+	8 6 *
+	"8 times 6 is: " print
+	"String" cast printLine
+;
+
+False
+if
+	6 6 *
+	"6 times 6 is: " print
+	"String" cast printLine
+;
+```
+
+Program Output:
+
+```
+THIS IS TRUE!
+THIS IS FALSE!!!
+8 times 6 is: 48
+```
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
