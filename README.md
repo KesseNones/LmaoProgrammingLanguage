@@ -28,6 +28,7 @@
 	- [4.1 Box Fancy Operators](#box-fan-ops)
 	- [4.2 Variable Fancy Operators](#var-fan-ops)
 	- [4.3 If Fancy Operators](#if-fan-ops)
+	- [4.4 While Fancy Operators](#while-fan-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -6741,6 +6742,108 @@ Program Output:
 THIS IS TRUE!
 THIS IS FALSE!!!
 8 times 6 is: 48
+```
+
+### <a name = "while-fan-ops"></a>4.4 While Fancy Operators
+#### [**Return to Table of Contents**](#toc)
+The While Fancy Operator is the key to making Lmao a Turing-complete language. As the name suggests, the While Fancy Operator is a while loop operator. 
+
+Given a stack with a Boolean on top, the While operator consumes it and determines whether or not it runs. If the initial Boolean consumes is a `True`, the code within the loop runs, otherwise it doesn't. Once the end of the code block is reached within the While, it will attempt to consume a new Boolean. If the new Boolean is `true`, the loop runs the code again, if `false`, the loop doesn't run again, leaving the code to move on. 
+
+In general, the format to using a While Fancy Operator is this:
+
+```
+while
+	[CODE_TO_RUN]
+;
+```
+
+In this example, `[CODE_TO_RUN]` only runs initially if there's a `Boolean True` on top of the stack at the start of the `while`. If there's another `Boolean True` on the stack following `[CODE_TO_RUN]`, `[CODE_TO_RUN]` runs again.
+
+Just like with the If Fancy Operator, `[CODE_TO_RUN]` is a recursive block, allowing for nested loops, Ifs in loops, and more.
+
+Be aware that in both the case of starting the loop as well as determining continuation, a Boolean must be on top of the stack, otherwise an error is thrown.
+
+Example Program:
+
+```
+//This loop doesn't run at all.
+False
+while
+	"I SHOULD NEVER RUN!" printLine
+	True
+;
+
+//This loop runs once then quits.
+true
+while
+	"I RUN ONCE!" printLine
+	false
+;
+
+//This loop repeats its code once, showing how that works.
+0 dup 2 < 
+while
+	"I RUN TWICE!" printLine
+	1 +
+	dup 2 <
+;
+
+//Gets rid of isize on stack leftover from previous loop.
+drop
+
+//Basic counting loop, also demonstrating var and memory cleanliness.
+// As an idea to improve this example, 
+// the previous while loops should also have their Strings freed.
+"String" var mak castStr ;
+1 var mak count ;
+var get count ; 
+11 <
+while
+	//Gets current count and casts it to a new String.
+	var get count ; 
+	//A castStr is used to have the String "String" 
+	// being allocated over and over for the cast operator.
+	var get castStr ; 
+	cast 
+
+	//Prints the casted String of the count and frees it.
+	dup printLine
+	box free ;
+
+	//Increments value of count, 
+	// so the loop doesn't run forever.
+	var get count ;
+	1 + 
+	var mut count ;
+
+	//Checks to see if the code needs to run again.
+	var get count ;
+	11 <
+;
+
+//Frees the StringBox in this variable, demonstrating 
+// that heap-allocated variables need cleaning too.
+var get castStr ;
+box free ;
+```
+
+Program Output:
+
+```
+I RUN ONCE!
+I RUN TWICE!
+I RUN TWICE!
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
 ```
 
 ## <a name = "conclusion"></a> 5 Conclusion 
