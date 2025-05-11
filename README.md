@@ -29,6 +29,7 @@
 	- [4.2 Variable Fancy Operators](#var-fan-ops)
 	- [4.3 If Fancy Operators](#if-fan-ops)
 	- [4.4 While Fancy Operators](#while-fan-ops)
+	- [4.5 Function Fancy Operators](#fun-fan-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -6845,6 +6846,10 @@ I RUN TWICE!
 9
 10
 ```
+
+### <a name = "fun-fan-ops"></a>4.5 Function Fancy Operators
+#### [**Return to Table of Contents**](#toc)
+Function fancy operators are immensely powerful fancy operators. These are what allow for functions to exist in Lmao, making for much more versatile programs and the creation of recursion. Functions allow for programs to be greatly generalized in their functionality. 
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
