@@ -6849,7 +6849,232 @@ I RUN TWICE!
 
 ### <a name = "fun-fan-ops"></a>4.5 Function Fancy Operators
 #### [**Return to Table of Contents**](#toc)
-Function fancy operators are immensely powerful fancy operators. These are what allow for functions to exist in Lmao, making for much more versatile programs and the creation of recursion. Functions allow for programs to be greatly generalized in their functionality. 
+Function fancy operators are immensely powerful fancy operators. These are what allow for functions to exist in Lmao, making for much more versatile programs and the creation of recursion. Functions allow for programs to be greatly generalized in their functionality and for algorithms to be created. Function fancy operators also create a means of encapsulation and modularity with programs that can't exist easily without them. Another way to think of Function Fancy Operators is the ability to create your **own** operators, rather than relying on the ones that exist, which is quite powerful.
+
+Functions are defined using the `def` operator like so:
+```
+func def [FUNCTION_NAME]
+	[FUNCTION_CODE]
+;
+```
+This act defines `[FUNCTION_NAME]` which when called runs `[FUNCTION_CODE]` once.
+
+Functions are called using the `call` operator like so:
+```
+func call [FUNCTION_NAME] ;
+```
+This calls `[FUNCTION_NAME]` which then runs `[FUNCTION_CODE]` contained by the function. 
+
+Since the stack is transcendent of scope, the stack is what's used for any function inputs and any outputs of the function. For instance, a function that displays formatted output may take input on the stack to put in the formatted String for output.
+
+Example Program:
+```
+//Simple squaring program. 
+// An error happens when input is non-numerical!
+func def square
+	//Duplicates stack input and multiplies by itself,
+	// resulting in raising the value by a power of 2.
+	dup *
+;
+
+//The square function being applied to several different inputs.
+3.14 func call square ;
+42 func call square ;
+1e100f64 func call square ;
+3u8 func call square ;
+debugPrintStack
+
+dropStack
+
+//A basic "Hello, World" function that follows memory sanity.
+func def hello
+	"Hello, World!" dup printLine
+	box free ;
+;
+
+func call hello ; 
+func call hello ;
+
+//Fun leap year detection function.
+// Only works for isizes!
+//Consumes an isize and pushes a boolean to the stack.
+func def isLeap 
+	var mak y ;
+
+	//Checks if year is divisble by 4 and is either not divisible by 100 
+	// or is divisible by 400.
+	// This is how a leap year is determined.
+	var get y ; 4 mod 0 ==
+	var get y ; 100 mod 0 !=
+	var get y ; 400 mod 0 ==
+	or and
+
+	//Deletion of y variable allows for function to be re-used.
+	// Deleting this line results in an error!
+	var del y ;
+;
+
+2024 func call isLeap ;
+1900 func call isLeap ;
+debugPrintStack
+dropStack
+
+//One function can use another function, provided it's defined!
+
+//Takes in a number and calls isLeap 
+// to see if it's a leap year, outputting the result to stdout.
+// BE AWARE: it assumes the input year number is an isize!
+func def leapShow
+	//Input year.
+	var mak year ;
+	
+	//Strings allocated for later print.
+	"String" var mak strCast ; 
+	[] "is NOT" push "is" push
+	var mak isOrNot ;
+	"The year " var mak start ;
+	" a leap year!" var mak end ;
+	"usize" var mak uCast ;
+
+	//Determines if input year is leap year or not.
+	var get year ; 
+	func call isLeap ;
+
+	//Prints first part of output.
+	var get start ; print
+
+	//Prints year.
+	var get year ; var get strCast ; cast 
+	dup print box free ;
+	' ' printChar
+
+	//Uses resulting Boolean to index into the is/isnot array
+	// and prints second part of output.
+	var get uCast ; cast 
+	var get isOrNot ; swap index
+	print
+
+	//Prints final part of output.
+	var get end ; printLine
+
+	//Frees data allocated for is/isnot strings.
+	var get isOrNot ; 0usize index box free ;
+	var get isOrNot ; 1usize index box free ;
+	var get isOrNot ; box free ;
+
+	//Frees Strings allocated for output.
+	var get strCast ; box free ;
+	var get start ; box free ;
+	var get end ; box free ;
+	var get uCast ; box free ;
+
+	//Deletes variables for function re-use.
+	var del strCast ;
+	var del year ;
+	var del uCast ; 
+	var del isOrNot ;
+	var del start ; 
+	var del end ;
+;
+
+//Demonstrates nested function.
+2024 func call leapShow ;
+1900 func call leapShow ;
+2000 func call leapShow ;
+2025 func call leapShow ; 
+40999 func call leapShow ;
+
+//Recursive functions can also exist!
+func def factorial
+	var mak i ; 
+	var mak n ; 
+
+	var get n ; 0 ==
+	if
+		var get i ;
+		var del i ; 
+		var del n ; 
+	else
+		var get n ; 1 -
+		var get n ; var get i ; *
+		
+		var del n ; var del i ; 
+		func call factorial ;
+	;
+;
+
+//First ten factorials.
+1 var mak facNum ; 
+
+var get facNum ; 
+11 < 
+while
+	var get facNum ; 1 
+	func call factorial ;
+	
+	var get facNum ;
+	1 + 
+	dup var mut facNum ;
+	11 <
+;
+
+debugPrintStack
+```
+
+Program Output:
+```
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+f32 9.859601
+isize 1764
+f64 1e200
+u8 9
+--------------------------------
+STACK LENGTH: 4
+--------------------------------
+END STACK PRINT
+--------------------------------
+Hello, World!
+Hello, World!
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+Boolean true
+Boolean false
+--------------------------------
+STACK LENGTH: 2
+--------------------------------
+END STACK PRINT
+--------------------------------
+The year 2024 is a leap year!
+The year 1900 is NOT a leap year!
+The year 2000 is a leap year!
+The year 2025 is NOT a leap year!
+The year 40999 is NOT a leap year!
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+isize 1
+isize 2
+isize 6
+isize 24
+isize 120
+isize 720
+isize 5040
+isize 40320
+isize 362880
+isize 3628800
+--------------------------------
+STACK LENGTH: 10
+--------------------------------
+END STACK PRINT
+--------------------------------
+```
+
+As you can notice, `box free ;` is used a lot. If you add `debugPrintHeap` to the example program, you can see clearly that all of the heap is freed. This practice of freeing allocated memory is a **very** good idea for functions as they can be called many times over which allows for the memory to be re-used and the heap to stay small. Eventually, I'll talk about the `defer` fancy operator, which makes a lot of memory maintenance much easier.
+
+
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
