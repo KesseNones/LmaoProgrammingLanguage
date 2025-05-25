@@ -30,6 +30,7 @@
 	- [4.3 If Fancy Operators](#if-fan-ops)
 	- [4.4 While Fancy Operators](#while-fan-ops)
 	- [4.5 Function Fancy Operators](#fun-fan-ops)
+	- [4.6 Local Variable Fancy Operators](#loc-fan-ops)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -7074,7 +7075,8 @@ END STACK PRINT
 
 As you can notice, `box free ;` is used a lot. If you add `debugPrintHeap` to the example program, you can see clearly that all of the heap is freed. This practice of freeing allocated memory is a **very** good idea for functions as they can be called many times over which allows for the memory to be re-used and the heap to stay small. Eventually, I'll talk about the `defer` fancy operator, which makes a lot of memory maintenance much easier.
 
-
+### <a name = "loc-fan-ops"></a>4.6 Local Variable Fancy Operators
+#### [**Return to Table of Contents**](#toc)
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
