@@ -7077,6 +7077,7 @@ As you can notice, `box free ;` is used a lot. If you add `debugPrintHeap` to th
 
 ### <a name = "loc-fan-ops"></a>4.6 Local Variable Fancy Operators
 #### [**Return to Table of Contents**](#toc)
+These are very powerful fancy operators. They function in much the same way as the Variable Fancy Operator, except they are created and automatically cleaned up within the context of a stack of program frames. In other words, you can create local variables in a function that are only usable in that function that then get cleaned up at the end of the function. This works in a nested manner with scopes within scopes containing potentially new variables. These local variables can also be accessed from lower scopes at the cost of some iteration. These operators make it so you don't need manual deletion to re-use variables in a function.
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
