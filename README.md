@@ -31,6 +31,7 @@
 	- [4.4 While Fancy Operators](#while-fan-ops)
 	- [4.5 Function Fancy Operators](#fun-fan-ops)
 	- [4.6 Local Variable Fancy Operators](#loc-fan-ops)
+	- [4.7 Attempt on Error Fancy Operator](#att-err-op)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -7214,6 +7215,11 @@ COUNTING TO 55 in base 6!
 54
 55
 ```  
+
+### <a name = "att-err-op"></a>4.7 Attempt on Error Fancy Operator
+#### [**Return to Table of Contents**](#toc)
+This operator is a means of handling errors without them blowing up in your face. 
+Naturally, this operator has many uses, from type checking to easy input handling, and more!
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
