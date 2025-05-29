@@ -7140,11 +7140,11 @@ func def isEven
 5040 func call isEven ;
 
 //Local variables can be created and mutated over and over!
-0 loc mak i ;
 
 //A two-level loop that showcases a nested local variable structure.
 // This also has huge memory leakage. See if you can fix it!
-"COUNTING TO 55 in base 6!"
+0 loc mak i ;
+"COUNTING TO 55 in base 6!" printLine
 loc get i ; 
 6 <
 while
@@ -7176,6 +7176,7 @@ I RUN ONCE THANKS TO A FALSE OUTSIDE VARIABLE!
 2025 IS NOT EVEN!
 42 IS EVEN!
 5040 IS EVEN!
+COUNTING TO 55 in base 6!
 00
 01
 02
