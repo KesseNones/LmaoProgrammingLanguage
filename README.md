@@ -7077,7 +7077,142 @@ As you can notice, `box free ;` is used a lot. If you add `debugPrintHeap` to th
 
 ### <a name = "loc-fan-ops"></a>4.6 Local Variable Fancy Operators
 #### [**Return to Table of Contents**](#toc)
-These are very powerful fancy operators. They function in much the same way as the Variable Fancy Operator, except they are created and automatically cleaned up within the context of a stack of program frames. In other words, you can create local variables in a function that are only usable in that function that then get cleaned up at the end of the function. This works in a nested manner with scopes within scopes containing potentially new variables. These local variables can also be accessed from lower scopes at the cost of some iteration. These operators make it so you don't need manual deletion to re-use variables in a function.
+These are very powerful fancy operators. They function in much the same way as the Variable Fancy Operator, except they are created and automatically cleaned up within the context of a stack of program frames. In other words, you can create local variables in a function that are only usable in that function that then get cleaned up at the end of the function. This works in a nested manner with scopes within scopes containing potentially new variables. These local variables can also be accessed from lower scopes at the cost of some iteration. These operators make it so you don't need manual deletion to re-use variables in a function. Thus, there is no `del` command keyword for local variable fancy operators. 
+
+The general syntax is thus:
+```
+loc [CMD] [NAME] ;
+```
+The keyword `loc` stands for `loc`al variable, like how `var` is short for `var`iable in the Variable Fancy Operator.
+`[CMD]` is one of the three valid command keywords of `mak`, `get`, and `mut`. Notice how `del` is not featured since local variables are cleaned up at the end of their scope! `[NAME]` is just the name of the local variable.
+
+Example Program:
+```
+//Can create new variables of the same name 
+// of different type if in a different scope!
+// This code would error out if using var.
+false loc mak foo ;
+true
+while
+	'A' loc mak foo ;
+
+	//Only accesses the Char version 
+	// of foo and not the Boolean.
+	loc get foo ; 
+	loc get foo ;
+	printChar printChar
+	'\n' printChar
+
+	false
+;
+
+//Can access a loc within a few layers of scope!
+true
+if
+	true
+	while
+		//Value is false so loop stops instantly.
+		"I RUN ONCE THANKS TO A FALSE OUTSIDE VARIABLE!" printLine
+		loc get foo ;
+	;
+;
+
+//Not a very practical function but it showcases how a function 
+// with local variables can be called more than once.
+// This also leaks memory like a sieve but I don't care.
+func def isEven
+	loc mak n ;
+
+	loc get n ; 
+	2 mod 0 ==
+	if
+		loc get n ; "String" cast
+		print " IS EVEN!" printLine
+	else
+		loc get n ; "String" cast
+		print " IS NOT EVEN!" printLine
+	;
+;
+
+27 func call isEven ;
+2025 func call isEven ;
+42 func call isEven ;
+5040 func call isEven ;
+
+//Local variables can be created and mutated over and over!
+0 loc mak i ;
+
+//A two-level loop that showcases a nested local variable structure.
+// This also has huge memory leakage. See if you can fix it!
+"COUNTING TO 55 in base 6!"
+loc get i ; 
+6 <
+while
+	0 loc mak j ;
+
+	loc get j ;
+	6 <
+	while
+		loc get i ; "String" cast print
+		loc get j ; "String" cast printLine
+
+		loc get j ;
+		1 + 
+		dup loc mut j ;
+		6 < 
+	;
+
+	loc get i ; 
+	1 +
+	dup loc mut i ; 
+	6 < 
+;
+```
+Program Output:
+```
+AA
+I RUN ONCE THANKS TO A FALSE OUTSIDE VARIABLE!
+27 IS NOT EVEN!
+2025 IS NOT EVEN!
+42 IS EVEN!
+5040 IS EVEN!
+00
+01
+02
+03
+04
+05
+10
+11
+12
+13
+14
+15
+20
+21
+22
+23
+24
+25
+30
+31
+32
+33
+34
+35
+40
+41
+42
+43
+44
+45
+50
+51
+52
+53
+54
+55
+```  
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
