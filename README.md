@@ -25,12 +25,12 @@
 	- [3.13 Meta Operators](#meta-ops)
 	- [3.14 Other Operators](#other-ops)
 - [4 Fancy Operators](#fancy-ops)
-	- [4.1 Box Fancy Operators](#box-fan-ops)
-	- [4.2 Variable Fancy Operators](#var-fan-ops)
-	- [4.3 If Fancy Operators](#if-fan-ops)
-	- [4.4 While Fancy Operators](#while-fan-ops)
-	- [4.5 Function Fancy Operators](#fun-fan-ops)
-	- [4.6 Local Variable Fancy Operators](#loc-fan-ops)
+	- [4.1 Box Fancy Operator](#box-fan-ops)
+	- [4.2 Variable Fancy Operator](#var-fan-ops)
+	- [4.3 If Fancy Operator](#if-fan-ops)
+	- [4.4 While Fancy Operator](#while-fan-ops)
+	- [4.5 Function Fancy Operator](#fun-fan-ops)
+	- [4.6 Local Variable Fancy Operator](#loc-fan-ops)
 	- [4.7 Attempt on Error Fancy Operator](#att-err-op)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
@@ -6069,7 +6069,7 @@ at the end of the operator, to signify completion of the operator invocation.
 **NOTE**: All fancy operators need at least a space *and* a semi-colon at their end, so `box free;` isn't valid but `box free ;` is.
 Even though one space is needed before the semi-colon, more space can be added. For instance, `box free                          ; ` is also valid.
 
-### <a name = "box-fan-ops"></a>4.1 Box Fancy Operators
+### <a name = "box-fan-ops"></a>4.1 Box Fancy Operator
 #### [**Return to Table of Contents**](#toc)
 These are the operators that not only allow for the freeing of heap-allocated memory to be freed but also allow for the creation and interfacing with `MiscBox`es, boxes that can contain primitives from the stack, which allows for fun things like nested boxes and other powerful features.
 
@@ -6460,7 +6460,7 @@ Below are all of the kinds of fancy box operators.
 		////////////////////////////////
 		```
 
-### <a name = "var-fan-ops"></a>4.2 Variable Fancy Operators
+### <a name = "var-fan-ops"></a>4.2 Variable Fancy Operator
 #### [**Return to Table of Contents**](#toc)
 Variables are incredibly useful. These allow for the saving of values 
 on the stack to create more generalized programs. Unlike the local variables to be described later, 
@@ -6672,7 +6672,7 @@ Below are all the valid operators associated with variables:
 		////////////////////////////////
 		```
 
-### <a name = "if-fan-ops"></a>4.3 If Fancy Operators
+### <a name = "if-fan-ops"></a>4.3 If Fancy Operator
 #### [**Return to Table of Contents**](#toc)
 If fancy operators are a means of control flow. These are the if statements of Lmao.
 
@@ -6747,7 +6747,7 @@ THIS IS FALSE!!!
 8 times 6 is: 48
 ```
 
-### <a name = "while-fan-ops"></a>4.4 While Fancy Operators
+### <a name = "while-fan-ops"></a>4.4 While Fancy Operator
 #### [**Return to Table of Contents**](#toc)
 The While Fancy Operator is the key to making Lmao a Turing-complete language. As the name suggests, the While Fancy Operator is a while loop operator. 
 
@@ -6849,7 +6849,7 @@ I RUN TWICE!
 10
 ```
 
-### <a name = "fun-fan-ops"></a>4.5 Function Fancy Operators
+### <a name = "fun-fan-ops"></a>4.5 Function Fancy Operator
 #### [**Return to Table of Contents**](#toc)
 Function fancy operators are immensely powerful fancy operators. These are what allow for functions to exist in Lmao, making for much more versatile programs and the creation of recursion. Functions allow for programs to be greatly generalized in their functionality and for algorithms to be created. Function fancy operators also create a means of encapsulation and modularity with programs that can't exist easily without them. Another way to think of Function Fancy Operators is the ability to create your **own** operators, rather than relying on the ones that exist, which is quite powerful.
 
@@ -7076,7 +7076,7 @@ END STACK PRINT
 
 As you can notice, `box free ;` is used a lot. If you add `debugPrintHeap` to the example program, you can see clearly that all of the heap is freed. This practice of freeing allocated memory is a **very** good idea for functions as they can be called many times over which allows for the memory to be re-used and the heap to stay small. Eventually, I'll talk about the `defer` fancy operator, which makes a lot of memory maintenance much easier.
 
-### <a name = "loc-fan-ops"></a>4.6 Local Variable Fancy Operators
+### <a name = "loc-fan-ops"></a>4.6 Local Variable Fancy Operator
 #### [**Return to Table of Contents**](#toc)
 These are very powerful fancy operators. They function in much the same way as the Variable Fancy Operator, except they are created and automatically cleaned up within the context of a stack of program frames. In other words, you can create local variables in a function that are only usable in that function that then get cleaned up at the end of the function. This works in a nested manner with scopes within scopes containing potentially new variables. These local variables can also be accessed from lower scopes at the cost of some iteration. These operators make it so you don't need manual deletion to re-use variables in a function. Thus, there is no `del` command keyword for local variable fancy operators. 
 
