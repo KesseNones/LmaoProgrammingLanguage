@@ -7221,6 +7221,124 @@ COUNTING TO 55 in base 6!
 This operator is a means of handling errors without them blowing up in your face. 
 Naturally, this operator has many uses, from type checking to easy input handling, and more!
 
+The syntax for Attempt on Error follows this format:
+```
+attempt
+	[CODE_TO_RUN]
+onError
+	[CODE_IF_ERROR]
+;
+```
+Where `[CODE_TO_RUN]` is a block of code you try to run and hope no errors happen and `[CODE_IF_ERROR]` is the code that gets run if there is an error. 
+
+Normally, when an error happens in Lmao, it throws an exception and the program stops at that point. However, using Attempt on Error, the error thrown in `[CODE_TO_RUN]` is caught, stopping the code at the point of error. Instead of this exception traversing up to kill the program, the error is allocated as a new StringBox and pushed to the stack for potential use. If the user doesn't care about this StringBox, they can free it easily using `box free ;` as part of their version of `[CODE_IF_ERROR]`.
+
+**BE AWARE!** The stack, variables, heap, and more remain altered by whatever code was able to run in `[CODE_TO_RUN]`. Because of this, there may be unpredictible changes made to the state of the program if you're not fully aware of where the program may fail. Therefore, it's best to only use Attempt on Error if `[CODE_TO_RUN]` has a known set of failure points you want to account for with an alternative course of action. Otherwise, just let the code break with an exception as it makes debugging less annoying. 
+
+Example Program:
+```
+//Tries to cast an invalid String to an isize, handles failure.
+attempt
+	"Cheese" "isize" cast
+onError
+	box free ;
+	0
+;
+
+//Tries to cast valid String, code succeeds 
+// and error branch doesn't need to run.
+attempt
+	"42" "isize" cast
+onError
+	box free ;
+	0
+;
+
+debugPrintStack
+dropStack
+
+//Handles failure of division and displays error 
+// but allows for code to continue.
+attempt
+	666 0 /
+onError
+	//Prints error and pushes nothing to stack, freeing box.
+	dup 
+	printLine 
+	box free ;
+;
+
+//This is a valid division so it succeeds.
+attempt
+	5040 6 /
+onError
+	//Prints error and pushes nothing to stack, freeing box.
+	dup 
+	printLine 
+	box free ;
+;
+
+debugPrintStack
+
+//Keeps prompting for age until valid one is given.
+//Leaks memory like a sieve. Figure out if you can stop the leaks!
+false loc mak validAgeFound ;
+true
+while
+	"Enter your age: " print
+	
+	readLine 
+	loc mak input ;
+	
+	attempt
+		loc get input ;
+		"u8" cast
+		"You are " print
+		loc get input ; print
+		" years old!" printLine
+		true loc mut validAgeFound ;
+	onError
+		box free ;
+		loc get input ; print
+		" is not a valid age! Try something in range 0-255" printLine
+	;
+
+	loc get validAgeFound ; not
+;
+```
+
+Example Program Input and Output:
+```
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+isize 0
+isize 42
+--------------------------------
+STACK LENGTH: 2
+--------------------------------
+END STACK PRINT
+--------------------------------
+Operator (/) error! Division by zero occuring between two operands of type isize!
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+isize 840
+--------------------------------
+STACK LENGTH: 1
+--------------------------------
+END STACK PRINT
+--------------------------------
+Enter your age: 666
+666 is not a valid age! Try something in range 0-255
+Enter your age: -8
+-8 is not a valid age! Try something in range 0-255
+Enter your age: cheese
+cheese is not a valid age! Try something in range 0-255
+Enter your age: 24
+You are 24 years old!
+``` 
+
 ## <a name = "conclusion"></a> 5 Conclusion 
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
