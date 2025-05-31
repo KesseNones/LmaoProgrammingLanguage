@@ -32,6 +32,7 @@
 	- [4.5 Function Fancy Operator](#fun-fan-ops)
 	- [4.6 Local Variable Fancy Operator](#loc-fan-ops)
 	- [4.7 Attempt on Error Fancy Operator](#att-err-op)
+	- [4.8 Defer Fancy Operator](#defer-fan-op)
 - [5 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -7338,6 +7339,9 @@ cheese is not a valid age! Try something in range 0-255
 Enter your age: 24
 You are 24 years old!
 ``` 
+
+### <a name = "defer-fan-op"></a>4.8 Defer Fancy Operator
+#### [**Return to Table of Contents**](#toc)
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
