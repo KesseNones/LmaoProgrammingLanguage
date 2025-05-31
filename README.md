@@ -7342,6 +7342,123 @@ You are 24 years old!
 
 ### <a name = "defer-fan-op"></a>4.8 Defer Fancy Operator
 #### [**Return to Table of Contents**](#toc)
+The Defer Fancy Operator is not the most intuitive with how it works but it's immensely practical. Using defer, it's possible to delay the running of code until the end of the scope defer is used in, allowing for things like memory cleanup, delayed functions, and other neat stuff.
+
+The syntax for the Defer Fancy Operator is this:
+```
+defer 
+	[CODE_TO_RUN]
+;
+```
+Where `[CODE_TO_RUN]` is code that will be run in its own scope at the end of the scope `defer` is called in.
+
+`defer` also behaves like a stack, where multiple defers push to a stack that results in the most recently `defer`red code being run.
+
+Example Program:
+```
+func def alphaFun
+	//Defer can be used for what feels like automatic memory cleanup, 
+	// as well as var deletion!
+	"The first three letters of the English alphabet are: " var mak alpha ;
+	defer 
+		var get alpha ; box free ;
+		var del alpha ;
+	;
+
+	//Can still use alpha following a defer!
+	var get alpha ; 'A' p ' ' p printLine
+	var get alpha ; 'B' p ' ' p printLine
+	var get alpha ; 'C' p printLine
+;
+
+//Thanks to deferred memory cleanup and var deletion, alphaFun can run multiple times easily!
+func call alphaFun ;
+func call alphaFun ;
+debugPrintHeap
+
+func def deferMadness
+
+	//Multiple defers in a given scope behave like a stack.
+	// The first one deferred is the last to run. 
+	defer
+		"THIS RUNS LAST!" 
+		dup printLine box free ;
+	;
+
+	//Defers can be nested too!
+	defer
+		"THIS RUNS IN THE MIDDLE!" 
+		loc mak mid ;
+		defer 
+			loc get mid ;
+			box free ;
+		;
+
+		loc get mid ; printLine
+	;
+
+	defer
+		"THIS RUNS FIRST!" 
+		dup printLine box free ;
+	;
+
+	//Deferred code runs at the END of a given scope.
+	"RUNS BEFORE ANY DEFERRED CODE CAN RUN!"
+	dup printLine box free ;
+;
+
+//Showcases more defer magic and how heap is still all freed.
+func call deferMadness ;
+debugPrintHeap
+```
+
+Program Output:
+```
+The first three letters of the English alphabet are: A
+The first three letters of the English alphabet are: A B
+The first three letters of the English alphabet are: A B C
+The first three letters of the English alphabet are: A
+The first three letters of the English alphabet are: A B
+The first three letters of the English alphabet are: A B C
+////////////////////////////////
+BEGIN HEAP PRINT
+////////////////////////////////
+StringBox 0 [FREE]:
+        String "The first three letters of the English alphabet are: A B C"
+////////////////////////////////
+FREE'D BOX NUMBERS: [0]
+////////////////////////////////
+FREE'D BOX COUNT: 1
+////////////////////////////////
+TOTAL HEAP ITEM COUNT: 1
+////////////////////////////////
+PERCENT OF HEAP FREE'D: 100.00
+////////////////////////////////
+END HEAP PRINT
+////////////////////////////////
+RUNS BEFORE ANY DEFERRED CODE CAN RUN!
+THIS RUNS FIRST!
+THIS RUNS IN THE MIDDLE!
+THIS RUNS LAST!
+////////////////////////////////
+BEGIN HEAP PRINT
+////////////////////////////////
+StringBox 0 [FREE]:
+        String "THIS RUNS LAST!"
+////////////////////////////////
+FREE'D BOX NUMBERS: [0]
+////////////////////////////////
+FREE'D BOX COUNT: 1
+////////////////////////////////
+TOTAL HEAP ITEM COUNT: 1
+////////////////////////////////
+PERCENT OF HEAP FREE'D: 100.00
+////////////////////////////////
+END HEAP PRINT
+////////////////////////////////
+```
+
+Given this example and how Defer works in general, can you refactor previous code examples to utilize Defer for more effective memory cleanup? 
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
