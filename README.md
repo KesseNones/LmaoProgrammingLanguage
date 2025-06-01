@@ -33,7 +33,8 @@
 	- [4.6 Local Variable Fancy Operator](#loc-fan-ops)
 	- [4.7 Attempt on Error Fancy Operator](#att-err-op)
 	- [4.8 Defer Fancy Operator](#defer-fan-op)
-- [5 Conclusion](#conclusion)
+- [5 Running Lmao](#running)
+- [6 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
 
@@ -7459,6 +7460,9 @@ END HEAP PRINT
 ```
 
 Given this example and how Defer works in general, can you refactor previous code examples to utilize Defer for more effective memory cleanup? 
+
+## <a name = "running"></a> 5 Running Lmao
+### [**Return to Table of Contents**](#toc)
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
