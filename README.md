@@ -7463,6 +7463,19 @@ Given this example and how Defer works in general, can you refactor previous cod
 
 ## <a name = "running"></a> 5 Running Lmao
 ### [**Return to Table of Contents**](#toc)
+Getting Lmao working on most computers is a pretty simple matter. The steps below should work fine on Linux, Mac, and even Windows, though the last one has different command syntax.
+
+Here's how to get Lmao working:
+
+1. Have `rustc` installed which can be managed through installing Rust itself using your system's package manager or installing it in a more manual fashion like on Windows. 
+2. Clone this repository in a directory of your chosing: `git clone https://github.com/KesseNones/LmaoProgrammingLanguage`.
+3. Compile the interpreter: `rustc lmao.rs`
+	3.1. Optionally, you can compile using an optimization flag to make the interpreter much faster: `rustc -C opt-level=3 lmao.rs`
+4. Compile the compiler: `rustc lmaoc.rs`
+5. Feel free to run either of these programs!
+
+Running the Interpreter:
+   
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
