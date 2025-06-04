@@ -7482,6 +7482,37 @@ Here's how to get Lmao working:
 
 ### <a name = "running-interp"></a>5.1 Running Lmao Interpreter
 #### [**Return to Table of Contents**](#toc)
+Now that the Lmao interpreter, known as the simple executable `lmao`, it's possible to run Lmao programs!
+The syntax detailed below will be different on Windows most likely but not that different.
+
+The general syntax for running Lmao programs is this: 
+```
+./lmao [PROGRAM_NAME] [OPTIONAL_ARGS]
+```
+`lmao` is the interpreter itself, the program that takes a `.lmao` file and translates its code into functionality.
+
+`[PROGRAM_NAME]` is the name of the program to run. It's not required but is recommended to put a `.lmao` extension on `[PROGRAM_NAME]` since you can more easily tell what files are Lmao programs.
+
+`[OPTIONAL_ARGS]` is where other text seperate by whitespace is put for the Lmao program to parse as arguments which can be acquired using the `getArgs` operator.
+
+Example Filesystem:
+```
+drwxr-xr-x 2 janJesi users    4096 Jun  4 14:12 .
+drwxr-xr-x 7 janJesi users    4096 Jun  4 14:07 ..
+-rw-r--r-- 1 janJesi users      26 Jun  4 14:12 hello.lmao
+-rwxr-xr-x 1 janJesi users 1350680 Jun  4 14:07 lmao
+```
+
+`hello.lmao` contains the code for a clasic hello world program:
+```
+"Hello, World!" printLine
+```
+
+Example Terminal:
+```
+$ ./lmao hello.lmao
+Hello, World!
+```
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
