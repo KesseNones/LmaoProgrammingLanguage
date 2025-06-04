@@ -34,6 +34,7 @@
 	- [4.7 Attempt on Error Fancy Operator](#att-err-op)
 	- [4.8 Defer Fancy Operator](#defer-fan-op)
 - [5 Running Lmao](#running)
+	- [5.1 Running Lmao Interpreter](#running-interp)
 - [6 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -7478,6 +7479,9 @@ Here's how to get Lmao working:
 	4.1. As with the interpreter, the same optimization flag can be used to compile a more optimal compiler, though this is less necessary.  
 
 5. With both of these programs compiled, they can be used to run or compile Lmao programs.
+
+### <a name = "running-interp"></a>5.1 Running Lmao Interpreter
+#### [**Return to Table of Contents**](#toc)
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
