@@ -7514,6 +7514,64 @@ $ ./lmao hello.lmao
 Hello, World!
 ```
 
+This is an example with the usage of `[OPTIONAL_ARGS]`:
+
+Filesystem:
+```
+drwxr-xr-x 2 jesse users    4096 Jun  4 14:23 .
+drwxr-xr-x 7 jesse users    4096 Jun  4 14:07 ..
+-rw-r--r-- 1 jesse users     495 Jun  4 14:23 helloArgs.lmao
+-rw-r--r-- 1 jesse users      26 Jun  4 14:12 hello.lmao
+-rwxr-xr-x 1 jesse users 1350680 Jun  4 14:07 lmao
+```
+
+Contents of `helloArgs.lmao`:
+```
+//This program fetches and addresses 
+// each argument given beyond the name of the program.
+
+//Sets up argv and argc.
+getArgs
+var mak argv ;
+
+var get argv ; 
+len var mak argc ;
+
+//Index for iteration.
+0usize var mak i ;
+
+"Hello, " var mak introStr ;
+
+//Iterates over args, introducing each one.
+var get i ;
+var get argc ;
+<
+while
+	var get argv ;
+	var get i ; 
+	index
+	var get introStr ; print
+	print
+	'!' printChar '\n' printChar
+
+	var get i ; 
+	1usize +
+	dup var mut i ;
+	var get argc ; 
+	<
+;
+```
+
+Example Terminal:
+```
+$ ./lmao helloArgs.lmao foo bar baz qux
+Hello, helloArgs.lmao!
+Hello, foo!
+Hello, bar!
+Hello, baz!
+Hello, qux!
+```
+
 ## <a name = "conclusion"></a> 5 Conclusion 
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
