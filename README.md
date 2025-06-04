@@ -7572,6 +7572,28 @@ Hello, baz!
 Hello, qux!
 ```
 
+Lastly, as it turns out, `[PROGRAM_NAME]` is optional! You don't even have to give a program for `lmao` to run in the first place. 
+
+If no `[PROGRAM_NAME]` is given, as in just typing the command `./lmao` into the terminal, a prompt appears to type a Lmao program directly into the terminal. Once the user finishes writing the program and closes stdin using CTRL-D or something similar, `lmao` parses the input and runs the program like it would for a file. This allows for rapid coding examples in `lmao` without even needing to create a file!
+
+Example Terminal:
+```
+$ ./lmao
+Enter Lmao code below:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+"Hello, World!" printLine
+"This is code entirely in the terminal!!!" printLine
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Program result:
+
+Hello, World!
+This is code entirely in the terminal!!!
+```
+
+While this is a very limited editor, it does allow for code to come into existence without any pre-requisite files. 
+In theory, you could create a huge program this way, though it's not the most enjoyable experience.
+
 ## <a name = "conclusion"></a> 5 Conclusion 
 
 Aut soluta alias est quis. Quisquam cum omnis est earum ipsum. Qui occaecati eum aut explicabo aut voluptas. Id labore sit eius. Aut consequuntur officiis omnis et aliquam repudiandae.
