@@ -35,6 +35,7 @@
 	- [4.8 Defer Fancy Operator](#defer-fan-op)
 - [5 Running Lmao](#running)
 	- [5.1 Running Lmao Interpreter](#running-interp)
+	- [5.2 Running Lmao Compiler](#running-compile)
 - [6 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -7593,6 +7594,9 @@ This is code entirely in the terminal!!!
 
 While this is a very limited editor, it does allow for code to come into existence without any pre-requisite files. 
 In theory, you could create a huge program this way, though it's not the most enjoyable experience.
+
+### <a name = "running-compile"></a>5.2 Running Lmao Compiler
+#### [**Return to Table of Contents**](#toc)
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
