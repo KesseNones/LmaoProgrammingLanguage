@@ -7597,6 +7597,66 @@ In theory, you could create a huge program this way, though it's not the most en
 
 ### <a name = "running-compile"></a>5.2 Running Lmao Compiler
 #### [**Return to Table of Contents**](#toc)
+The compiler is a powerful tool in Lmao. It allows for `.lmao` files to be directly transformed into executable files that can be run independently of the interpreter!
+
+Compilation of a Lmao program involves using `lmaoc`, the Lmao compiler. 
+
+Under the hood, `lmaoc` merely translates a `.lmao` file into Rust, then uses rustc at high optimization to compile it to machine code. It's a little cheap but it works.
+
+To run `lmaoc`, the syntax is as follows:
+```
+./lmaoc [LMAO_FILE_TO_COMPILE]
+``` 
+Where `[LMAO_FILE_TO_COMPILE]` is the file you want turned into machine code. Unlike `lmao`, if nothing is given to `lmaoc`, an error is thrown.
+
+For the example of compilation, we'll return to the example of greeting each input argument with the program `helloArgs.lmao`.
+
+Example Directory:
+```
+drwxr-xr-x 2 janJesi users    4096 Jun 25 15:31 .
+drwxr-xr-x 8 janJesi users    4096 Jun 25 15:31 ..
+-rw-r--r-- 1 janJesi users     495 Jun 25 15:31 helloArgs.lmao
+-rwxr-xr-x 1 janJesi users 1140152 Jun 25 15:31 lmaoc
+``` 
+
+Example Terminal:
+```
+$ ./lmaoc helloArgs.lmao
+Opening helloArgs.lmao
+Reading in helloArgs.lmao
+Tokenizing file String
+Lexing file tokens
+Building Abstract Syntax Tree
+Creating and opening helloArgs.rs
+Writing to Rust file helloArgs.rs
+Compiling helloArgs.rs
+Compilation complete!
+$ 
+```
+
+Directory following running `lmaoc`:
+```
+drwxr-xr-x 2 janJesi users    4096 Jun 25 15:39 .
+drwxr-xr-x 8 janJesi users    4096 Jun 25 15:31 ..
+-rwxr-xr-x 1 janJesi users  545168 Jun 25 15:39 helloArgs
+-rw-r--r-- 1 janJesi users     495 Jun 25 15:31 helloArgs.lmao
+-rw-r--r-- 1 janJesi users  188689 Jun 25 15:39 helloArgs.rs
+-rwxr-xr-x 1 janJesi users 1140152 Jun 25 15:31 lmaoc
+```
+
+Example Terminal 2:
+```
+$ ./helloArgs foo bar baz
+Hello, ./helloArgs!
+Hello, foo!
+Hello, bar!
+Hello, baz!
+$ 
+```
+
+As can be seen, `helloArgs` functions the same way as `helloArgs.lmao` except that it can be run on its own.
+
+One may ask why anyone would want to compile Lmao programs. The main answer is speed. When compiling a Lmao program into machine code, the speed boost allows it to surpass Python in some cases! Also, it's handy being able to build a Lmao program and have it become its own stand-alone executable that doesn't need the interpreter, making it more portable.
 
 ## <a name = "conclusion"></a> 5 Conclusion 
 
