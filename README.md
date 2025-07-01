@@ -7660,3 +7660,4 @@ One may ask why anyone would want to compile Lmao programs. The main answer is s
 
 ## <a name = "conclusion"></a> 6 Conclusion 
 ### [**Return to Table of Contents**](#toc)
+Lmao is quite the neat programming language. From its usage of a stack for operands to its static typing, Lmao has many practical features included. In time, more features will come, including optimizations to make Lmao even faster. It's been very fun making all this documentation describing how Lmao works and all its features. Beyond docs, it's also been fun building this language from the ground-up, watching as more features come into the fray. In time, I hope to even build a bootstrapped compiler, allowing Lmao a degree of independence from Rust, though that will be tricky to pull off. I hope you have as much fun messing around with this language as I have! 
