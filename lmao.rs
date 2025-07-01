@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.9.3
+//Version: 0.9.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5003,7 +5003,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                                 *old_v = new_v;
                                             }else{
                                                 let mut_err = invalid_mutation_error("var mut", 
-                                                    "variable", name, &new_v, &new_v); 
+                                                    "variable", name, &old_v, &new_v); 
                                                 return error_and_remove_frame(state, mut_err);
                                             }
                                         },
@@ -5390,25 +5390,34 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
 }
 
 fn main(){
+    //Creates argv and argc for finding file paths and stuff.
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
-
-    if argc < 2{
-        panic!("Error! No program given in arguments for Lmao to run!");
-    }
-
-    let file_path = Path::new(&argv[1]);
-    let file_name = file_path.display();
-
-    let mut code_file = match File::open(&file_path){
-        Ok(f) => f,
-        Err(reason) => panic!("Unable to open Lmao file {} for parsing because {}", file_name, reason),
-    };
-
+    
+    //Used to hold a string read in from an input file or stdin directly.
     let mut file_string = String::new();
-    match code_file.read_to_string(&mut file_string){
-        Ok(_) => {},
-        Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
+
+    //Reads in data from file or from stdin, 
+    // depending on inputs or lack thereof.
+    if argc > 1{
+        let file_path = Path::new(&argv[1]);
+        let file_name = file_path.display();
+
+        let mut code_file = match File::open(&file_path){
+            Ok(f) => f,
+            Err(reason) => panic!("Unable to open Lmao file {} for parsing because {}", file_name, reason),
+        };
+
+        match code_file.read_to_string(&mut file_string){
+            Ok(_) => {},
+            Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
+        }
+    }else{
+        let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+        println!("Enter Lmao code below:\n{}", sep_str);
+        io::stdin().read_to_string(&mut file_string)
+            .expect("Stdin read error! Failed to read from stdin!");
+        println!("\n{}\nProgram result:\n", sep_str);
     }
 
     let file_chars: Vec<char> = file_string.chars().collect();

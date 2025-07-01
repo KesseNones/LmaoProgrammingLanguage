@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.9.3
+//Version: 0.9.4
 
 use std::collections::HashMap;
 use std::env;
@@ -5428,7 +5428,7 @@ fn var_action(state: &mut State, name: &str, act: &str, num: usize) -> Result<()
                             *old_v = new_v;
                         }else{
                             let mut_err = invalid_mutation_error(\"var mut\", 
-                                \"variable\", name, &new_v, &new_v); 
+                                \"variable\", name, &old_v, &new_v); 
                             return Err(mut_err);
                         }
                     },
