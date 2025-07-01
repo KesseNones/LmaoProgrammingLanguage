@@ -1,6 +1,9 @@
 # The Lmao Programming Language - The Spiritual Successor of EcksDee
 ## By Jesse A. Jones (KesseNones)
 
+# **BE AWARE** 
+This documentation may be "complete" but still requires proofreading and revisions. New features will also add more information to this documentation in the first place. Once I'm satisfied with the state of this documentation, this warning will leave.
+
 # <a name = "toc"></a> Table of Contents
 - [0 Introduction](#intro)
 - [1 Using a Stack-Based Approach](#stack-based)
