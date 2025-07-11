@@ -6063,6 +6063,79 @@ Listed below are all the operators of this category:
 		////////////////////////////////
 		```
 
+- `timeUnixNow`
+	- Performance: O(1)
+	- Given a stack with anything on it, pushes the current Unix timestamp as an f64 with the units in seconds onto the stack.
+	- General form: given stack ` `, applying `timeUnixNow` results in stack `t` where `t` is type `f64` and contains the current Unix time at the time of running the operator.
+	- Example Program:
+		```
+		//Shows small elapse in time.
+		timeUnixNow
+		timeUnixNow
+		timeUnixNow
+		debugPrintStack
+
+		//Useful in random number generation.
+		1664525 var mak mul ; 
+		1013904223 var mak add ;
+		//This modulo value sets the random number in a range from 0 to 2^32.
+		2f32 32f32 pow "isize" cast var mak modulo ; 
+		//Initial seed set by current Unix time, ensuring high randomness!
+		//Cast to integer for type matching.
+		timeUnixNow "isize" cast var mak seed ;
+
+		//Simple linear congruential generator function 
+		// to generate pseudorandom values, updating the seed each time.
+		func def lcg
+			//Calculates random number, the basis of the new seed.
+			var get seed ;
+			var get mul ; *
+			var get add ; +
+			var get modulo ; mod
+
+			//Updates seed and leaves copy on stack as return.
+			dup var mut seed ; 
+		;
+
+		//The numbers produced here will likely differ from your run of it, since it's random!
+		func call lcg ; 
+		func call lcg ; 
+		func call lcg ; 
+		func call lcg ; 
+		debugPrintStack
+		```
+
+	- Program Output:
+
+		```
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		f64 1752207823.0862129
+		f64 1752207823.0862136
+		f64 1752207823.0862136
+		--------------------------------
+		STACK LENGTH: 3
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		--------------------------------
+		BEGIN STACK PRINT
+		--------------------------------
+		f64 1752207823.0862129
+		f64 1752207823.0862136
+		f64 1752207823.0862136
+		isize 2708853986
+		isize 743362265
+		isize 369814116
+		isize 2552541811
+		--------------------------------
+		STACK LENGTH: 7
+		--------------------------------
+		END STACK PRINT
+		--------------------------------
+		```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 ### [**Return to Table of Contents**](#toc)
 Fancy operators are the backbone of more advanced programs in Lmao. 
