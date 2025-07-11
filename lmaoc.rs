@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.10.0
+//Version: 0.10.1
 
 use std::collections::HashMap;
 use std::env;
@@ -479,7 +479,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "read", "debugPrintStack", "debugPrintHeap",
         "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
         "queryType", "leaveScopeIfTrue", "throwCustomError",
-        "getArgs", "isValidBox"
+        "getArgs", "isValidBox", "timeUnixNow"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
@@ -1303,6 +1303,7 @@ use std::convert::TryInto;
 use fmt::Display;
 use std::io;
 use std::rc::Rc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 //This enum is used to contain all the possible data types of Lmao 
 // that live everywhere but the Heap.
@@ -5362,6 +5363,23 @@ fn is_valid_box(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+//Gets the current unix time as a 64 bit bload 
+// and pushes it to the stack as such.
+fn time_unix_now(s: &mut State) -> Result<(), String>{
+    match SystemTime::now().duration_since(UNIX_EPOCH){
+        Ok(time) => {
+            let secs = time.as_secs();
+            let nanos = time.subsec_nanos();
+
+            let time_float: f64 = (secs as f64) + ((nanos as f64) / 1e9f64);
+            s.stack.push(Value::Float64(time_float));
+            Ok(())
+        },
+        Err(e) => Err(format!(\"Operator (timeUnixNow) error! Unable to \
+            fetch the current Unix time because {}\", e)),
+    }
+}
+
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
 fn variable_lack_of_args_error(var_action: &str) -> String{
@@ -5825,6 +5843,9 @@ fn program(state: &mut State) -> Result<bool, String>{
 
     //Checks for box validity.
     ops_to_funcs.insert(String::from("isValidBox"), String::from("is_valid_box"));
+
+    //Pushes current Unix time.
+    ops_to_funcs.insert(String::from("timeUnixNow"), String::from("time_unix_now"));
 
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
