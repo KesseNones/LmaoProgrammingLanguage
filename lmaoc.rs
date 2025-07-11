@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.9.4
+//Version: 0.10.0
 
 use std::collections::HashMap;
 use std::env;
@@ -13,79 +13,34 @@ use std::fmt;
 use std::process::Command;
 use std::rc::Rc;
 
-#[derive(PartialEq, Eq)]
-enum IntSigned{
+//This enum is used to contain all the possible data types of Lmao 
+// that live everywhere but the Heap.
+enum Value{
+    //Signed integers.
     Int8(i8),
     Int16(i16),
     Int32(i32),
     Int64(i64),
     Int128(i128),
-    IntSize(isize)
-}
+    IntSize(isize),
 
-impl fmt::Display for IntSigned{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
-        match self {
-            IntSigned::Int8(n) => write!(f, "Value::Int(IntSigned::Int8({}))", n),
-            IntSigned::Int16(n) => write!(f, "Value::Int(IntSigned::Int16({}))", n),
-            IntSigned::Int32(n) => write!(f, "Value::Int(IntSigned::Int32({}))", n),
-            IntSigned::Int64(n) => write!(f, "Value::Int(IntSigned::Int64({}))", n),
-            IntSigned::Int128(n) => write!(f, "Value::Int(IntSigned::Int128({}))", n),
-            IntSigned::IntSize(n) => write!(f, "Value::Int(IntSigned::IntSize({}))", n),
-        }
-    }
-}
-
-impl Copy for IntSigned {}
-
-impl Clone for IntSigned{
-    fn clone(&self) -> IntSigned{
-        *self
-    }
-}
-
-#[derive(PartialEq, Eq)]
-enum IntUnsigned{
+    //Unsigned integers.
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
     UInt64(u64),
     UInt128(u128),
-    UIntSize(usize)
-}
+    UIntSize(usize),
 
-impl fmt::Display for IntUnsigned{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
-        match self {
-            IntUnsigned::UInt8(n) => write!(f, "Value::UInt(IntUnsigned::UInt8({}))", n),
-            IntUnsigned::UInt16(n) => write!(f, "Value::UInt(IntUnsigned::UInt16({}))", n),
-            IntUnsigned::UInt32(n) => write!(f, "Value::UInt(IntUnsigned::UInt32({}))", n),
-            IntUnsigned::UInt64(n) => write!(f, "Value::UInt(IntUnsigned::UInt64({}))", n),
-            IntUnsigned::UInt128(n) => write!(f, "Value::UInt(IntUnsigned::UInt128({}))", n),
-            IntUnsigned::UIntSize(n) => write!(f, "Value::UInt(IntUnsigned::UIntSize({}))", n),
-        }
-    }
-}
-
-impl Copy for IntUnsigned {}
-
-impl Clone for IntUnsigned{
-    fn clone(&self) -> IntUnsigned{
-        *self
-    }
-}
-
-//This enum is used to contain all the possible data types of Lmao.
-enum Value{
-    //Specific signed integers found from type declarations. (coming soonTM)
-    Int(IntSigned),
-    //Speficic unsigned integers found from type declarations.
-    UInt(IntUnsigned),
     //Specified float types
     Float32(f32),
     Float64(f64),
+
+    //Char and boolean.
     Char(char),
     Boolean(bool),
+
+    //Used to reference items in the heap.
     StringBox(usize),
     ListBox(usize),
     ObjectBox(usize),
@@ -110,8 +65,20 @@ enum SuperValue{
 impl Clone for Value{
     fn clone(&self) -> Value{
         match self{
-            Value::Int(i) => Value::Int(*i),
-            Value::UInt(i) => Value::UInt(*i),
+            Value::Int8(i) => Value::Int8(*i),
+            Value::Int16(i) => Value::Int16(*i),
+            Value::Int32(i) => Value::Int32(*i),
+            Value::Int64(i) => Value::Int64(*i),
+            Value::Int128(i) => Value::Int128(*i),
+            Value::IntSize(i) => Value::IntSize(*i),
+
+            Value::UInt8(i) => Value::UInt8(*i),
+            Value::UInt16(i) => Value::UInt16(*i),
+            Value::UInt32(i) => Value::UInt32(*i),
+            Value::UInt64(i) => Value::UInt64(*i),
+            Value::UInt128(i) => Value::UInt128(*i),
+            Value::UIntSize(i) => Value::UIntSize(*i),
+
             Value::Float32(f) => Value::Float32(*f),
             Value::Float64(f) => Value::Float64(*f),
             Value::Char(c) => Value::Char(*c),
@@ -139,8 +106,20 @@ impl Clone for HeapValue{
 impl PartialEq for Value{
     fn eq(&self, other: &Self) -> bool{
         match(self, other){
-            (Value::Int(a), Value::Int(b)) => a == b,
-            (Value::UInt(a), Value::UInt(b)) => a == b,
+            (Value::Int8(a), Value::Int8(b)) => a == b,
+            (Value::Int16(a), Value::Int16(b)) => a == b,
+            (Value::Int32(a), Value::Int32(b)) => a == b,
+            (Value::Int64(a), Value::Int64(b)) => a == b,
+            (Value::Int128(a), Value::Int128(b)) => a == b,
+            (Value::IntSize(a), Value::IntSize(b)) => a == b,
+
+            (Value::UInt8(a), Value::UInt8(b)) => a == b,
+            (Value::UInt16(a), Value::UInt16(b)) => a == b,
+            (Value::UInt32(a), Value::UInt32(b)) => a == b,
+            (Value::UInt64(a), Value::UInt64(b)) => a == b,
+            (Value::UInt128(a), Value::UInt128(b)) => a == b,
+            (Value::UIntSize(a), Value::UIntSize(b)) => a == b,
+
             (Value::Float32(a), Value::Float32(b)) => a == b,
             (Value::Float64(a), Value::Float64(b)) => a == b,
             (Value::Char(a), Value::Char(b)) => a == b,
@@ -175,8 +154,19 @@ impl Eq for HeapValue {}
 impl fmt::Display for Value{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
         match self {
-            Value::Int(int) => write!(f, "{}", int),
-            Value::UInt(uint) => write!(f, "{}", uint),
+            Value::Int8(n) => write!(f, "Value::Int8({})", n),
+            Value::Int16(n) => write!(f, "Value::Int16({})", n),
+            Value::Int32(n) => write!(f, "Value::Int32({})", n),
+            Value::Int64(n) => write!(f, "Value::Int64({})", n),
+            Value::Int128(n) => write!(f, "Value::Int128({})", n),
+            Value::IntSize(n) => write!(f, "Value::IntSize({})", n),
+
+            Value::UInt8(n) => write!(f, "Value::UInt8({})", n),
+            Value::UInt16(n) => write!(f, "Value::UInt16({})", n),
+            Value::UInt32(n) => write!(f, "Value::UInt32({})", n),
+            Value::UInt64(n) => write!(f, "Value::UInt64({})", n),
+            Value::UInt128(n) => write!(f, "Value::UInt128({})", n),
+            Value::UIntSize(n) => write!(f, "Value::UIntSize({})", n),
             Value::Float32(flt32) => {
                 let mut f32_str = flt32.to_string();
                 if f32_str != "inf" && !f32_str.contains("."){
@@ -579,73 +569,73 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             //Explicit integer cases for both signed and unsigned.
             ref t if t.ends_with("u8") => {
                 match tok[0..(tok.len() - 2)].parse::<u8>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt8(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt8(parsed)))),
                     Err(_) => throw_parse_error("u8", &tok), 
                 }
             },
             ref t if t.ends_with("i8") => {
                 match tok[0..(tok.len() - 2)].parse::<i8>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int8(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int8(parsed)))),
                     Err(_) => throw_parse_error("i8", &tok), 
                 }
             },
             ref t if t.ends_with("u16") => {
                 match tok[0..(tok.len() - 3)].parse::<u16>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt16(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt16(parsed)))),
                     Err(_) => throw_parse_error("u16", &tok),
                 }
             },
             ref t if t.ends_with("i16") => {
                 match tok[0..(tok.len() - 3)].parse::<i16>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int16(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int16(parsed)))),
                     Err(_) => throw_parse_error("i16", &tok), 
                 }
             },
             ref t if t.ends_with("u32") => {
                 match tok[0..(tok.len() - 3)].parse::<u32>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt32(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt32(parsed)))),
                     Err(_) => throw_parse_error("u32", &tok), 
                 }
             },
             ref t if t.ends_with("i32") => {
                 match tok[0..(tok.len() - 3)].parse::<i32>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int32(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int32(parsed)))),
                     Err(_) => throw_parse_error("i32", &tok), 
                 }
             },
             ref t if t.ends_with("u64") => {
                 match tok[0..(tok.len() - 3)].parse::<u64>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt64(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt64(parsed)))),
                     Err(_) => throw_parse_error("u64", &tok), 
                 }
             },
             ref t if t.ends_with("i64") => {
                 match tok[0..(tok.len() - 3)].parse::<i64>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int64(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int64(parsed)))),
                     Err(_) => throw_parse_error("i64", &tok), 
                 }
             },
             ref t if t.ends_with("u128") => {
                 match tok[0..(tok.len() - 4)].parse::<u128>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UInt128(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt128(parsed)))),
                     Err(_) => throw_parse_error("u128", &tok), 
                 }
             },
             ref t if t.ends_with("i128") => {
                 match tok[0..(tok.len() - 4)].parse::<i128>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::Int128(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int128(parsed)))),
                     Err(_) => throw_parse_error("i128", &tok), 
                 }
             },
             ref t if t.ends_with("usize") => {
                 match tok[0..(tok.len() - 5)].parse::<usize>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt(IntUnsigned::UIntSize(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UIntSize(parsed)))),
                     Err(_) => throw_parse_error("usize", &tok), 
                 }
             },
             ref t if t.ends_with("isize") => {
                 match tok[0..(tok.len() - 5)].parse::<isize>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::IntSize(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::IntSize(parsed)))),
                     Err(_) => throw_parse_error("isize", &tok), 
                 }
             },
@@ -666,7 +656,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                         && t.chars().next().unwrap() <= '9') 
                     => {
                 match tok.parse::<isize>(){
-                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int(IntSigned::IntSize(parsed))))),
+                    Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::IntSize(parsed)))),
                     Err(_) => throw_parse_error("isize", &tok),
                 }
             },
@@ -1312,82 +1302,35 @@ use std::cmp::Ordering;
 use std::convert::TryInto;
 use fmt::Display;
 use std::io;
-use std::process::Command;
+use std::rc::Rc;
 
-#[derive(PartialEq, Eq)]
-enum IntSigned{
+//This enum is used to contain all the possible data types of Lmao 
+// that live everywhere but the Heap.
+enum Value{
+    //Signed integers.
     Int8(i8),
     Int16(i16),
     Int32(i32),
     Int64(i64),
     Int128(i128),
-    IntSize(isize)
-}
+    IntSize(isize),
 
-impl fmt::Display for IntSigned{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
-        match self {
-            IntSigned::Int8(n) => write!(f, \"i8 {}\", n),
-            IntSigned::Int16(n) => write!(f, \"i16 {}\", n),
-            IntSigned::Int32(n) => write!(f, \"i32 {}\", n),
-            IntSigned::Int64(n) => write!(f, \"i64 {}\", n),
-            IntSigned::Int128(n) => write!(f, \"i128 {}\", n),
-            IntSigned::IntSize(n) => write!(f, \"isize {}\", n),
-        }
-    }
-}
-
-impl Copy for IntSigned {}
-
-impl Clone for IntSigned{
-    fn clone(&self) -> IntSigned{
-        *self
-    }
-}
-
-#[derive(PartialEq, Eq)]
-enum IntUnsigned{
+    //Unsigned integers.
     UInt8(u8),
     UInt16(u16),
     UInt32(u32),
     UInt64(u64),
     UInt128(u128),
-    UIntSize(usize)
-}
+    UIntSize(usize),
 
-impl fmt::Display for IntUnsigned{
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
-        match self {
-            IntUnsigned::UInt8(n) => write!(f, \"u8 {}\", n),
-            IntUnsigned::UInt16(n) => write!(f, \"u16 {}\", n),
-            IntUnsigned::UInt32(n) => write!(f, \"u32 {}\", n),
-            IntUnsigned::UInt64(n) => write!(f, \"u64 {}\", n),
-            IntUnsigned::UInt128(n) => write!(f, \"u128 {}\", n),
-            IntUnsigned::UIntSize(n) => write!(f, \"usize {}\", n),
-        }
-    }
-}
-
-impl Copy for IntUnsigned {}
-
-impl Clone for IntUnsigned{
-    fn clone(&self) -> IntUnsigned{
-        *self
-    }
-}
-
-//This enum is used to contain all the possible data types of Lmao 
-// that live everywhere but the Heap.
-enum Value{
-    //Specific signed integers found from type declarations. (coming soonTM)
-    Int(IntSigned),
-    //Speficic unsigned integers found from type declarations.
-    UInt(IntUnsigned),
     //Specified float types
     Float32(f32),
     Float64(f64),
+
+    //Char and boolean.
     Char(char),
     Boolean(bool),
+
     //Used to reference items in the heap.
     StringBox(usize),
     ListBox(usize),
@@ -1425,8 +1368,20 @@ impl Eq for SuperValue {}
 impl Clone for Value{
     fn clone(&self) -> Value{
         match self{
-            Value::Int(i) => Value::Int(*i),
-            Value::UInt(i) => Value::UInt(*i),
+            Value::Int8(i) => Value::Int8(*i),
+            Value::Int16(i) => Value::Int16(*i),
+            Value::Int32(i) => Value::Int32(*i),
+            Value::Int64(i) => Value::Int64(*i),
+            Value::Int128(i) => Value::Int128(*i),
+            Value::IntSize(i) => Value::IntSize(*i),
+
+            Value::UInt8(i) => Value::UInt8(*i),
+            Value::UInt16(i) => Value::UInt16(*i),
+            Value::UInt32(i) => Value::UInt32(*i),
+            Value::UInt64(i) => Value::UInt64(*i),
+            Value::UInt128(i) => Value::UInt128(*i),
+            Value::UIntSize(i) => Value::UIntSize(*i),
+
             Value::Float32(f) => Value::Float32(*f),
             Value::Float64(f) => Value::Float64(*f),
             Value::Char(c) => Value::Char(*c),
@@ -1454,8 +1409,20 @@ impl Clone for HeapValue{
 impl PartialEq for Value{
     fn eq(&self, other: &Self) -> bool{
         match(self, other){
-            (Value::Int(a), Value::Int(b)) => a == b,
-            (Value::UInt(a), Value::UInt(b)) => a == b,
+            (Value::Int8(a), Value::Int8(b)) => a == b,
+            (Value::Int16(a), Value::Int16(b)) => a == b,
+            (Value::Int32(a), Value::Int32(b)) => a == b,
+            (Value::Int64(a), Value::Int64(b)) => a == b,
+            (Value::Int128(a), Value::Int128(b)) => a == b,
+            (Value::IntSize(a), Value::IntSize(b)) => a == b,
+
+            (Value::UInt8(a), Value::UInt8(b)) => a == b,
+            (Value::UInt16(a), Value::UInt16(b)) => a == b,
+            (Value::UInt32(a), Value::UInt32(b)) => a == b,
+            (Value::UInt64(a), Value::UInt64(b)) => a == b,
+            (Value::UInt128(a), Value::UInt128(b)) => a == b,
+            (Value::UIntSize(a), Value::UIntSize(b)) => a == b,
+
             (Value::Float32(a), Value::Float32(b)) => a == b,
             (Value::Float64(a), Value::Float64(b)) => a == b,
             (Value::Char(a), Value::Char(b)) => a == b,
@@ -1478,7 +1445,7 @@ impl PartialEq for HeapValue{
             (HeapValue::String(a), HeapValue::String(b)) => a == b,
             (HeapValue::List(a), HeapValue::List(b)) => a == b,
             (HeapValue::Object(a), HeapValue::Object(b)) => a == b,
-            (HeapValue::Primitive(a), HeapValue::Primitive(b)) => a == b, 
+            (HeapValue::Primitive(a), HeapValue::Primitive(b)) => a == b, //MIGHT DESTROY THE UNIVERSE
             _ => false,
         }
     }
@@ -1489,8 +1456,20 @@ impl Eq for HeapValue {}
 impl fmt::Display for Value{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
         match self {
-            Value::Int(int) => write!(f, \"{}\", int),
-            Value::UInt(uint) => write!(f, \"{}\", uint),
+            Value::Int8(n) => write!(f, \"i8 {}\", n),
+            Value::Int16(n) => write!(f, \"i16 {}\", n),
+            Value::Int32(n) => write!(f, \"i32 {}\", n),
+            Value::Int64(n) => write!(f, \"i64 {}\", n),
+            Value::Int128(n) => write!(f, \"i128 {}\", n),
+            Value::IntSize(n) => write!(f, \"isize {}\", n),
+
+            Value::UInt8(n) => write!(f, \"u8 {}\", n),
+            Value::UInt16(n) => write!(f, \"u16 {}\", n),
+            Value::UInt32(n) => write!(f, \"u32 {}\", n),
+            Value::UInt64(n) => write!(f, \"u64 {}\", n),
+            Value::UInt128(n) => write!(f, \"u128 {}\", n),
+            Value::UIntSize(n) => write!(f, \"usize {}\", n),
+
             Value::Float32(flt32) => {
                 if flt32.abs() > 9999999999999999.0{
                     write!(f, \"f32 {:e}\", flt32)
@@ -1710,43 +1689,43 @@ fn replace_literals_with_escapes(s: &str) -> String{
 //Adds two values of matching numerical types together, pusing the result to the stack.
 fn add(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            Ok(Value::Int(IntSigned::IntSize(a.wrapping_add(b))))
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
+            Ok(Value::IntSize(a.wrapping_add(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UIntSize(a.wrapping_add(b))))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Int(IntSigned::Int8(a.wrapping_add(b))))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Int(IntSigned::Int16(a.wrapping_add(b))))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Int(IntSigned::Int32(a.wrapping_add(b))))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Int(IntSigned::Int64(a.wrapping_add(b))))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            Ok(Value::Int(IntSigned::Int128(a.wrapping_add(b))))
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
+            Ok(Value::UIntSize(a.wrapping_add(b)))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt8(a.wrapping_add(b))))
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
+            Ok(Value::Int8(a.wrapping_add(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt16(a.wrapping_add(b))))
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
+            Ok(Value::Int16(a.wrapping_add(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt32(a.wrapping_add(b))))
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
+            Ok(Value::Int32(a.wrapping_add(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt64(a.wrapping_add(b))))
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
+            Ok(Value::Int64(a.wrapping_add(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt128(a.wrapping_add(b))))
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Int128(a.wrapping_add(b)))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::UInt8(a.wrapping_add(b)))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::UInt16(a.wrapping_add(b)))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::UInt32(a.wrapping_add(b)))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::UInt64(a.wrapping_add(b)))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
+            Ok(Value::UInt128(a.wrapping_add(b)))
         },
 
         (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
@@ -1778,43 +1757,43 @@ fn add(s: &mut State) -> Result<(), String>{
 //Subtracts two values of matching numerical types, pusing the result to the stack.
 fn sub(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            Ok(Value::Int(IntSigned::IntSize(a.wrapping_sub(b))))
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
+            Ok(Value::IntSize(a.wrapping_sub(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UIntSize(a.wrapping_sub(b))))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Int(IntSigned::Int8(a.wrapping_sub(b))))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Int(IntSigned::Int16(a.wrapping_sub(b))))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Int(IntSigned::Int32(a.wrapping_sub(b))))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Int(IntSigned::Int64(a.wrapping_sub(b))))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            Ok(Value::Int(IntSigned::Int128(a.wrapping_sub(b))))
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
+            Ok(Value::UIntSize(a.wrapping_sub(b)))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt8(a.wrapping_sub(b))))
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
+            Ok(Value::Int8(a.wrapping_sub(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt16(a.wrapping_sub(b))))
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
+            Ok(Value::Int16(a.wrapping_sub(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt32(a.wrapping_sub(b))))
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
+            Ok(Value::Int32(a.wrapping_sub(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt64(a.wrapping_sub(b))))
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
+            Ok(Value::Int64(a.wrapping_sub(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt128(a.wrapping_sub(b))))
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Int128(a.wrapping_sub(b)))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::UInt8(a.wrapping_sub(b)))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::UInt16(a.wrapping_sub(b)))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::UInt32(a.wrapping_sub(b)))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::UInt64(a.wrapping_sub(b)))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
+            Ok(Value::UInt128(a.wrapping_sub(b)))
         },
 
         (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
@@ -1848,43 +1827,43 @@ fn sub(s: &mut State) -> Result<(), String>{
 // Throws errors for non-matching types and insufficient operands.
 fn mult(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            Ok(Value::Int(IntSigned::IntSize(a.wrapping_mul(b))))
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
+            Ok(Value::IntSize(a.wrapping_mul(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UIntSize(a.wrapping_mul(b))))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Int(IntSigned::Int8(a.wrapping_mul(b))))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Int(IntSigned::Int16(a.wrapping_mul(b))))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Int(IntSigned::Int32(a.wrapping_mul(b))))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Int(IntSigned::Int64(a.wrapping_mul(b))))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            Ok(Value::Int(IntSigned::Int128(a.wrapping_mul(b))))
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
+            Ok(Value::UIntSize(a.wrapping_mul(b)))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt8(a.wrapping_mul(b))))
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
+            Ok(Value::Int8(a.wrapping_mul(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt16(a.wrapping_mul(b))))
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
+            Ok(Value::Int16(a.wrapping_mul(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt32(a.wrapping_mul(b))))
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
+            Ok(Value::Int32(a.wrapping_mul(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt64(a.wrapping_mul(b))))
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
+            Ok(Value::Int64(a.wrapping_mul(b)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt128(a.wrapping_mul(b))))
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Int128(a.wrapping_mul(b)))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::UInt8(a.wrapping_mul(b)))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::UInt16(a.wrapping_mul(b)))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::UInt32(a.wrapping_mul(b)))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::UInt64(a.wrapping_mul(b)))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
+            Ok(Value::UInt128(a.wrapping_mul(b)))
         },
 
         (Some(Value::Float32(a)), Some(Value::Float32(b))) => {
@@ -1921,88 +1900,88 @@ fn division_by_zero_error(t: &str) -> String{
 // Throws errors for non-matching types and insufficient operands, as well as division by zero.
 fn div(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::IntSize(a / b)))
+                Ok(Value::IntSize(a / b))
             }else{
                 Err(division_by_zero_error(\"isize\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UIntSize(a / b)))
+                Ok(Value::UIntSize(a / b))
             }else{
                 Err(division_by_zero_error(\"usize\"))
             }
         },
 
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int8(a / b)))
+                Ok(Value::Int8(a / b))
             }else{
                 Err(division_by_zero_error(\"i8\"))
             }
         },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int16(a / b)))
+                Ok(Value::Int16(a / b))
             }else{
                 Err(division_by_zero_error(\"i16\"))
             }
         },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int32(a / b)))
+                Ok(Value::Int32(a / b))
             }else{
                 Err(division_by_zero_error(\"i32\"))
             }
         },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int64(a / b)))
+                Ok(Value::Int64(a / b))
             }else{
                 Err(division_by_zero_error(\"i64\"))
             }
         },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int128(a / b)))
+                Ok(Value::Int128(a / b))
             }else{
                 Err(division_by_zero_error(\"i128\"))
             }
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt8(a / b)))
+                Ok(Value::UInt8(a / b))
             }else{
                 Err(division_by_zero_error(\"u8\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt16(a / b)))
+                Ok(Value::UInt16(a / b))
             }else{
                 Err(division_by_zero_error(\"u16\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt32(a / b)))
+                Ok(Value::UInt32(a / b))
             }else{
                 Err(division_by_zero_error(\"u32\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt64(a / b)))
+                Ok(Value::UInt64(a / b))
             }else{
                 Err(division_by_zero_error(\"u64\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt128(a / b)))
+                Ok(Value::UInt128(a / b))
             }else{
                 Err(division_by_zero_error(\"u128\"))
             }
@@ -2051,88 +2030,88 @@ fn modulo_by_zero_error(t: &str) -> String{
 // Throws errors for non-matching types and insufficient operands, as well as modulo by zero.
 fn modulo(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::IntSize(a % b)))
+                Ok(Value::IntSize(a % b))
             }else{
                 Err(modulo_by_zero_error(\"isize\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UIntSize(a % b)))
+                Ok(Value::UIntSize(a % b))
             }else{
                 Err(modulo_by_zero_error(\"usize\"))
             }
         },
 
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int8(a % b)))
+                Ok(Value::Int8(a % b))
             }else{
                 Err(modulo_by_zero_error(\"i8\"))
             }
         },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int16(a % b)))
+                Ok(Value::Int16(a % b))
             }else{
                 Err(modulo_by_zero_error(\"i16\"))
             }
         },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int32(a % b)))
+                Ok(Value::Int32(a % b))
             }else{
                 Err(modulo_by_zero_error(\"i32\"))
             }
         },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int64(a % b)))
+                Ok(Value::Int64(a % b))
             }else{
                 Err(modulo_by_zero_error(\"i64\"))
             }
         },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
             if b != 0{
-                Ok(Value::Int(IntSigned::Int128(a % b)))
+                Ok(Value::Int128(a % b))
             }else{
                 Err(modulo_by_zero_error(\"i128\"))
             }
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt8(a % b)))
+                Ok(Value::UInt8(a % b))
             }else{
                 Err(modulo_by_zero_error(\"u8\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt16(a % b)))
+                Ok(Value::UInt16(a % b))
             }else{
                 Err(modulo_by_zero_error(\"u16\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt32(a % b)))
+                Ok(Value::UInt32(a % b))
             }else{
                 Err(modulo_by_zero_error(\"u32\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt64(a % b)))
+                Ok(Value::UInt64(a % b))
             }else{
                 Err(modulo_by_zero_error(\"u64\"))
             }
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
             if b != 0{
-                Ok(Value::UInt(IntUnsigned::UInt128(a % b)))
+                Ok(Value::UInt128(a % b))
             }else{
                 Err(modulo_by_zero_error(\"u128\"))
             }
@@ -2323,42 +2302,42 @@ fn equality_error(op_type: &str, v1: &Value, v2: &Value) -> String{
 //Consumes both items from stack and pushes resulting boolean based on their comparison.
 fn is_equal(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
             Ok(Value::Boolean(a == b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::Boolean(a == b))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Boolean(a == b))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Boolean(a == b))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Boolean(a == b))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Boolean(a == b))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
             Ok(Value::Boolean(a == b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
             Ok(Value::Boolean(a == b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
             Ok(Value::Boolean(a == b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
             Ok(Value::Boolean(a == b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
             Ok(Value::Boolean(a == b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::Boolean(a == b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
             Ok(Value::Boolean(a == b))
         },
 
@@ -2427,42 +2406,42 @@ fn is_equal(s: &mut State) -> Result<(), String>{
 //Consumes both items from stack and pushes resulting boolean based on their comparison.
 fn is_not_equal(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
             Ok(Value::Boolean(a != b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::Boolean(a != b))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Boolean(a != b))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Boolean(a != b))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Boolean(a != b))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Boolean(a != b))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
             Ok(Value::Boolean(a != b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
             Ok(Value::Boolean(a != b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
             Ok(Value::Boolean(a != b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
             Ok(Value::Boolean(a != b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
             Ok(Value::Boolean(a != b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::Boolean(a != b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
             Ok(Value::Boolean(a != b))
         },
 
@@ -2534,42 +2513,42 @@ fn comparison_error(op_type: &str, v1: &Value, v2: &Value) -> String{
 //Compares two values on stack to see if the second to top is greater than the top.
 fn is_greater_than(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
             Ok(Value::Boolean(a > b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::Boolean(a > b))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Boolean(a > b))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Boolean(a > b))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Boolean(a > b))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Boolean(a > b))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
             Ok(Value::Boolean(a > b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
             Ok(Value::Boolean(a > b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
             Ok(Value::Boolean(a > b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
             Ok(Value::Boolean(a > b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
             Ok(Value::Boolean(a > b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::Boolean(a > b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
             Ok(Value::Boolean(a > b))
         },
 
@@ -2626,42 +2605,42 @@ fn is_greater_than(s: &mut State) -> Result<(), String>{
 //Compares two values on stack to see if the second to top is less than the top.
 fn is_less_than(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
             Ok(Value::Boolean(a < b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::Boolean(a < b))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Boolean(a < b))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Boolean(a < b))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Boolean(a < b))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Boolean(a < b))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
             Ok(Value::Boolean(a < b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
             Ok(Value::Boolean(a < b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
             Ok(Value::Boolean(a < b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
             Ok(Value::Boolean(a < b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
             Ok(Value::Boolean(a < b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::Boolean(a < b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
             Ok(Value::Boolean(a < b))
         },
 
@@ -2718,42 +2697,42 @@ fn is_less_than(s: &mut State) -> Result<(), String>{
 //Compares two values on stack to see if the second to top is greater than or equal to the top.
 fn is_greater_than_equal_to(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
             Ok(Value::Boolean(a >= b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::Boolean(a >= b))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Boolean(a >= b))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Boolean(a >= b))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Boolean(a >= b))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Boolean(a >= b))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
             Ok(Value::Boolean(a >= b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
             Ok(Value::Boolean(a >= b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
             Ok(Value::Boolean(a >= b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
             Ok(Value::Boolean(a >= b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
             Ok(Value::Boolean(a >= b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::Boolean(a >= b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
             Ok(Value::Boolean(a >= b))
         },
 
@@ -2810,42 +2789,42 @@ fn is_greater_than_equal_to(s: &mut State) -> Result<(), String>{
 //Compares two values on stack to see if the second to top is less than or equal to the top.
 fn is_less_than_equal_to(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
             Ok(Value::Boolean(a <= b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::Boolean(a <= b))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Boolean(a <= b))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Boolean(a <= b))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Boolean(a <= b))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Boolean(a <= b))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
             Ok(Value::Boolean(a <= b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
             Ok(Value::Boolean(a <= b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
             Ok(Value::Boolean(a <= b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
             Ok(Value::Boolean(a <= b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
             Ok(Value::Boolean(a <= b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::Boolean(a <= b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
             Ok(Value::Boolean(a <= b))
         },
 
@@ -3292,7 +3271,7 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
 // pushing the indexed item to the stack.
 fn index(s: &mut State) -> Result<(), String>{
     let res = match s.pop2(){
-        (Some(Value::ListBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
+        (Some(Value::ListBox(bn)), Some(Value::UIntSize(i))) => {
             if s.validate_box(bn){
                 if let HeapValue::List(ref ls) = s.heap[bn].0{
                     if i < ls.len(){
@@ -3308,7 +3287,7 @@ fn index(s: &mut State) -> Result<(), String>{
                 Err(bad_box_error(\"index\", \"ListBox\", \"NA\", bn, usize::MAX, false))
             }
         },
-        (Some(Value::StringBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i)))) => {
+        (Some(Value::StringBox(bn)), Some(Value::UIntSize(i))) => {
             if s.validate_box(bn){
                 if let HeapValue::String(ref st) = s.heap[bn].0{
                     if i < st.len(){
@@ -3345,7 +3324,7 @@ fn length(s: &mut State) -> Result<(), String>{
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
                 if let HeapValue::List(ref ls) = s.heap[bn].0{
-                    Ok(Value::UInt(IntUnsigned::UIntSize(ls.len())))
+                    Ok(Value::UIntSize(ls.len()))
                 }else{
                     Err(should_never_get_here_for_func(\"length\"))
                 }
@@ -3356,7 +3335,7 @@ fn length(s: &mut State) -> Result<(), String>{
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
                 if let HeapValue::String(ref st) = s.heap[bn].0{
-                    Ok(Value::UInt(IntUnsigned::UIntSize(st.len())))
+                    Ok(Value::UIntSize(st.len()))
                 }else{
                     Err(should_never_get_here_for_func(\"length\"))
                 }
@@ -3512,7 +3491,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
 //MAYBE ADD ABILITY TO CHANGE CHARS IN STRING IN THE FUTURE
 fn change_item_at(s: &mut State) -> Result<(), String>{
     let res = match s.pop3(){
-        (Some(Value::ListBox(bn)), Some(Value::UInt(IntUnsigned::UIntSize(i))), Some(v)) => {
+        (Some(Value::ListBox(bn)), Some(Value::UIntSize(i)), Some(v)) => {
             //Changes item in list to new value at 
             // index i assuming list is valid and index is in range.
             if s.validate_box(bn){
@@ -3691,20 +3670,20 @@ fn get_field(s: &mut State) -> Result<(), String>{
 // Typically the types have to match unless it's nullbox to box stuff.
 fn is_valid_mutation(a: &Value, b: &Value) -> bool{
     match (a, b) {
-        (Value::Int(IntSigned::IntSize(_)), Value::Int(IntSigned::IntSize(_))) => true,
-        (Value::UInt(IntUnsigned::UIntSize(_)), Value::UInt(IntUnsigned::UIntSize(_))) => true,
+        (Value::IntSize(_), Value::IntSize(_)) => true,
+        (Value::UIntSize(_), Value::UIntSize(_)) => true,
 
-        (Value::Int(IntSigned::Int8(_)), Value::Int(IntSigned::Int8(_))) => true,
-        (Value::Int(IntSigned::Int16(_)), Value::Int(IntSigned::Int16(_))) => true,
-        (Value::Int(IntSigned::Int32(_)), Value::Int(IntSigned::Int32(_))) => true,
-        (Value::Int(IntSigned::Int64(_)), Value::Int(IntSigned::Int64(_))) => true,
-        (Value::Int(IntSigned::Int128(_)), Value::Int(IntSigned::Int128(_))) => true,
+        (Value::Int8(_), Value::Int8(_)) => true,
+        (Value::Int16(_), Value::Int16(_)) => true,
+        (Value::Int32(_), Value::Int32(_)) => true,
+        (Value::Int64(_), Value::Int64(_)) => true,
+        (Value::Int128(_), Value::Int128(_)) => true,
 
-        (Value::UInt(IntUnsigned::UInt8(_)), Value::UInt(IntUnsigned::UInt8(_))) => true,
-        (Value::UInt(IntUnsigned::UInt16(_)), Value::UInt(IntUnsigned::UInt16(_))) => true,
-        (Value::UInt(IntUnsigned::UInt32(_)), Value::UInt(IntUnsigned::UInt32(_))) => true,
-        (Value::UInt(IntUnsigned::UInt64(_)), Value::UInt(IntUnsigned::UInt64(_))) => true,
-        (Value::UInt(IntUnsigned::UInt128(_)), Value::UInt(IntUnsigned::UInt128(_))) => true,
+        (Value::UInt8(_), Value::UInt8(_)) => true,
+        (Value::UInt16(_), Value::UInt16(_)) => true,
+        (Value::UInt32(_), Value::UInt32(_)) => true,
+        (Value::UInt64(_), Value::UInt64(_)) => true,
+        (Value::UInt128(_), Value::UInt128(_)) => true,
 
         (Value::Float32(_), Value::Float32(_)) => true,
         (Value::Float64(_), Value::Float64(_)) => true,
@@ -3840,7 +3819,7 @@ fn string_compare(s: &mut State) -> Result<(), String>{
                             Ordering::Equal => 0,
                             Ordering::Greater => 1,
                         };
-                        Ok(Value::Int(IntSigned::IntSize(comp_res)))
+                        Ok(Value::IntSize(comp_res))
                     }else{
                         Err(should_never_get_here_for_func(\"string_compare\"))
                     }
@@ -3866,43 +3845,43 @@ fn string_compare(s: &mut State) -> Result<(), String>{
 //Performs bitwise OR between two integers.
 fn bit_or(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            Ok(Value::Int(IntSigned::IntSize(a | b)))
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
+            Ok(Value::IntSize(a | b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UIntSize(a | b)))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Int(IntSigned::Int8(a | b)))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Int(IntSigned::Int16(a | b)))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Int(IntSigned::Int32(a | b)))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Int(IntSigned::Int64(a | b)))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            Ok(Value::Int(IntSigned::Int128(a | b)))
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
+            Ok(Value::UIntSize(a | b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt8(a | b)))
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
+            Ok(Value::Int8(a | b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt16(a | b)))
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
+            Ok(Value::Int16(a | b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt32(a | b)))
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
+            Ok(Value::Int32(a | b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt64(a | b)))
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
+            Ok(Value::Int64(a | b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt128(a | b)))
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Int128(a | b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::UInt8(a | b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::UInt16(a | b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::UInt32(a | b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::UInt64(a | b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
+            Ok(Value::UInt128(a | b))
         },
 
         (Some(a), Some(b)) => {
@@ -3926,43 +3905,43 @@ fn bit_or(s: &mut State) -> Result<(), String>{
 //Performs bitwise AND between two matching integer types.
 fn bit_and(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            Ok(Value::Int(IntSigned::IntSize(a & b)))
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
+            Ok(Value::IntSize(a & b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UIntSize(a & b)))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Int(IntSigned::Int8(a & b)))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Int(IntSigned::Int16(a & b)))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Int(IntSigned::Int32(a & b)))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Int(IntSigned::Int64(a & b)))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            Ok(Value::Int(IntSigned::Int128(a & b)))
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
+            Ok(Value::UIntSize(a & b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt8(a & b)))
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
+            Ok(Value::Int8(a & b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt16(a & b)))
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
+            Ok(Value::Int16(a & b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt32(a & b)))
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
+            Ok(Value::Int32(a & b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt64(a & b)))
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
+            Ok(Value::Int64(a & b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt128(a & b)))
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Int128(a & b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::UInt8(a & b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::UInt16(a & b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::UInt32(a & b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::UInt64(a & b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
+            Ok(Value::UInt128(a & b))
         },
 
         (Some(a), Some(b)) => {
@@ -3986,43 +3965,43 @@ fn bit_and(s: &mut State) -> Result<(), String>{
 //Performs bitwise XOR between two matching integer types.
 fn bit_xor(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(a))), Some(Value::Int(IntSigned::IntSize(b)))) => {
-            Ok(Value::Int(IntSigned::IntSize(a ^ b)))
+        (Some(Value::IntSize(a)), Some(Value::IntSize(b))) => {
+            Ok(Value::IntSize(a ^ b))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(a))), Some(Value::UInt(IntUnsigned::UIntSize(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UIntSize(a ^ b)))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(a))), Some(Value::Int(IntSigned::Int8(b)))) => {
-            Ok(Value::Int(IntSigned::Int8(a ^ b)))
-        },
-        (Some(Value::Int(IntSigned::Int16(a))), Some(Value::Int(IntSigned::Int16(b)))) => {
-            Ok(Value::Int(IntSigned::Int16(a ^ b)))
-        },
-        (Some(Value::Int(IntSigned::Int32(a))), Some(Value::Int(IntSigned::Int32(b)))) => {
-            Ok(Value::Int(IntSigned::Int32(a ^ b)))
-        },
-        (Some(Value::Int(IntSigned::Int64(a))), Some(Value::Int(IntSigned::Int64(b)))) => {
-            Ok(Value::Int(IntSigned::Int64(a ^ b)))
-        },
-        (Some(Value::Int(IntSigned::Int128(a))), Some(Value::Int(IntSigned::Int128(b)))) => {
-            Ok(Value::Int(IntSigned::Int128(a ^ b)))
+        (Some(Value::UIntSize(a)), Some(Value::UIntSize(b))) => {
+            Ok(Value::UIntSize(a ^ b))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(a))), Some(Value::UInt(IntUnsigned::UInt8(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt8(a ^ b)))
+        (Some(Value::Int8(a)), Some(Value::Int8(b))) => {
+            Ok(Value::Int8(a ^ b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(a))), Some(Value::UInt(IntUnsigned::UInt16(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt16(a ^ b)))
+        (Some(Value::Int16(a)), Some(Value::Int16(b))) => {
+            Ok(Value::Int16(a ^ b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(a))), Some(Value::UInt(IntUnsigned::UInt32(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt32(a ^ b)))
+        (Some(Value::Int32(a)), Some(Value::Int32(b))) => {
+            Ok(Value::Int32(a ^ b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(a))), Some(Value::UInt(IntUnsigned::UInt64(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt64(a ^ b)))
+        (Some(Value::Int64(a)), Some(Value::Int64(b))) => {
+            Ok(Value::Int64(a ^ b))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(a))), Some(Value::UInt(IntUnsigned::UInt128(b)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt128(a ^ b)))
+        (Some(Value::Int128(a)), Some(Value::Int128(b))) => {
+            Ok(Value::Int128(a ^ b))
+        },
+
+        (Some(Value::UInt8(a)), Some(Value::UInt8(b))) => {
+            Ok(Value::UInt8(a ^ b))
+        },
+        (Some(Value::UInt16(a)), Some(Value::UInt16(b))) => {
+            Ok(Value::UInt16(a ^ b))
+        },
+        (Some(Value::UInt32(a)), Some(Value::UInt32(b))) => {
+            Ok(Value::UInt32(a ^ b))
+        },
+        (Some(Value::UInt64(a)), Some(Value::UInt64(b))) => {
+            Ok(Value::UInt64(a ^ b))
+        },
+        (Some(Value::UInt128(a)), Some(Value::UInt128(b))) => {
+            Ok(Value::UInt128(a ^ b))
         },
 
         (Some(a), Some(b)) => {
@@ -4046,20 +4025,20 @@ fn bit_xor(s: &mut State) -> Result<(), String>{
 //Performs a bitwise not on an integer on the stack.
 fn bit_not(s: &mut State) -> Result<(), String>{
     let res = match s.pop(){
-        Some(Value::Int(IntSigned::IntSize(n))) => Ok(Value::Int(IntSigned::IntSize(!n))),
-        Some(Value::UInt(IntUnsigned::UIntSize(n))) => Ok(Value::UInt(IntUnsigned::UIntSize(!n))),
+        Some(Value::IntSize(n)) => Ok(Value::IntSize(!n)),
+        Some(Value::UIntSize(n)) => Ok(Value::UIntSize(!n)),
 
-        Some(Value::Int(IntSigned::Int8(n))) => Ok(Value::Int(IntSigned::Int8(!n))),
-        Some(Value::Int(IntSigned::Int16(n))) => Ok(Value::Int(IntSigned::Int16(!n))),
-        Some(Value::Int(IntSigned::Int32(n))) => Ok(Value::Int(IntSigned::Int32(!n))),
-        Some(Value::Int(IntSigned::Int64(n))) => Ok(Value::Int(IntSigned::Int64(!n))),
-        Some(Value::Int(IntSigned::Int128(n))) => Ok(Value::Int(IntSigned::Int128(!n))),
+        Some(Value::Int8(n)) => Ok(Value::Int8(!n)),
+        Some(Value::Int16(n)) => Ok(Value::Int16(!n)),
+        Some(Value::Int32(n)) => Ok(Value::Int32(!n)),
+        Some(Value::Int64(n)) => Ok(Value::Int64(!n)),
+        Some(Value::Int128(n)) => Ok(Value::Int128(!n)),
 
-        Some(Value::UInt(IntUnsigned::UInt8(n))) => Ok(Value::UInt(IntUnsigned::UInt8(!n))),
-        Some(Value::UInt(IntUnsigned::UInt16(n))) => Ok(Value::UInt(IntUnsigned::UInt16(!n))),
-        Some(Value::UInt(IntUnsigned::UInt32(n))) => Ok(Value::UInt(IntUnsigned::UInt32(!n))),
-        Some(Value::UInt(IntUnsigned::UInt64(n))) => Ok(Value::UInt(IntUnsigned::UInt64(!n))),
-        Some(Value::UInt(IntUnsigned::UInt128(n))) => Ok(Value::UInt(IntUnsigned::UInt128(!n))),
+        Some(Value::UInt8(n)) => Ok(Value::UInt8(!n)),
+        Some(Value::UInt16(n)) => Ok(Value::UInt16(!n)),
+        Some(Value::UInt32(n)) => Ok(Value::UInt32(!n)),
+        Some(Value::UInt64(n)) => Ok(Value::UInt64(!n)),
+        Some(Value::UInt128(n)) => Ok(Value::UInt128(!n)),
 
         Some(v) => {
             Err(format!(\"Operator (bitNot) error! Bitwise not requires \
@@ -4097,43 +4076,43 @@ fn shift<T: std::ops::Shl<usize, Output = T> + std::ops::Shr<usize, Output = T> 
 //Performs a left or right bitshift by n bits on an integer.
 fn bit_shift(s: &mut State) -> Result<(), String>{
     let res = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::Int(IntSigned::IntSize(shift(n, shift_n))))
+        (Some(Value::IntSize(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::IntSize(shift(n, shift_n)))
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::UInt(IntUnsigned::UIntSize(shift(n, shift_n))))
-        },
-
-        (Some(Value::Int(IntSigned::Int8(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::Int(IntSigned::Int8(shift(n, shift_n))))
-        },
-        (Some(Value::Int(IntSigned::Int16(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::Int(IntSigned::Int16(shift(n, shift_n))))
-        },
-        (Some(Value::Int(IntSigned::Int32(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::Int(IntSigned::Int32(shift(n, shift_n))))
-        },
-        (Some(Value::Int(IntSigned::Int64(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::Int(IntSigned::Int64(shift(n, shift_n))))
-        },
-        (Some(Value::Int(IntSigned::Int128(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::Int(IntSigned::Int128(shift(n, shift_n))))
+        (Some(Value::UIntSize(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::UIntSize(shift(n, shift_n)))
         },
 
-        (Some(Value::UInt(IntUnsigned::UInt8(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt8(shift(n, shift_n))))
+        (Some(Value::Int8(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::Int8(shift(n, shift_n)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt16(shift(n, shift_n))))
+        (Some(Value::Int16(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::Int16(shift(n, shift_n)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt32(shift(n, shift_n))))
+        (Some(Value::Int32(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::Int32(shift(n, shift_n)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt64(shift(n, shift_n))))
+        (Some(Value::Int64(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::Int64(shift(n, shift_n)))
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(n))), Some(Value::Int(IntSigned::IntSize(shift_n)))) => {
-            Ok(Value::UInt(IntUnsigned::UInt128(shift(n, shift_n))))
+        (Some(Value::Int128(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::Int128(shift(n, shift_n)))
+        },
+
+        (Some(Value::UInt8(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::UInt8(shift(n, shift_n)))
+        },
+        (Some(Value::UInt16(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::UInt16(shift(n, shift_n)))
+        },
+        (Some(Value::UInt32(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::UInt32(shift(n, shift_n)))
+        },
+        (Some(Value::UInt64(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::UInt64(shift(n, shift_n)))
+        },
+        (Some(Value::UInt128(n)), Some(Value::IntSize(shift_n))) => {
+            Ok(Value::UInt128(shift(n, shift_n)))
         },
 
         (Some(a), Some(b)) => {
@@ -4155,73 +4134,73 @@ fn bit_shift(s: &mut State) -> Result<(), String>{
 
 //Pushes maximum value for isize datatype to stack.
 fn max_isize(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::Int(IntSigned::IntSize(isize::MAX)));
+    s.stack.push(Value::IntSize(isize::MAX));
     Ok(())
 }
 
 //Pushes maximum value for usize datatype to stack.
 fn max_usize(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::UInt(IntUnsigned::UIntSize(usize::MAX)));
+    s.stack.push(Value::UIntSize(usize::MAX));
     Ok(())
 }
 
 //Pushes maximum value for i8 datatype to stack.
 fn max_i8(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::Int(IntSigned::Int8(i8::MAX)));
+    s.stack.push(Value::Int8(i8::MAX));
     Ok(())
 }
 
 //Pushes maximum value for i16 datatype to stack.
 fn max_i16(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::Int(IntSigned::Int16(i16::MAX)));
+    s.stack.push(Value::Int16(i16::MAX));
     Ok(())
 }
 
 //Pushes maximum value for i32 datatype to stack.
 fn max_i32(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::Int(IntSigned::Int32(i32::MAX)));
+    s.stack.push(Value::Int32(i32::MAX));
     Ok(())
 }
 
 //Pushes maximum value for i64 datatype to stack.
 fn max_i64(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::Int(IntSigned::Int64(i64::MAX)));
+    s.stack.push(Value::Int64(i64::MAX));
     Ok(())
 }
 
 //Pushes maximum value for i128 datatype to stack.
 fn max_i128(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::Int(IntSigned::Int128(i128::MAX)));
+    s.stack.push(Value::Int128(i128::MAX));
     Ok(())
 }
 
 //Pushes maximum value for u8 datatype to stack.
 fn max_u8(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::UInt(IntUnsigned::UInt8(u8::MAX)));
+    s.stack.push(Value::UInt8(u8::MAX));
     Ok(())
 }
 
 //Pushes maximum value for u16 datatype to stack.
 fn max_u16(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::UInt(IntUnsigned::UInt16(u16::MAX)));
+    s.stack.push(Value::UInt16(u16::MAX));
     Ok(())
 }
 
 //Pushes maximum value for u32 datatype to stack.
 fn max_u32(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::UInt(IntUnsigned::UInt32(u32::MAX)));
+    s.stack.push(Value::UInt32(u32::MAX));
     Ok(())
 }
 
 //Pushes maximum value for u64 datatype to stack.
 fn max_u64(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::UInt(IntUnsigned::UInt64(u64::MAX)));
+    s.stack.push(Value::UInt64(u64::MAX));
     Ok(())
 }
 
 //Pushes maximum value for u128 datatype to stack.
 fn max_u128(s: &mut State) -> Result<(), String>{
-    s.stack.push(Value::UInt(IntUnsigned::UInt128(u128::MAX)));
+    s.stack.push(Value::UInt128(u128::MAX));
     Ok(())
 }
 
@@ -4300,73 +4279,73 @@ where
     match t{
         \"isize\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::IntSize(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::IntSize(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         }, 
         \"usize\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UIntSize(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UIntSize(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         }, 
         \"i8\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int8(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int8(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"i16\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int16(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int16(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"i32\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int32(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int32(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"i64\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int64(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int64(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"i128\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::Int(IntSigned::Int128(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::Int128(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u8\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt8(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt8(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u16\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt16(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt16(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u32\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt32(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt32(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u64\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt64(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt64(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
         \"u128\" => {
             match v.try_into(){
-                Ok(casted) => Ok(SuperValue::Reg(Value::UInt(IntUnsigned::UInt128(casted)))),
+                Ok(casted) => Ok(SuperValue::Reg(Value::UInt128(casted))),
                 Err(reason) => Err(reason.to_string()),
             }
         },
@@ -4465,43 +4444,43 @@ fn string_cast_error(bn: usize, str_contents: &str, t: &str, reason: &str) -> St
 // of the stack tries to be casted to another data type.
 fn cast_stuff(s: &mut State) -> Result<(), String>{
     let res = match s.pop2(){
-        (Some(Value::Int(IntSigned::IntSize(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int(IntSigned::IntSize(n)), n, bn)
+        (Some(Value::IntSize(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::IntSize(n), n, bn)
         },
-        (Some(Value::UInt(IntUnsigned::UIntSize(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt(IntUnsigned::UIntSize(n)), n, bn)
+        (Some(Value::UIntSize(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UIntSize(n), n, bn)
         },
 
-        (Some(Value::Int(IntSigned::Int8(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int(IntSigned::Int8(n)), n, bn)
+        (Some(Value::Int8(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int8(n), n, bn)
         },
-        (Some(Value::Int(IntSigned::Int16(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int(IntSigned::Int16(n)), n, bn)
+        (Some(Value::Int16(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int16(n), n, bn)
         },
-        (Some(Value::Int(IntSigned::Int32(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int(IntSigned::Int32(n)), n, bn)
+        (Some(Value::Int32(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int32(n), n, bn)
         },
-        (Some(Value::Int(IntSigned::Int64(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int(IntSigned::Int64(n)), n, bn)
+        (Some(Value::Int64(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int64(n), n, bn)
         },
-        (Some(Value::Int(IntSigned::Int128(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int(IntSigned::Int128(n)), n, bn)
+        (Some(Value::Int128(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::Int128(n), n, bn)
         },
         
-        (Some(Value::UInt(IntUnsigned::UInt8(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt(IntUnsigned::UInt8(n)), n, bn)
+        (Some(Value::UInt8(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt8(n), n, bn)
         },
-        (Some(Value::UInt(IntUnsigned::UInt16(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt(IntUnsigned::UInt16(n)), n, bn)
+        (Some(Value::UInt16(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt16(n), n, bn)
         },
-        (Some(Value::UInt(IntUnsigned::UInt32(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt(IntUnsigned::UInt32(n)), n, bn)
+        (Some(Value::UInt32(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt32(n), n, bn)
         },
-        (Some(Value::UInt(IntUnsigned::UInt64(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt(IntUnsigned::UInt64(n)), n, bn)
+        (Some(Value::UInt64(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt64(n), n, bn)
         },
-        (Some(Value::UInt(IntUnsigned::UInt128(n))), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt(IntUnsigned::UInt128(n)), n, bn)
+        (Some(Value::UInt128(n)), Some(Value::StringBox(bn))) => {
+            integer_cast_action(s, Value::UInt128(n), n, bn)
         },
 
         (Some(Value::Float32(n)), Some(Value::StringBox(bn))) => {
@@ -4509,20 +4488,20 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                 if let HeapValue::String(ref t) = &s.heap[bn].0{
                     let t: &str = t;
                     match t{
-                        \"isize\" => Ok(Value::Int(IntSigned::IntSize(n as isize))),
-                        \"usize\" => Ok(Value::UInt(IntUnsigned::UIntSize(n as usize))),
+                        \"isize\" => Ok(Value::IntSize(n as isize)),
+                        \"usize\" => Ok(Value::UIntSize(n as usize)),
 
-                        \"i8\" => Ok(Value::Int(IntSigned::Int8(n as i8))),
-                        \"i16\" => Ok(Value::Int(IntSigned::Int16(n as i16))),
-                        \"i32\" => Ok(Value::Int(IntSigned::Int32(n as i32))),
-                        \"i64\" => Ok(Value::Int(IntSigned::Int64(n as i64))),
-                        \"i128\" => Ok(Value::Int(IntSigned::Int128(n as i128))),
+                        \"i8\" => Ok(Value::Int8(n as i8)),
+                        \"i16\" => Ok(Value::Int16(n as i16)),
+                        \"i32\" => Ok(Value::Int32(n as i32)),
+                        \"i64\" => Ok(Value::Int64(n as i64)),
+                        \"i128\" => Ok(Value::Int128(n as i128)),
 
-                        \"u8\" => Ok(Value::UInt(IntUnsigned::UInt8(n as u8))),
-                        \"u16\" => Ok(Value::UInt(IntUnsigned::UInt16(n as u16))),
-                        \"u32\" => Ok(Value::UInt(IntUnsigned::UInt32(n as u32))),
-                        \"u64\" => Ok(Value::UInt(IntUnsigned::UInt64(n as u64))),
-                        \"u128\" => Ok(Value::UInt(IntUnsigned::UInt128(n as u128))),
+                        \"u8\" => Ok(Value::UInt8(n as u8)),
+                        \"u16\" => Ok(Value::UInt16(n as u16)),
+                        \"u32\" => Ok(Value::UInt32(n as u32)),
+                        \"u64\" => Ok(Value::UInt64(n as u64)),
+                        \"u128\" => Ok(Value::UInt128(n as u128)),
 
                         \"f32\" => Ok(Value::Float32(n as f32)),
                         \"f64\" => Ok(Value::Float64(n as f64)),
@@ -4549,20 +4528,20 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                 if let HeapValue::String(ref t) = &s.heap[bn].0{
                     let t: &str = t;
                     match t{
-                        \"isize\" => Ok(Value::Int(IntSigned::IntSize(n as isize))),
-                        \"usize\" => Ok(Value::UInt(IntUnsigned::UIntSize(n as usize))),
+                        \"isize\" => Ok(Value::IntSize(n as isize)),
+                        \"usize\" => Ok(Value::UIntSize(n as usize)),
 
-                        \"i8\" => Ok(Value::Int(IntSigned::Int8(n as i8))),
-                        \"i16\" => Ok(Value::Int(IntSigned::Int16(n as i16))),
-                        \"i32\" => Ok(Value::Int(IntSigned::Int32(n as i32))),
-                        \"i64\" => Ok(Value::Int(IntSigned::Int64(n as i64))),
-                        \"i128\" => Ok(Value::Int(IntSigned::Int128(n as i128))),
+                        \"i8\" => Ok(Value::Int8(n as i8)),
+                        \"i16\" => Ok(Value::Int16(n as i16)),
+                        \"i32\" => Ok(Value::Int32(n as i32)),
+                        \"i64\" => Ok(Value::Int64(n as i64)),
+                        \"i128\" => Ok(Value::Int128(n as i128)),
 
-                        \"u8\" => Ok(Value::UInt(IntUnsigned::UInt8(n as u8))),
-                        \"u16\" => Ok(Value::UInt(IntUnsigned::UInt16(n as u16))),
-                        \"u32\" => Ok(Value::UInt(IntUnsigned::UInt32(n as u32))),
-                        \"u64\" => Ok(Value::UInt(IntUnsigned::UInt64(n as u64))),
-                        \"u128\" => Ok(Value::UInt(IntUnsigned::UInt128(n as u128))),
+                        \"u8\" => Ok(Value::UInt8(n as u8)),
+                        \"u16\" => Ok(Value::UInt16(n as u16)),
+                        \"u32\" => Ok(Value::UInt32(n as u32)),
+                        \"u64\" => Ok(Value::UInt64(n as u64)),
+                        \"u128\" => Ok(Value::UInt128(n as u128)),
 
                         \"f32\" => Ok(Value::Float32(n as f32)),
                         \"f64\" => Ok(Value::Float64(n as f64)),
@@ -4589,20 +4568,20 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                 if let HeapValue::String(ref t) = &s.heap[bn].0{
                     let t: &str = t;
                     match t{
-                        \"isize\" => Ok(Value::Int(IntSigned::IntSize(c as isize))),
-                        \"usize\" => Ok(Value::UInt(IntUnsigned::UIntSize(c as usize))),
+                        \"isize\" => Ok(Value::IntSize(c as isize)),
+                        \"usize\" => Ok(Value::UIntSize(c as usize)),
 
-                        \"i8\" => Ok(Value::Int(IntSigned::Int8(c as i8))),
-                        \"i16\" => Ok(Value::Int(IntSigned::Int16(c as i16))),
-                        \"i32\" => Ok(Value::Int(IntSigned::Int32(c as i32))),
-                        \"i64\" => Ok(Value::Int(IntSigned::Int64(c as i64))),
-                        \"i128\" => Ok(Value::Int(IntSigned::Int128(c as i128))),
+                        \"i8\" => Ok(Value::Int8(c as i8)),
+                        \"i16\" => Ok(Value::Int16(c as i16)),
+                        \"i32\" => Ok(Value::Int32(c as i32)),
+                        \"i64\" => Ok(Value::Int64(c as i64)),
+                        \"i128\" => Ok(Value::Int128(c as i128)),
 
-                        \"u8\" => Ok(Value::UInt(IntUnsigned::UInt8(c as u8))),
-                        \"u16\" => Ok(Value::UInt(IntUnsigned::UInt16(c as u16))),
-                        \"u32\" => Ok(Value::UInt(IntUnsigned::UInt32(c as u32))),
-                        \"u64\" => Ok(Value::UInt(IntUnsigned::UInt64(c as u64))),
-                        \"u128\" => Ok(Value::UInt(IntUnsigned::UInt128(c as u128))),
+                        \"u8\" => Ok(Value::UInt8(c as u8)),
+                        \"u16\" => Ok(Value::UInt16(c as u16)),
+                        \"u32\" => Ok(Value::UInt32(c as u32)),
+                        \"u64\" => Ok(Value::UInt64(c as u64)),
+                        \"u128\" => Ok(Value::UInt128(c as u128)),
 
                         \"String\" => {
                             let new_bn = s.insert_to_heap(HeapValue::String(c.to_string()));
@@ -4625,20 +4604,20 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                 if let HeapValue::String(ref t) = &s.heap[bn].0{
                     let t: &str = t;
                     match t{
-                        \"isize\" => Ok(Value::Int(IntSigned::IntSize(b as isize))),
-                        \"usize\" => Ok(Value::UInt(IntUnsigned::UIntSize(b as usize))),
+                        \"isize\" => Ok(Value::IntSize(b as isize)),
+                        \"usize\" => Ok(Value::UIntSize(b as usize)),
 
-                        \"i8\" => Ok(Value::Int(IntSigned::Int8(b as i8))),
-                        \"i16\" => Ok(Value::Int(IntSigned::Int16(b as i16))),
-                        \"i32\" => Ok(Value::Int(IntSigned::Int32(b as i32))),
-                        \"i64\" => Ok(Value::Int(IntSigned::Int64(b as i64))),
-                        \"i128\" => Ok(Value::Int(IntSigned::Int128(b as i128))),
+                        \"i8\" => Ok(Value::Int8(b as i8)),
+                        \"i16\" => Ok(Value::Int16(b as i16)),
+                        \"i32\" => Ok(Value::Int32(b as i32)),
+                        \"i64\" => Ok(Value::Int64(b as i64)),
+                        \"i128\" => Ok(Value::Int128(b as i128)),
 
-                        \"u8\" => Ok(Value::UInt(IntUnsigned::UInt8(b as u8))),
-                        \"u16\" => Ok(Value::UInt(IntUnsigned::UInt16(b as u16))),
-                        \"u32\" => Ok(Value::UInt(IntUnsigned::UInt32(b as u32))),
-                        \"u64\" => Ok(Value::UInt(IntUnsigned::UInt64(b as u64))),
-                        \"u128\" => Ok(Value::UInt(IntUnsigned::UInt128(b as u128))),
+                        \"u8\" => Ok(Value::UInt8(b as u8)),
+                        \"u16\" => Ok(Value::UInt16(b as u16)),
+                        \"u32\" => Ok(Value::UInt32(b as u32)),
+                        \"u64\" => Ok(Value::UInt64(b as u64)),
+                        \"u128\" => Ok(Value::UInt128(b as u128)),
 
                         \"String\" => {
                             let new_bn = s.insert_to_heap(HeapValue::String(b.to_string()));
@@ -4664,75 +4643,75 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
                         match t{
                             \"isize\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int(IntSigned::IntSize(casted))),
+                                    Ok(casted) => Ok(Value::IntSize(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"usize\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UIntSize(casted))),
+                                    Ok(casted) => Ok(Value::UIntSize(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             
                             \"i8\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int(IntSigned::Int8(casted))),
+                                    Ok(casted) => Ok(Value::Int8(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"i16\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int(IntSigned::Int16(casted))),
+                                    Ok(casted) => Ok(Value::Int16(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"i32\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int(IntSigned::Int32(casted))),
+                                    Ok(casted) => Ok(Value::Int32(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"i64\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int(IntSigned::Int64(casted))),
+                                    Ok(casted) => Ok(Value::Int64(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"i128\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int(IntSigned::Int128(casted))),
+                                    Ok(casted) => Ok(Value::Int128(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
 
                             \"u8\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt8(casted))),
+                                    Ok(casted) => Ok(Value::UInt8(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"u16\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt16(casted))),
+                                    Ok(casted) => Ok(Value::UInt16(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"u32\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt32(casted))),
+                                    Ok(casted) => Ok(Value::UInt32(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"u64\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt64(casted))),
+                                    Ok(casted) => Ok(Value::UInt64(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
                             \"u128\" => {
                                 match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt(IntUnsigned::UInt128(casted))),
+                                    Ok(casted) => Ok(Value::UInt128(casted)),
                                     Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
                                 }
                             },
