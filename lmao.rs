@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.10.0
+//Version: 0.10.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -18,6 +18,7 @@ use std::convert::TryInto;
 use fmt::Display;
 use std::io;
 use std::rc::Rc;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 //This enum is used to contain all the possible data types of Lmao 
 // that live everywhere but the Heap.
@@ -4084,6 +4085,23 @@ fn is_valid_box(s: &mut State) -> Result<(), String>{
     push_val_or_err(res, s)
 }
 
+//Gets the current unix time as a 64 bit bload 
+// and pushes it to the stack as such.
+fn time_unix_now(s: &mut State) -> Result<(), String>{
+    match SystemTime::now().duration_since(UNIX_EPOCH){
+        Ok(time) => {
+            let secs = time.as_secs();
+            let nanos = time.subsec_nanos();
+
+            let time_float: f64 = (secs as f64) + ((nanos as f64) / 1e9f64);
+            s.stack.push(Value::Float64(time_float));
+            Ok(())
+        },
+        Err(e) => Err(format!("Operator (timeUnixNow) error! Unable to \
+            fetch the current Unix time because {}", e)),
+    }
+}
+
 //Creates a frame for local variables to use.
 fn create_frame(size: usize) -> Vec<(Value, bool)>{
     let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
@@ -4139,7 +4157,7 @@ impl State{
             write_data_to_file, read_data_from_file, 
             create_file_based_on_string, delete_file_based_on_string, file_exists,
             query_type, leave_scope_if_true, throw_custom_error, 
-            get_args, is_valid_box
+            get_args, is_valid_box, time_unix_now
         ];
         
         State {
@@ -4344,7 +4362,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "read", "debugPrintStack", "debugPrintHeap",
         "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
         "queryType", "leaveScopeIfTrue", "throwCustomError",
-        "getArgs", "isValidBox"
+        "getArgs", "isValidBox", "timeUnixNow"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
