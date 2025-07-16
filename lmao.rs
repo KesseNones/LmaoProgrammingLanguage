@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.10.2
+//Version: 0.10.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -362,6 +362,7 @@ struct State{
     frame_pool: Vec<Vec<(Value, bool)>>,
     unique_var_name_count: usize,
     leaving_scope: bool,
+    buffer: String,
 }
 
 //Uses the implemented format traits to build a string for the given Value type. 
@@ -4172,6 +4173,7 @@ impl State{
             frame_pool: Vec::new(),
             unique_var_name_count: num_unique_var_names,
             leaving_scope: false,
+            buffer: String::with_capacity(256),
         }
     }
 
