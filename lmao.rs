@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.10.1
+//Version: 0.10.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4437,86 +4437,86 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
             //Object case.
             ref t if t == "{}" => lexed.push(Token::V(SuperValue::Heap(HeapValue::Object(HashMap::new())))),
             //Float cases.
-            ref t if t.ends_with("f32") => {
+            ref t if t.ends_with("f32") && t.len() > 3 => {
                 match tok[0..(tok.len() - 3)].parse::<f32>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float32(parsed)))),
                     Err(_) => throw_parse_error("f32", &tok),
                 }
             },
-            ref t if t.ends_with("f64") => {
+            ref t if t.ends_with("f64") && t.len() > 3 => {
                 match tok[0..(tok.len() - 3)].parse::<f64>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float64(parsed)))),
                     Err(_) => throw_parse_error("f64", &tok), 
                 }
             },
             //Explicit integer cases for both signed and unsigned.
-            ref t if t.ends_with("u8") => {
+            ref t if t.ends_with("u8") && t.len() > 2 => {
                 match tok[0..(tok.len() - 2)].parse::<u8>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt8(parsed)))),
                     Err(_) => throw_parse_error("u8", &tok), 
                 }
             },
-            ref t if t.ends_with("i8") => {
+            ref t if t.ends_with("i8") && t.len() > 2 => {
                 match tok[0..(tok.len() - 2)].parse::<i8>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int8(parsed)))),
                     Err(_) => throw_parse_error("i8", &tok), 
                 }
             },
-            ref t if t.ends_with("u16") => {
+            ref t if t.ends_with("u16") && t.len() > 3 => {
                 match tok[0..(tok.len() - 3)].parse::<u16>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt16(parsed)))),
                     Err(_) => throw_parse_error("u16", &tok),
                 }
             },
-            ref t if t.ends_with("i16") => {
+            ref t if t.ends_with("i16") && t.len() > 3 => {
                 match tok[0..(tok.len() - 3)].parse::<i16>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int16(parsed)))),
                     Err(_) => throw_parse_error("i16", &tok), 
                 }
             },
-            ref t if t.ends_with("u32") => {
+            ref t if t.ends_with("u32") && t.len() > 3 => {
                 match tok[0..(tok.len() - 3)].parse::<u32>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt32(parsed)))),
                     Err(_) => throw_parse_error("u32", &tok), 
                 }
             },
-            ref t if t.ends_with("i32") => {
+            ref t if t.ends_with("i32") && t.len() > 3 => {
                 match tok[0..(tok.len() - 3)].parse::<i32>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int32(parsed)))),
                     Err(_) => throw_parse_error("i32", &tok), 
                 }
             },
-            ref t if t.ends_with("u64") => {
+            ref t if t.ends_with("u64") && t.len() > 3 => {
                 match tok[0..(tok.len() - 3)].parse::<u64>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt64(parsed)))),
                     Err(_) => throw_parse_error("u64", &tok), 
                 }
             },
-            ref t if t.ends_with("i64") => {
+            ref t if t.ends_with("i64") && t.len() > 3 => {
                 match tok[0..(tok.len() - 3)].parse::<i64>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int64(parsed)))),
                     Err(_) => throw_parse_error("i64", &tok), 
                 }
             },
-            ref t if t.ends_with("u128") => {
+            ref t if t.ends_with("u128") && t.len() > 4 => {
                 match tok[0..(tok.len() - 4)].parse::<u128>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt128(parsed)))),
                     Err(_) => throw_parse_error("u128", &tok), 
                 }
             },
-            ref t if t.ends_with("i128") => {
+            ref t if t.ends_with("i128") && t.len() > 4 => {
                 match tok[0..(tok.len() - 4)].parse::<i128>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int128(parsed)))),
                     Err(_) => throw_parse_error("i128", &tok), 
                 }
             },
-            ref t if t.ends_with("usize") => {
+            ref t if t.ends_with("usize") && t.len() > 5 => {
                 match tok[0..(tok.len() - 5)].parse::<usize>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UIntSize(parsed)))),
                     Err(_) => throw_parse_error("usize", &tok), 
                 }
             },
-            ref t if t.ends_with("isize") => {
+            ref t if t.ends_with("isize") && t.len() > 5 => {
                 match tok[0..(tok.len() - 5)].parse::<isize>(){
                     Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::IntSize(parsed)))),
                     Err(_) => throw_parse_error("isize", &tok), 
