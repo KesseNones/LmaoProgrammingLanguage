@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.10.5
+//Version: 0.10.6
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3225,7 +3225,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                     Ok(Value::StringBox(new_bn))
                 },
 
-                t => Err(numeric_error_cast_string(Value::Float32(n), c, &(invalid_cast_error(c)))),            
+                _ => Err(numeric_error_cast_string(Value::Float32(n), c, &(invalid_cast_error(c)))),            
             }
         },
 
@@ -3255,7 +3255,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                     Ok(Value::StringBox(new_bn))
                 },
 
-                t => Err(numeric_error_cast_string(Value::Float64(n), c, &(invalid_cast_error(c)))),            
+                _ => Err(numeric_error_cast_string(Value::Float64(n), c, &(invalid_cast_error(c)))),            
             }
         },
 
@@ -3281,7 +3281,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                     Ok(Value::StringBox(new_bn))
                 },
 
-                t => Err(numeric_error_cast_string(Value::Char(ch), c, &(invalid_cast_error(c)))),
+                _ => Err(numeric_error_cast_string(Value::Char(ch), c, &(invalid_cast_error(c)))),
             }
 
         },
@@ -3308,7 +3308,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                     Ok(Value::StringBox(new_bn))
                 },
 
-                t => Err(numeric_error_cast_string(Value::Boolean(b), c, &(invalid_cast_error(c)))),
+                _ => Err(numeric_error_cast_string(Value::Boolean(b), c, &(invalid_cast_error(c)))),
             }
 
         },
@@ -3430,7 +3430,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                             Ok(Value::ListBox(ls_bn))
                         },
 
-                        t => Err(string_cast_error(string_num, st, c, &invalid_cast_error(t))),
+                        _ => Err(string_cast_error(string_num, st, c, &invalid_cast_error(c))),
                     }
                 }else{
                     Err(should_never_get_here_for_func("general_cast_action"))
@@ -3442,19 +3442,16 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
 
         Value::ListBox(ls_num) => {
             if s.validate_box(ls_num){
-                if let ref ls = &s.heap[ls_num].0{
-                    match c{
-                        "List" => Ok(Value::ListBox(ls_num)), //No-op
-                        "String" => {
-                            let ls_str = format!("{}", ls);
-                            let new_bn = s.insert_to_heap(HeapValue::String(ls_str[5..].to_string()));
-                            Ok(Value::StringBox(new_bn))
-                        },
-                        t => Err(format!("Operator (cast) error! Failed \
-                            to cast ListBox {} to {} because: {}", ls_num, c, &invalid_cast_error(c))),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("general_cast_action"))
+                let ref ls = &s.heap[ls_num].0;
+                match c{
+                    "List" => Ok(Value::ListBox(ls_num)), //No-op
+                    "String" => {
+                        let ls_str = format!("{}", ls);
+                        let new_bn = s.insert_to_heap(HeapValue::String(ls_str[5..].to_string()));
+                        Ok(Value::StringBox(new_bn))
+                    },
+                    _ => Err(format!("Operator (cast) error! Failed \
+                        to cast ListBox {} to {} because: {}", ls_num, c, &invalid_cast_error(c))),
                 }
             }else{
                 Err(bad_box_error("cast", "ListBox", "NA", ls_num, usize::MAX, false))
@@ -3463,19 +3460,16 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
 
         Value::ObjectBox(obj_num) => {
             if s.validate_box(obj_num){
-                if let ref obj = &s.heap[obj_num].0{
-                    match c {
-                        "Object" => Ok(Value::ObjectBox(obj_num)),
-                        "String" => {
-                            let obj_str = format!("{}", obj);
-                            let new_bn = s.insert_to_heap(HeapValue::String(obj_str[7..].to_string()));
-                            Ok(Value::StringBox(new_bn))
-                        },
-                        _ => Err(format!("Operator (cast) error! Failed \
-                            to cast ObjectBox {} to {} because: {}", obj_num, c, &invalid_cast_error(c))),
-                    }
-                }else{
-                    Err(should_never_get_here_for_func("general_cast_action"))
+                let ref obj = &s.heap[obj_num].0;
+                match c {
+                    "Object" => Ok(Value::ObjectBox(obj_num)),
+                    "String" => {
+                        let obj_str = format!("{}", obj);
+                        let new_bn = s.insert_to_heap(HeapValue::String(obj_str[7..].to_string()));
+                        Ok(Value::StringBox(new_bn))
+                    },
+                    _ => Err(format!("Operator (cast) error! Failed \
+                        to cast ObjectBox {} to {} because: {}", obj_num, c, &invalid_cast_error(c))),
                 }
             }else{
                 Err(bad_box_error("cast", "ObjectBox", "NA", obj_num, usize::MAX, false))
