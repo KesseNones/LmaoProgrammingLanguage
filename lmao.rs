@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.10.3
+//Version: 0.10.4
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3108,7 +3108,7 @@ fn bad_stringbox_for_casting_error(box_num: usize) -> String{
 
 //Function with a generic that carries out the casting action 
 // for all numeric data types to make the main cast function more compact.
-fn integer_cast_action<T>(s: &mut State, v: Value, v_inside: T, bn: usize) -> Result<Value, String>
+fn integer_cast_action<T>(s: &mut State, v: Value, v_inside: T, c: &str) -> Result<Value, String>
 where 
     T: 
         TryInto<isize> + 
@@ -3139,22 +3139,14 @@ where
     <T as TryInto<u64>>::Error: std::fmt::Display,
     <T as TryInto<u128>>::Error: std::fmt::Display,
 {
-    if s.validate_box(bn){
-        if let HeapValue::String(ref t) = &s.heap[bn].0{
-            match cast_num_to_others(t, v_inside){
-                Ok(SuperValue::Heap(HeapValue::String(st))) => {
-                    let new_bn = s.insert_to_heap(HeapValue::String(st));
-                    Ok(Value::StringBox(new_bn))
-                },
-                Ok(SuperValue::Reg(v)) => Ok(v),
-                Err(reason) => Err(numeric_error_cast_string(v, t, &reason)),
-                _ => Err(should_never_get_here_for_func("integer_cast_action")), 
-            }
-        }else{
-            Err(should_never_get_here_for_func("integer_cast_action"))
-        }
-    }else{
-        Err(bad_stringbox_for_casting_error(bn))
+    match cast_num_to_others(c, v_inside){
+        Ok(SuperValue::Heap(HeapValue::String(st))) => {
+            let new_bn = s.insert_to_heap(HeapValue::String(st));
+            Ok(Value::StringBox(new_bn))
+        },
+        Ok(SuperValue::Reg(v)) => Ok(v),
+        Err(reason) => Err(numeric_error_cast_string(v, c, &reason)),
+        _ => Err(should_never_get_here_for_func("integer_cast_action")),
     }
 }
 
@@ -3163,395 +3155,387 @@ fn string_cast_error(bn: usize, str_contents: &str, t: &str, reason: &str) -> St
         StringBox {} (\"{}\") to type {} because: {}", bn, str_contents, t, reason)
 }
 
+fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String>{
+    let res = match v{
+        Value::IntSize(n) => {
+            integer_cast_action(s, Value::IntSize(n), n, c)
+        },
+        Value::UIntSize(n) => {
+            integer_cast_action(s, Value::UIntSize(n), n, c)
+        },
+
+        Value::Int8(n) => {
+            integer_cast_action(s, Value::Int8(n), n, c)
+        },
+        Value::Int16(n) => {
+            integer_cast_action(s, Value::Int16(n), n, c)
+        },
+        Value::Int32(n) => {
+            integer_cast_action(s, Value::Int32(n), n, c)
+        },
+        Value::Int64(n) => {
+            integer_cast_action(s, Value::Int64(n), n, c)
+        },
+        Value::Int128(n) => {
+            integer_cast_action(s, Value::Int128(n), n, c)
+        },
+
+        Value::UInt8(n) => {
+            integer_cast_action(s, Value::UInt8(n), n, c)
+        },
+        Value::UInt16(n) => {
+            integer_cast_action(s, Value::UInt16(n), n, c)
+        },
+        Value::UInt32(n) => {
+            integer_cast_action(s, Value::UInt32(n), n, c)
+        },
+        Value::UInt64(n) => {
+            integer_cast_action(s, Value::UInt64(n), n, c)
+        },
+        Value::UInt128(n) => {
+            integer_cast_action(s, Value::UInt128(n), n, c)
+        },
+
+        Value::Float32(n) => {
+            match c{
+                "isize" => Ok(Value::IntSize(n as isize)),
+                "usize" => Ok(Value::UIntSize(n as usize)),
+
+                "i8" => Ok(Value::Int8(n as i8)),
+                "i16" => Ok(Value::Int16(n as i16)),
+                "i32" => Ok(Value::Int32(n as i32)),
+                "i64" => Ok(Value::Int64(n as i64)),
+                "i128" => Ok(Value::Int128(n as i128)),
+
+                "u8" => Ok(Value::UInt8(n as u8)),
+                "u16" => Ok(Value::UInt16(n as u16)),
+                "u32" => Ok(Value::UInt32(n as u32)),
+                "u64" => Ok(Value::UInt64(n as u64)),
+                "u128" => Ok(Value::UInt128(n as u128)),
+
+                "f32" => Ok(Value::Float32(n as f32)),
+                "f64" => Ok(Value::Float64(n as f64)),
+
+                "String" => {
+                    let f32_str = format!("{}", Value::Float32(n));
+                    let new_bn = s.insert_to_heap(HeapValue::String(f32_str[4..].to_string()));
+                    Ok(Value::StringBox(new_bn))
+                },
+
+                t => Err(numeric_error_cast_string(Value::Float32(n), c, &(invalid_cast_error(c)))),            
+            }
+        },
+
+        Value::Float64(n) => {
+            match c{
+                "isize" => Ok(Value::IntSize(n as isize)),
+                "usize" => Ok(Value::UIntSize(n as usize)),
+
+                "i8" => Ok(Value::Int8(n as i8)),
+                "i16" => Ok(Value::Int16(n as i16)),
+                "i32" => Ok(Value::Int32(n as i32)),
+                "i64" => Ok(Value::Int64(n as i64)),
+                "i128" => Ok(Value::Int128(n as i128)),
+
+                "u8" => Ok(Value::UInt8(n as u8)),
+                "u16" => Ok(Value::UInt16(n as u16)),
+                "u32" => Ok(Value::UInt32(n as u32)),
+                "u64" => Ok(Value::UInt64(n as u64)),
+                "u128" => Ok(Value::UInt128(n as u128)),
+
+                "f32" => Ok(Value::Float32(n as f32)),
+                "f64" => Ok(Value::Float64(n as f64)),
+
+                "String" => {
+                    let f64_str = format!("{}", Value::Float64(n));
+                    let new_bn = s.insert_to_heap(HeapValue::String(f64_str[4..].to_string()));
+                    Ok(Value::StringBox(new_bn))
+                },
+
+                t => Err(numeric_error_cast_string(Value::Float64(n), c, &(invalid_cast_error(c)))),            
+            }
+        },
+
+        Value::Char(ch) => {
+            match c{
+                "isize" => Ok(Value::IntSize(ch as isize)),
+                "usize" => Ok(Value::UIntSize(ch as usize)),
+
+                "i8" => Ok(Value::Int8(ch as i8)),
+                "i16" => Ok(Value::Int16(ch as i16)),
+                "i32" => Ok(Value::Int32(ch as i32)),
+                "i64" => Ok(Value::Int64(ch as i64)),
+                "i128" => Ok(Value::Int128(ch as i128)),
+
+                "u8" => Ok(Value::UInt8(ch as u8)),
+                "u16" => Ok(Value::UInt16(ch as u16)),
+                "u32" => Ok(Value::UInt32(ch as u32)),
+                "u64" => Ok(Value::UInt64(ch as u64)),
+                "u128" => Ok(Value::UInt128(ch as u128)),
+
+                "String" => {
+                    let new_bn = s.insert_to_heap(HeapValue::String(ch.to_string()));
+                    Ok(Value::StringBox(new_bn))
+                },
+
+                t => Err(numeric_error_cast_string(Value::Char(ch), c, &(invalid_cast_error(c)))),
+            }
+
+        },
+
+        Value::Boolean(b) => {
+            match c{
+                "isize" => Ok(Value::IntSize(b as isize)),
+                "usize" => Ok(Value::UIntSize(b as usize)),
+
+                "i8" => Ok(Value::Int8(b as i8)),
+                "i16" => Ok(Value::Int16(b as i16)),
+                "i32" => Ok(Value::Int32(b as i32)),
+                "i64" => Ok(Value::Int64(b as i64)),
+                "i128" => Ok(Value::Int128(b as i128)),
+
+                "u8" => Ok(Value::UInt8(b as u8)),
+                "u16" => Ok(Value::UInt16(b as u16)),
+                "u32" => Ok(Value::UInt32(b as u32)),
+                "u64" => Ok(Value::UInt64(b as u64)),
+                "u128" => Ok(Value::UInt128(b as u128)),
+
+                "String" => {
+                    let new_bn = s.insert_to_heap(HeapValue::String(b.to_string()));
+                    Ok(Value::StringBox(new_bn))
+                },
+
+                t => Err(numeric_error_cast_string(Value::Boolean(b), c, &(invalid_cast_error(c)))),
+            }
+
+        },
+
+        Value::StringBox(string_num) => {
+            if s.validate_box(string_num){
+                if let HeapValue::String(ref st) = &s.heap[string_num].0{
+                    match c {
+                        "isize" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::IntSize(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "usize" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::UIntSize(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        
+                        "i8" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::Int8(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "i16" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::Int16(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "i32" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::Int32(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "i64" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::Int64(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "i128" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::Int128(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+
+                        "u8" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::UInt8(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "u16" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::UInt16(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "u32" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::UInt32(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "u64" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::UInt64(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "u128" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::UInt128(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+
+                        "f32" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::Float32(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+                        "f64" => {
+                            match (*st).parse(){
+                                Ok(casted) => Ok(Value::Float64(casted)),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                            }
+                        },
+
+                        "Boolean" => {
+                            if st == "True" || st == "true"{
+                                Ok(Value::Boolean(true))
+                            }else if st == "False" || st == "false"{
+                                Ok(Value::Boolean(false))
+                            }else{
+                                Err(string_cast_error(string_num, st, c, 
+                                    &String::from("provided string is not a valid Boolean")))
+                            }
+                        },
+
+                        //Casting a string to a string is basically a no-op. 
+                        "String" => {
+                            Ok(Value::StringBox(string_num))
+                        },
+
+                        "List" => {
+                            let char_ls: Vec<Value> = st
+                                .chars()
+                                .map(|c| Value::Char(c))
+                                .collect();
+                            let ls_bn = s.insert_to_heap(HeapValue::List(char_ls));
+                            Ok(Value::ListBox(ls_bn))
+                        },
+
+                        t => Err(string_cast_error(string_num, st, c, &invalid_cast_error(t))),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("general_cast_action"))
+                }
+            }else{
+                Err(bad_stringbox_for_casting_error(string_num))
+            }
+        },
+
+        Value::ListBox(ls_num) => {
+            if s.validate_box(ls_num){
+                if let ref ls = &s.heap[ls_num].0{
+                    match c{
+                        "List" => Ok(Value::ListBox(ls_num)), //No-op
+                        "String" => {
+                            let ls_str = format!("{}", ls);
+                            let new_bn = s.insert_to_heap(HeapValue::String(ls_str[5..].to_string()));
+                            Ok(Value::StringBox(new_bn))
+                        },
+                        t => Err(format!("Operator (cast) error! Failed \
+                            to cast ListBox {} to {} because: {}", ls_num, c, &invalid_cast_error(c))),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("general_cast_action"))
+                }
+            }else{
+                Err(bad_box_error("cast", "ListBox", "NA", ls_num, usize::MAX, false))
+            }
+        },
+
+        Value::ObjectBox(obj_num) => {
+            if s.validate_box(obj_num){
+                if let ref obj = &s.heap[obj_num].0{
+                    match c {
+                        "Object" => Ok(Value::ObjectBox(obj_num)),
+                        "String" => {
+                            let obj_str = format!("{}", obj);
+                            let new_bn = s.insert_to_heap(HeapValue::String(obj_str[7..].to_string()));
+                            Ok(Value::StringBox(new_bn))
+                        },
+                        _ => Err(format!("Operator (cast) error! Failed \
+                            to cast ObjectBox {} to {} because: {}", obj_num, c, &invalid_cast_error(c))),
+                    }
+                }else{
+                    Err(should_never_get_here_for_func("general_cast_action"))
+                }
+            }else{
+                Err(bad_box_error("cast", "ObjectBox", "NA", obj_num, usize::MAX, false))
+            }
+        },
+
+        _ => Err(format!("Operator (cast) error! Value being casted must be a castable type! Attempted value: {}", v))
+
+    };
+
+    res
+}
+
 //Performs all valid casts in existence wherein the top 
 // of the stack tries to be casted to another data type.
 fn cast_stuff(s: &mut State) -> Result<(), String>{
-    let res = match s.pop2(){
-        (Some(Value::IntSize(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::IntSize(n), n, bn)
-        },
-        (Some(Value::UIntSize(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UIntSize(n), n, bn)
-        },
-
-        (Some(Value::Int8(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int8(n), n, bn)
-        },
-        (Some(Value::Int16(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int16(n), n, bn)
-        },
-        (Some(Value::Int32(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int32(n), n, bn)
-        },
-        (Some(Value::Int64(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int64(n), n, bn)
-        },
-        (Some(Value::Int128(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::Int128(n), n, bn)
-        },
-        
-        (Some(Value::UInt8(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt8(n), n, bn)
-        },
-        (Some(Value::UInt16(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt16(n), n, bn)
-        },
-        (Some(Value::UInt32(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt32(n), n, bn)
-        },
-        (Some(Value::UInt64(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt64(n), n, bn)
-        },
-        (Some(Value::UInt128(n)), Some(Value::StringBox(bn))) => {
-            integer_cast_action(s, Value::UInt128(n), n, bn)
-        },
-
-        (Some(Value::Float32(n)), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let HeapValue::String(ref t) = &s.heap[bn].0{
-                    let t: &str = t;
-                    match t{
-                        "isize" => Ok(Value::IntSize(n as isize)),
-                        "usize" => Ok(Value::UIntSize(n as usize)),
-
-                        "i8" => Ok(Value::Int8(n as i8)),
-                        "i16" => Ok(Value::Int16(n as i16)),
-                        "i32" => Ok(Value::Int32(n as i32)),
-                        "i64" => Ok(Value::Int64(n as i64)),
-                        "i128" => Ok(Value::Int128(n as i128)),
-
-                        "u8" => Ok(Value::UInt8(n as u8)),
-                        "u16" => Ok(Value::UInt16(n as u16)),
-                        "u32" => Ok(Value::UInt32(n as u32)),
-                        "u64" => Ok(Value::UInt64(n as u64)),
-                        "u128" => Ok(Value::UInt128(n as u128)),
-
-                        "f32" => Ok(Value::Float32(n as f32)),
-                        "f64" => Ok(Value::Float64(n as f64)),
-
-                        "String" => {
-                            let f32_str = format!("{}", Value::Float32(n));
-                            let new_bn = s.insert_to_heap(HeapValue::String(f32_str[4..].to_string()));
-                            Ok(Value::StringBox(new_bn))
-                        },
-
-                        t => Err(numeric_error_cast_string(Value::Float32(n), t, &(invalid_cast_error(t)))),
-                    }
-
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
-        },
-
-        (Some(Value::Float64(n)), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let HeapValue::String(ref t) = &s.heap[bn].0{
-                    let t: &str = t;
-                    match t{
-                        "isize" => Ok(Value::IntSize(n as isize)),
-                        "usize" => Ok(Value::UIntSize(n as usize)),
-
-                        "i8" => Ok(Value::Int8(n as i8)),
-                        "i16" => Ok(Value::Int16(n as i16)),
-                        "i32" => Ok(Value::Int32(n as i32)),
-                        "i64" => Ok(Value::Int64(n as i64)),
-                        "i128" => Ok(Value::Int128(n as i128)),
-
-                        "u8" => Ok(Value::UInt8(n as u8)),
-                        "u16" => Ok(Value::UInt16(n as u16)),
-                        "u32" => Ok(Value::UInt32(n as u32)),
-                        "u64" => Ok(Value::UInt64(n as u64)),
-                        "u128" => Ok(Value::UInt128(n as u128)),
-
-                        "f32" => Ok(Value::Float32(n as f32)),
-                        "f64" => Ok(Value::Float64(n as f64)),
-
-                        "String" => {
-                            let f64_str = format!("{}", Value::Float64(n));
-                            let new_bn = s.insert_to_heap(HeapValue::String(f64_str[4..].to_string()));
-                            Ok(Value::StringBox(new_bn))
-                        },
-
-                        t => Err(numeric_error_cast_string(Value::Float64(n), t, &(invalid_cast_error(t)))),
-                    }
-
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
-        },
-
-        (Some(Value::Char(c)), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let HeapValue::String(ref t) = &s.heap[bn].0{
-                    let t: &str = t;
-                    match t{
-                        "isize" => Ok(Value::IntSize(c as isize)),
-                        "usize" => Ok(Value::UIntSize(c as usize)),
-
-                        "i8" => Ok(Value::Int8(c as i8)),
-                        "i16" => Ok(Value::Int16(c as i16)),
-                        "i32" => Ok(Value::Int32(c as i32)),
-                        "i64" => Ok(Value::Int64(c as i64)),
-                        "i128" => Ok(Value::Int128(c as i128)),
-
-                        "u8" => Ok(Value::UInt8(c as u8)),
-                        "u16" => Ok(Value::UInt16(c as u16)),
-                        "u32" => Ok(Value::UInt32(c as u32)),
-                        "u64" => Ok(Value::UInt64(c as u64)),
-                        "u128" => Ok(Value::UInt128(c as u128)),
-
-                        "String" => {
-                            let new_bn = s.insert_to_heap(HeapValue::String(c.to_string()));
-                            Ok(Value::StringBox(new_bn))
-                        },
-
-                        t => Err(numeric_error_cast_string(Value::Char(c), t, &(invalid_cast_error(t)))),
-                    }
-
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }
-        },
-
-        (Some(Value::Boolean(b)), Some(Value::StringBox(bn))) => {
-            if s.validate_box(bn){
-                if let HeapValue::String(ref t) = &s.heap[bn].0{
-                    let t: &str = t;
-                    match t{
-                        "isize" => Ok(Value::IntSize(b as isize)),
-                        "usize" => Ok(Value::UIntSize(b as usize)),
-
-                        "i8" => Ok(Value::Int8(b as i8)),
-                        "i16" => Ok(Value::Int16(b as i16)),
-                        "i32" => Ok(Value::Int32(b as i32)),
-                        "i64" => Ok(Value::Int64(b as i64)),
-                        "i128" => Ok(Value::Int128(b as i128)),
-
-                        "u8" => Ok(Value::UInt8(b as u8)),
-                        "u16" => Ok(Value::UInt16(b as u16)),
-                        "u32" => Ok(Value::UInt32(b as u32)),
-                        "u64" => Ok(Value::UInt64(b as u64)),
-                        "u128" => Ok(Value::UInt128(b as u128)),
-
-                        "String" => {
-                            let new_bn = s.insert_to_heap(HeapValue::String(b.to_string()));
-                            Ok(Value::StringBox(new_bn))
-                        },
-
-                        t => Err(numeric_error_cast_string(Value::Boolean(b), t, &(invalid_cast_error(t)))),
-                    }
-
-                }else{
-                    Err(should_never_get_here_for_func("cast_stuff"))
-                }
-            }else{
-                Err(bad_stringbox_for_casting_error(bn))
-            }  
-        },
-
-        (Some(Value::StringBox(string_num)), Some(Value::StringBox(bn))) => {
-            match (s.validate_box(string_num), s.validate_box(bn)) {
-                (true, true) => {
-                    if let (HeapValue::String(ref st), HeapValue::String(ref t)) = (&s.heap[string_num].0, &s.heap[bn].0){
-                        let t: &str = t;
-                        match t{
-                            "isize" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::IntSize(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "usize" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UIntSize(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            
-                            "i8" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int8(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "i16" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int16(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "i32" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int32(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "i64" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int64(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "i128" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Int128(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-
-                            "u8" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt8(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "u16" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt16(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "u32" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt32(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "u64" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt64(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "u128" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::UInt128(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-
-                            "f32" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Float32(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-                            "f64" => {
-                                match (*st).parse(){
-                                    Ok(casted) => Ok(Value::Float64(casted)),
-                                    Err(e) => Err(string_cast_error(string_num, st, t, &e.to_string())),
-                                }
-                            },
-
-                            "Boolean" => {
-                                if st == "True" || st == "true"{
-                                    Ok(Value::Boolean(true))
-                                }else if st == "False" || st == "false"{
-                                    Ok(Value::Boolean(false))
-                                }else{
-                                    Err(string_cast_error(string_num, st, t, 
-                                        &String::from("provided string is not a valid Boolean")))
-                                }
-                            },
-
-                            //Casting a string to a string is basically a no-op. 
-                            "String" => {
-                                Ok(Value::StringBox(string_num))
-                            },
-
-                            "List" => {
-                                let char_ls: Vec<Value> = st
-                                    .chars()
-                                    .map(|c| Value::Char(c))
-                                    .collect();
-                                let ls_bn = s.insert_to_heap(HeapValue::List(char_ls));
-                                Ok(Value::ListBox(ls_bn))
-                            },
-
-                            t => Err(string_cast_error(string_num, st, t, &invalid_cast_error(t))),
+    if s.buffer.len() == 0{
+        let res = match s.pop2(){
+            (Some(v), Some(Value::StringBox(bn))) => {
+                if s.validate_box(bn){
+                    if let HeapValue::String(ref st) = &s.heap[bn].0{
+                        //This is gross but it works.
+                        // It's fine because st never changes so there's 
+                        // no risk of clobbering or other memory horrors.
+                        unsafe {
+                            general_cast_action(&mut *(s as *const State as *mut State), v, st)
                         }
                     }else{
                         Err(should_never_get_here_for_func("cast_stuff"))
                     }
-                },
-                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
-                (false, true) => Err(bad_stringbox_for_casting_error(string_num)),
-                (false, false) => Err(bad_box_error("cast", "StringBox", "StringBox", string_num, bn, true)),
-            }
-        },
+                }else{
+                    Err(bad_box_error("cast", "StringBox", "NA", bn, usize::MAX, false))
+                }
+            },
 
-        (Some(Value::ListBox(ls_num)), Some(Value::StringBox(bn))) => {
-            match (s.validate_box(ls_num), s.validate_box(bn)) {
-                (true, true) => {
-                    if let (ref ls, HeapValue::String(ref t)) = (&s.heap[ls_num].0, &s.heap[bn].0){
-                        let t: &str = t;
-                        match t{
-                            "List" => Ok(Value::ListBox(ls_num)),
-                            "String" => {
-                                let ls_str = format!("{}", ls);
-                                let new_bn = s.insert_to_heap(HeapValue::String(ls_str[5..].to_string()));
-                                Ok(Value::StringBox(new_bn))
-                            },
-                            t => Err(format!("Operator (cast) error! Failed \
-                                to cast ListBox {} to {} because: {}", ls_num, t, &invalid_cast_error(t))),
-                        }
-                    }else{
-                        Err(should_never_get_here_for_func("cast_stuff"))
-                    }
-                },
-                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
-                (false, true) => Err(bad_box_error("cast", "ListBox", "NA", ls_num, usize::MAX, false)),
-                (false, false) => Err(bad_box_error("cast", "ListBox", "StringBox", ls_num, bn, true)),
-            }
-        },
+            (Some(a), Some(b)) => {
+                Err(format!("Operator (cast) error! Second to top \
+                    of stack must be of type Value and a castable type, \
+                    and top of stack must be of type StringBox! \
+                    Attempted values: {} and {}", &a, &b))
+            },
+            (None, Some(_)) => Err(needs_n_args_only_n_provided("cast", "Two", "only one")),
+            (None, None) => Err(needs_n_args_only_n_provided("cast", "Two", "none")),
 
-        (Some(Value::ObjectBox(obj_num)), Some(Value::StringBox(bn))) => {
-            match (s.validate_box(obj_num), s.validate_box(bn)) {
-                (true, true) => {
-                    if let (ref obj, HeapValue::String(ref t)) = (&s.heap[obj_num].0, &s.heap[bn].0){
-                        let t: &str = t;
-                        match t{
-                            "Object" => Ok(Value::ObjectBox(obj_num)),
-                            "String" => {
-                                let obj_str = format!("{}", obj);
-                                let new_bn = s.insert_to_heap(HeapValue::String(obj_str[7..].to_string()));
-                                Ok(Value::StringBox(new_bn))
-                            },
-                            t => Err(format!("Operator (cast) error! Failed \
-                                to cast ObjectBox {} to {} because: {}", obj_num, t, &invalid_cast_error(t))),
-                        }
-                    }else{
-                        Err(should_never_get_here_for_func("cast_stuff"))
-                    }
-                },
-                (true, false) => Err(bad_stringbox_for_casting_error(bn)),
-                (false, true) => Err(bad_box_error("cast", "ObjectBox", "NA", obj_num, usize::MAX, false)),
-                (false, false) => Err(bad_box_error("cast", "ObjectBox", "StringBox", obj_num, bn, true)),
-            }
-        },
+            _ => Err(should_never_get_here_for_func("cast_stuff")),
+        };
 
-        (Some(a), Some(b)) => {
-            Err(format!("Operator (cast) error! Second to top \
-                of stack must be of type Value and a castable type, \
-                and top of stack must be of type StringBox! \
-                Attempted values: {} and {}", &a, &b))
-        },
-        (None, Some(_)) => Err(needs_n_args_only_n_provided("cast", "Two", "only one")),
-        (None, None) => Err(needs_n_args_only_n_provided("cast", "Two", "none")),
+        push_val_or_err(res, s)
+    }else{
+        let res = match s.pop(){
+            Some(v) => {
+                let buff_ref: &str = &s.buffer;
+                //Gross and unsafe but the buffer isn't changed so no clobbering risks.
+                unsafe {
+                    general_cast_action(&mut *(s as *const State as *mut State), v, buff_ref)
+                }
+            },
+            None => Err(needs_n_args_only_n_provided("cast", "One", "none"))
+        };
 
-        _ => Err(should_never_get_here_for_func("cast_stuff")),
-    };
+        push_val_or_err(res, s)
+    }
 
-    push_val_or_err(res, s)
 }
 
 //Creates an error string that indicates a wrong 
