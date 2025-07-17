@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.10.4
+//Version: 0.10.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -287,6 +287,7 @@ enum ASTNode{
     BoxOp(String),
     AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
     Defer(Rc<ASTNode>),
+    CastTo(String),
 }
 
 impl Default for ASTNode{
@@ -313,6 +314,7 @@ impl fmt::Display for ASTNode{
             ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
             ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
             ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
+            ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
         }
     }
 }
@@ -343,6 +345,7 @@ impl Clone for ASTNode{
             ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
             ASTNode::AttErr{attempt: att, err: e} => ASTNode::AttErr{attempt: att.clone(), err: e.clone()},
             ASTNode::Defer(bod) => ASTNode::Defer(Rc::clone(bod)),
+            ASTNode::CastTo(data_type) => ASTNode::CastTo(data_type.clone())
         }
     }
 }
@@ -4694,6 +4697,23 @@ fn make_ast_prime(
                     ); 
                 already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
                 make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+            },
+            //castTo case
+            Token::Word(ref cmd) if cmd.0 == "castTo" => {
+                let (mut cast_data, tokens_prime, token_index_prime, _) = 
+                    make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, 
+                        curr_loc_num, vec![Token::Word((";".to_string(), 0))]);
+                if cast_data.len() >= 1{
+                    let data_type = match std::mem::take(&mut cast_data[0]){
+                        ASTNode::Terminal(Token::Word(d)) => d.0,
+                        _ => panic!("Malformed castTo!")
+                    };
+
+                    already_parsed.push(ASTNode::CastTo(data_type));
+                    make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+                }else{
+                    panic!("Malformed castTo command! No data type given!")
+                }
             },
             _ => {
                 let mut toks = tokens;
