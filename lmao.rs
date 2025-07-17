@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.10.6
+//Version: 0.10.7
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5353,6 +5353,20 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                             deferred = Some(vec![Rc::clone(body)]);
                         }
                     },
+                    ASTNode::CastTo(data_type) => {
+                        //58 is cast operator. 
+                        // I know, I know, hardcoding gross, but it's fast!
+                        let cast_index: usize = 58;
+
+                        state.buffer.push_str(&data_type);
+
+                        match state.ops[cast_index](state){
+                            Ok(_) => (),
+                            Err(e) => return error_and_remove_frame(state, e),
+                        }
+
+                        state.buffer.clear();
+                    }
                     _ => {},
                 }
             }
