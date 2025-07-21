@@ -2961,8 +2961,10 @@ macro_rules! impl_to_float {
 
 impl_to_float!(isize, usize, i8, i16, i32, i64, i128, u8, u16, u32, u64, u128, f32, f64);
 
-fn numeric_error_cast_string(v: Value, t: &str, r: &str) -> String{
-    format!("Operator (cast) error! Failed to cast {} to type {} because: {}", v, t, r)
+fn numeric_error_cast_string(v: Value, t: &str, r: &str, buff_len: usize) -> String{
+    let ops = ["cast" , "castTo"];
+    let op_type = ops[(buff_len > 0) as usize];
+    format!("Operator ({}) error! Failed to cast {} to type {} because: {}", op_type, v, t, r)
 }
 
 fn invalid_cast_error(t: &str) -> String{
@@ -3105,10 +3107,6 @@ where
 
 }
 
-fn bad_stringbox_for_casting_error(box_num: usize) -> String{
-    bad_box_error("cast", "StringBox", "NA", box_num, usize::MAX, false)
-}
-
 //Function with a generic that carries out the casting action 
 // for all numeric data types to make the main cast function more compact.
 fn integer_cast_action<T>(s: &mut State, v: Value, v_inside: T, c: &str) -> Result<Value, String>
@@ -3148,16 +3146,20 @@ where
             Ok(Value::StringBox(new_bn))
         },
         Ok(SuperValue::Reg(v)) => Ok(v),
-        Err(reason) => Err(numeric_error_cast_string(v, c, &reason)),
+        Err(reason) => Err(numeric_error_cast_string(v, c, &reason, s.buffer.len())), 
         _ => Err(should_never_get_here_for_func("integer_cast_action")),
     }
 }
 
-fn string_cast_error(bn: usize, str_contents: &str, t: &str, reason: &str) -> String{
-    format!("Operator (cast) error! Failed to cast \
-        StringBox {} (\"{}\") to type {} because: {}", bn, str_contents, t, reason)
+//Generates String for error involving casting Strings to stuff.
+fn string_cast_error(bn: usize, str_contents: &str, t: &str, reason: &str, buff_len: usize) -> String{
+    let ops = ["cast", "castTo"];
+    let op_type = ops[(buff_len > 0) as usize];
+    format!("Operator ({}) error! Failed to cast \
+        StringBox {} (\"{}\") to type {} because: {}", op_type, bn, str_contents, t, reason)
 }
 
+//Performs the actual casting for both cast and castTo
 fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String>{
     let res = match v{
         Value::IntSize(n) => {
@@ -3225,7 +3227,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                     Ok(Value::StringBox(new_bn))
                 },
 
-                _ => Err(numeric_error_cast_string(Value::Float32(n), c, &(invalid_cast_error(c)))),            
+                _ => Err(numeric_error_cast_string(Value::Float32(n), c, &(invalid_cast_error(c)), s.buffer.len())),
             }
         },
 
@@ -3255,7 +3257,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                     Ok(Value::StringBox(new_bn))
                 },
 
-                _ => Err(numeric_error_cast_string(Value::Float64(n), c, &(invalid_cast_error(c)))),            
+                _ => Err(numeric_error_cast_string(Value::Float64(n), c, &(invalid_cast_error(c)), s.buffer.len())),
             }
         },
 
@@ -3281,7 +3283,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                     Ok(Value::StringBox(new_bn))
                 },
 
-                _ => Err(numeric_error_cast_string(Value::Char(ch), c, &(invalid_cast_error(c)))),
+                _ => Err(numeric_error_cast_string(Value::Char(ch), c, &(invalid_cast_error(c)), s.buffer.len())),
             }
 
         },
@@ -3308,7 +3310,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                     Ok(Value::StringBox(new_bn))
                 },
 
-                _ => Err(numeric_error_cast_string(Value::Boolean(b), c, &(invalid_cast_error(c)))),
+                _ => Err(numeric_error_cast_string(Value::Boolean(b), c, &(invalid_cast_error(c)), s.buffer.len())),
             }
 
         },
@@ -3320,88 +3322,88 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                         "isize" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::IntSize(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "usize" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::UIntSize(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         
                         "i8" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::Int8(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "i16" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::Int16(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "i32" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::Int32(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "i64" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::Int64(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "i128" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::Int128(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
 
                         "u8" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::UInt8(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "u16" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::UInt16(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "u32" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::UInt32(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "u64" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::UInt64(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "u128" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::UInt128(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
 
                         "f32" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::Float32(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
                         "f64" => {
                             match (*st).parse(){
                                 Ok(casted) => Ok(Value::Float64(casted)),
-                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string())),
+                                Err(e) => Err(string_cast_error(string_num, st, c, &e.to_string(), s.buffer.len())),
                             }
                         },
 
@@ -3412,7 +3414,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                                 Ok(Value::Boolean(false))
                             }else{
                                 Err(string_cast_error(string_num, st, c, 
-                                    &String::from("provided string is not a valid Boolean")))
+                                    &String::from("provided string is not a valid Boolean"), s.buffer.len()))
                             }
                         },
 
@@ -3430,13 +3432,15 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                             Ok(Value::ListBox(ls_bn))
                         },
 
-                        _ => Err(string_cast_error(string_num, st, c, &invalid_cast_error(c))),
+                        _ => Err(string_cast_error(string_num, st, c, &invalid_cast_error(c), s.buffer.len())),
                     }
                 }else{
                     Err(should_never_get_here_for_func("general_cast_action"))
                 }
             }else{
-                Err(bad_stringbox_for_casting_error(string_num))
+                let ops = ["cast", "castTo"];
+                let op_type = ops[(s.buffer.len() > 0) as usize];
+                Err(bad_box_error(op_type, "StringBox", "NA", string_num, usize::MAX, false))
             }
         },
 
@@ -3450,11 +3454,17 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                         let new_bn = s.insert_to_heap(HeapValue::String(ls_str[5..].to_string()));
                         Ok(Value::StringBox(new_bn))
                     },
-                    _ => Err(format!("Operator (cast) error! Failed \
-                        to cast ListBox {} to {} because: {}", ls_num, c, &invalid_cast_error(c))),
+                    _ => {
+                        let ops = ["cast", "castTo"];
+                        let op_type = ops[(s.buffer.len() > 0) as usize];
+                        Err(format!("Operator ({}) error! Failed \
+                        to cast ListBox {} to {} because: {}", op_type, ls_num, c, &invalid_cast_error(c)))
+                    },                 
                 }
             }else{
-                Err(bad_box_error("cast", "ListBox", "NA", ls_num, usize::MAX, false))
+                let ops = ["cast", "castTo"];
+                let op_type = ops[(s.buffer.len() > 0) as usize];
+                Err(bad_box_error(op_type, "ListBox", "NA", ls_num, usize::MAX, false))
             }
         },
 
@@ -3468,16 +3478,25 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                         let new_bn = s.insert_to_heap(HeapValue::String(obj_str[7..].to_string()));
                         Ok(Value::StringBox(new_bn))
                     },
-                    _ => Err(format!("Operator (cast) error! Failed \
-                        to cast ObjectBox {} to {} because: {}", obj_num, c, &invalid_cast_error(c))),
+                    _ => {
+                        let ops = ["cast", "castTo"];
+                        let op_type = ops[(s.buffer.len() > 0) as usize];
+                        Err(format!("Operator ({}) error! Failed \
+                        to cast ObjectBox {} to {} because: {}", op_type, obj_num, c, &invalid_cast_error(c)))
+                    },  
                 }
             }else{
-                Err(bad_box_error("cast", "ObjectBox", "NA", obj_num, usize::MAX, false))
+                let ops = ["cast", "castTo"];
+                let op_type = ops[(s.buffer.len() > 0) as usize];
+                Err(bad_box_error(op_type, "ObjectBox", "NA", obj_num, usize::MAX, false))
             }
         },
 
-        _ => Err(format!("Operator (cast) error! Value being casted must be a castable type! Attempted value: {}", v))
-
+        _ => {
+            let ops = ["cast", "castTo"];
+            let op_type = ops[(s.buffer.len() > 0) as usize];
+            Err(format!("Operator ({}) error! Value being casted must be a castable type! Attempted value: {}", op_type, v))
+        }, 
     };
 
     res
