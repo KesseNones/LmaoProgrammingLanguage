@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.10.7
+//Version: 0.10.8
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -3490,6 +3490,21 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
                 let op_type = ops[(s.buffer.len() > 0) as usize];
                 Err(bad_box_error(op_type, "ObjectBox", "NA", obj_num, usize::MAX, false))
             }
+        },
+
+        Value::NULLBox => {
+           match c {
+                "String" => {
+                    let new_bn = s.insert_to_heap(HeapValue::String("NULLBox".to_string()));
+                    Ok(Value::StringBox(new_bn))
+                },
+                _ => {
+                    let ops = ["cast", "castTo"];
+                    let op_type = ops[(s.buffer.len() > 0) as usize];
+                    Err(format!("Operator ({}) error! Failed \
+                    to cast NULLBox to {} because: {}", op_type, c, &invalid_cast_error(c)))
+                },
+           }     
         },
 
         _ => {
