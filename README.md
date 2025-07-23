@@ -6137,6 +6137,29 @@ Listed below are all the operators of this category:
 		--------------------------------
 		```
 
+- `timeWait`
+    - Performance: O(1)
+    - Given a stack with a floating point value on top, consumes the value and waits for a duration indicated by the value in seconds.
+    - General form: given stack `t` where `t` is type `f32` or `f64`, applying `timeWait` results in stack ` `, with the program waiting `t` seconds.
+    - Example Program:
+   
+        ```
+        //A basic repetitive program that showcases delays well.
+        timeUnixNow castTo String ; printLine
+        0.3 timeWait
+        timeUnixNow castTo String ; printLine
+
+        0.6f64 timeWait
+        timeUnixNow castTo String ; printLine
+        ``` 
+    - Program Output:
+    
+        ```
+        1753313145.6095614
+        1753313145.9096515
+        1753313146.5097575
+        ```
+
 ## <a name = "fancy-ops"></a> 4 Fancy Operators
 ### [**Return to Table of Contents**](#toc)
 Fancy operators are the backbone of more advanced programs in Lmao. 
