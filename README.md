@@ -36,6 +36,7 @@ This documentation may be "complete" but still requires proofreading and revisio
 	- [4.6 Local Variable Fancy Operator](#loc-fan-ops)
 	- [4.7 Attempt on Error Fancy Operator](#att-err-op)
 	- [4.8 Defer Fancy Operator](#defer-fan-op)
+    - [4.9 Cast to Fancy Operator](#cast-fan-op)
 - [5 Running Lmao](#running)
 	- [5.1 Running Lmao Interpreter](#running-interp)
 	- [5.2 Running Lmao Compiler](#running-compile)
@@ -7538,6 +7539,43 @@ END HEAP PRINT
 ```
 
 Given this example and how Defer works in general, can you refactor previous code examples to utilize Defer for more effective memory cleanup? 
+
+### <a name = "cast-fan-op"></a>4.9 Cast to Fancy Operator
+#### [**Return to Table of Contents**](#toc)
+The `castTo` fancy operator behaves the same as the `cast` operator but makes it so you don't have to allocate a String on the heap for the data type you want to cast.
+
+The general syntax for `castTo` is this:
+```
+castTo [DATA_TYPE] ; 
+```
+Where `[DATA_TYPE]` is a data type you want to cast the top of the stack to.
+If `[DATA_TYPE]` is invalid, an error will be thrown.
+If `[DATA_TYPE]` is valid, the top of the stack will be consumed and an attempt will be made
+to cast the value to `[DATA_TYPE]`. If it's a success, the casted value is pushed, if not, an error is thrown. 
+
+**BE AWARE THAT THE OUTPUT OF THIS PROGRAM MIGHT BE A BIT FLASHY SO THOSE WITH PHOTOSENSITIVITY SHOULD MAYBE BE CAREFUL**
+Example Program:
+```
+//A simple program that displays the current Unix time as an integer.
+// It's not efficient at all and runs the CPU up but it does work.
+true
+while
+    timeUnixNow
+    castTo isize ;
+    castTo String ; 
+    dup print 
+    box free ;
+
+    '\r' printChar
+
+    true
+;
+```
+
+Program Output:
+```
+1753309347
+```
 
 ## <a name = "running"></a> 5 Running Lmao
 ### [**Return to Table of Contents**](#toc)
