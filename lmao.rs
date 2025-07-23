@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.11.0
+//Version: 0.12.0
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -19,6 +19,7 @@ use fmt::Display;
 use std::io;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::{thread, time};
 
 //This enum is used to contain all the possible data types of Lmao 
 // that live everywhere but the Heap.
@@ -4118,6 +4119,29 @@ fn time_unix_now(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Causes the program to pause for a specified number of seconds.
+//Accepts either f64 or f32.
+fn time_wait(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::Float64(t)) => {
+            let seconds = t as u64;
+            let nanos: u32 = ((t - (seconds as f64)) * 1000000000f64) as u32;
+            let sleep_durr = time::Duration::new(seconds, nanos);
+            thread::sleep(sleep_durr);
+            Ok(())
+        },
+        Some(Value::Float32(t)) => {
+            let seconds = t as u64;
+            let nanos: u32 = ((t - (seconds as f32)) * 1000000000f32) as u32;
+            let sleep_durr = time::Duration::new(seconds, nanos);
+            thread::sleep(sleep_durr);
+            Ok(())
+        },
+        Some(v) => Err(format!("Operator (timeWait) error! Top of stack must be type f32 or f64! Attempted value: {}", v)),
+        None => Err(needs_n_args_only_n_provided("timeWait", "One", "none")),
+    }
+}
+
 //Creates a frame for local variables to use.
 fn create_frame(size: usize) -> Vec<(Value, bool)>{
     let mut frame: Vec<(Value, bool)> = Vec::with_capacity(size);
@@ -4173,7 +4197,7 @@ impl State{
             write_data_to_file, read_data_from_file, 
             create_file_based_on_string, delete_file_based_on_string, file_exists,
             query_type, leave_scope_if_true, throw_custom_error, 
-            get_args, is_valid_box, time_unix_now
+            get_args, is_valid_box, time_unix_now, time_wait
         ];
         
         State {
@@ -4379,7 +4403,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
         "read", "debugPrintStack", "debugPrintHeap",
         "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
         "queryType", "leaveScopeIfTrue", "throwCustomError",
-        "getArgs", "isValidBox", "timeUnixNow"
+        "getArgs", "isValidBox", "timeUnixNow", "timeWait"
     ];
     for s in unique_strs.iter(){
         ops_map.insert(s.to_string(), i);
@@ -4841,19 +4865,6 @@ fn make_ast(tokens: Vec<Token>) -> (ASTNode, usize){
     (ASTNode::Expression(make_ast_prime(Vec::new(), tokens, 0,
      &mut loc_nums, &mut curr_loc_num, Vec::new()).0), curr_loc_num)
 }
-
-//DELETE LATER
-// //The various types of nodes that are part of the Abstract Syntax Tree
-// enum ASTNode{
-//     Terminal(Token),
-//     If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
-//     While(Box<ASTNode>),
-//     Expression(Vec<ASTNode>),
-//     Function{func_cmd: String, func_name: String, func_bod: Box<ASTNode>},
-//     Variable{var_name: String, var_cmd: String},
-//     LocVar{name: String, cmd: String},
-//     BoxOp(String)
-// }
 
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
