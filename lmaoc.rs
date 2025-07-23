@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.11.0
+//Version: 0.12.0
 
 use std::collections::HashMap;
 use std::env;
@@ -1335,6 +1335,7 @@ use fmt::Display;
 use std::io;
 use std::rc::Rc;
 use std::time::{SystemTime, UNIX_EPOCH};
+use std::{thread, time};
 
 //This enum is used to contain all the possible data types of Lmao 
 // that live everywhere but the Heap.
@@ -5425,6 +5426,29 @@ fn time_unix_now(s: &mut State) -> Result<(), String>{
     }
 }
 
+//Causes the program to pause for a specified number of seconds.
+//Accepts either f64 or f32.
+fn time_wait(s: &mut State) -> Result<(), String>{
+    match s.pop(){
+        Some(Value::Float64(t)) => {
+            let seconds = t as u64;
+            let nanos: u32 = ((t - (seconds as f64)) * 1000000000f64) as u32;
+            let sleep_durr = time::Duration::new(seconds, nanos);
+            thread::sleep(sleep_durr);
+            Ok(())
+        },
+        Some(Value::Float32(t)) => {
+            let seconds = t as u64;
+            let nanos: u32 = ((t - (seconds as f32)) * 1000000000f32) as u32;
+            let sleep_durr = time::Duration::new(seconds, nanos);
+            thread::sleep(sleep_durr);
+            Ok(())
+        },
+        Some(v) => Err(format!(\"Operator (timeWait) error! Top of stack must be type f32 or f64! Attempted value: {}\", v)),
+        None => Err(needs_n_args_only_n_provided(\"timeWait\", \"One\", \"none\")),
+    }
+}
+
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
 fn variable_lack_of_args_error(var_action: &str) -> String{
@@ -5892,6 +5916,9 @@ fn program(state: &mut State) -> Result<bool, String>{
     //Pushes current Unix time.
     ops_to_funcs.insert(String::from("timeUnixNow"), String::from("time_unix_now"));
 
+    //Halts the program for n seconds.
+    ops_to_funcs.insert(String::from("timeWait"), String::from("time_wait"));
+    
     translate_ast_to_rust_code(&ast, &mut file_strings, &ops_to_funcs);
 
     let end_str = format!("
