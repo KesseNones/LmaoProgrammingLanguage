@@ -7554,6 +7554,7 @@ If `[DATA_TYPE]` is valid, the top of the stack will be consumed and an attempt 
 to cast the value to `[DATA_TYPE]`. If it's a success, the casted value is pushed, if not, an error is thrown. 
 
 **BE AWARE THAT THE OUTPUT OF THIS PROGRAM MIGHT BE A BIT FLASHY SO THOSE WITH PHOTOSENSITIVITY SHOULD MAYBE BE CAREFUL**
+
 Example Program:
 ```
 //A simple program that displays the current Unix time as an integer.
