@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.12.0
+//Version: 0.12.1
 
 use std::collections::HashMap;
 use std::env;
@@ -1262,7 +1262,10 @@ fn translate_ast_to_rust_code(
                             state.buffer.push_str(\"{}\");
                             match cast_stuff(state){{
                                 Ok(_) => (),
-                                Err(e) => return error_and_remove_frame(state, e),
+                                Err(e) => {{
+                                    state.buffer.clear();
+                                    return error_and_remove_frame(state, e)
+                                }}
                             }};
                             state.buffer.clear();
                         ", &data_type); 
