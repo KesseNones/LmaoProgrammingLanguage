@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.12.0
+//Version: 0.12.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5407,7 +5407,10 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
 
                         match state.ops[cast_index](state){
                             Ok(_) => (),
-                            Err(e) => return error_and_remove_frame(state, e),
+                            Err(e) => {
+                                state.buffer.clear(); 
+                                return error_and_remove_frame(state, e)
+                            } 
                         }
 
                         state.buffer.clear();
