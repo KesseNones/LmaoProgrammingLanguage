@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.12.1
+//Version: 0.12.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4585,6 +4585,11 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                 }
             },
 
+            //Recursive import() statement case.
+            ref t if t.starts_with("import(") && t.ends_with(")") => {
+                println!("IMPORT HAPPENS!!!") 
+            }, 
+            
             //General catch-all case mostly meant for operators.
             _ => {
                 let n: usize = *ops_map.get(&tok).unwrap_or(&0);
