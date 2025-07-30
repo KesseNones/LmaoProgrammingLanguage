@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.12.2
+//Version: 0.12.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4587,7 +4587,39 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
 
             //Recursive import() statement case.
             ref t if t.starts_with("import(") && t.ends_with(")") => {
-                println!("IMPORT HAPPENS!!!") 
+                //Grabs file string out of import statement. 
+                let import_str = "import("; 
+                let file_str = &t[(import_str.len())..(t.len() - 1)];
+                
+                let import_file_path = Path::new(file_str);
+
+                //Opens the input file to read from.
+                let mut import_file = match File::open(&import_file_path){
+                    Ok(f) => f,
+                    Err(reason) => {
+                        let import_file_name = import_file_path.display();
+                        panic!("Unable to open import \
+                            file {} for parsing because {}", import_file_name, reason) 
+                    }, 
+                };
+
+                //Reads in the code from the given file after opening it.
+                let mut import_code_str = String::new();
+                match import_file.read_to_string(&mut import_code_str){
+                    Ok(_) => {},
+                    Err(reason) => {
+                        let import_file_name = import_file_path.display();
+                        panic!("Unable to read in\
+                            import file {} because {}", import_file_name, reason) 
+                    }, 
+                }
+
+                //Pushes all tokens from recursive traversal into current lexed list.
+                let import_tokens = tokenize(&import_code_str.chars().collect());
+                for tok in lex_tokens(import_tokens).into_iter(){
+                    lexed.push(tok)    
+                }
+
             }, 
             
             //General catch-all case mostly meant for operators.
