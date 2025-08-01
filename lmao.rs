@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.12.3
+//Version: 0.12.4
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4379,60 +4379,8 @@ fn replace_literals_with_escapes(s: &str) -> String{
 //Given reference to list of seperated tokens, 
 // differentiates each one as either a value or word.
 //WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
-fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
+fn lex_tokens(tokens: Vec<String>, ops_map: &HashMap<String, usize>) -> Vec<Token>{
     let mut lexed: Vec<Token> = Vec::new();
-
-    //Creates and fills out the ops map with the operators, 
-    // ignoring the existing aliases for some of the operators.
-    let mut ops_map: HashMap<String, usize> = HashMap::new();
-    let mut i: usize = 1;
-    let unique_strs = [
-        "+", "-", "*", "/", "mod", "pow",
-        "isizeMax", "usizeMax", 
-        "i8Max", "i16Max", "i32Max", "i64Max", "i128Max",
-        "u8Max", "u16Max", "u32Max", "u64Max", "u128Max", 
-        "swap", "drop", "dropStack", "rot", "dup", "deepDup",
-        "==", "!=", ">", "<", ">=", "<=", "stringCompare", "++",
-        "and", "or", "xor", "not",
-        "push", "pop", "fpush", "fpop", "index", "length", 
-        "isEmpty", "clear", "contains", "changeItemAt",
-        "isWhitespaceChar", "isAlphaChar", "isNumChar",
-        "objAddField", "objGetField", "objMutField", "objRemField",
-        "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
-        "printLine", "readLine", "printChar", "readChar", "print", 
-        "read", "debugPrintStack", "debugPrintHeap",
-        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
-        "queryType", "leaveScopeIfTrue", "throwCustomError",
-        "getArgs", "isValidBox", "timeUnixNow", "timeWait"
-    ];
-    for s in unique_strs.iter(){
-        ops_map.insert(s.to_string(), i);
-        i += 1;
-    }
-
-    //The following inserts add all the aliases that exist for some of the operators. 
-    // The numbers given match the operation number 
-    // of the appropriate previously inserted operation.
-
-    //Alias for mod
-    ops_map.insert("%".to_string(), *(ops_map.get("mod").unwrap()));
-
-    //Alises for logical AND, OR, and NOT
-    ops_map.insert("&&".to_string(), *(ops_map.get("and").unwrap()));
-    ops_map.insert("||".to_string(), *(ops_map.get("or").unwrap()));
-    ops_map.insert("!".to_string(), *(ops_map.get("not").unwrap()));
-
-    //Aliases for push, pop, fpush, fpop, and length
-    ops_map.insert("p".to_string(), *(ops_map.get("push").unwrap()));
-    ops_map.insert("po".to_string(), *(ops_map.get("pop").unwrap()));
-    ops_map.insert("fp".to_string(), *(ops_map.get("fpush").unwrap()));
-    ops_map.insert("fpo".to_string(), *(ops_map.get("fpop").unwrap()));
-    ops_map.insert("len".to_string(), *(ops_map.get("length").unwrap()));
-
-    //Aliases for bitOr, bitAnd, and bitXor
-    ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
-    ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
-    ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
 
     for tok in tokens.into_iter(){
         match tok{
@@ -4616,7 +4564,7 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
 
                 //Pushes all tokens from recursive traversal into current lexed list.
                 let import_tokens = tokenize(&import_code_str.chars().collect());
-                for tok in lex_tokens(import_tokens).into_iter(){
+                for tok in lex_tokens(import_tokens, ops_map).into_iter(){
                     lexed.push(tok)    
                 }
 
@@ -5505,7 +5453,61 @@ fn main(){
     let file_chars: Vec<char> = file_string.chars().collect();
     let tokens = tokenize(&file_chars);
 
-    let lexed = lex_tokens(tokens);
+    //Creates and fills out the ops map with the operators, 
+    // ignoring the existing aliases for some of the operators.
+    let mut ops_map: HashMap<String, usize> = HashMap::new();
+    let mut i: usize = 1;
+    let unique_strs = [
+        "+", "-", "*", "/", "mod", "pow",
+        "isizeMax", "usizeMax", 
+        "i8Max", "i16Max", "i32Max", "i64Max", "i128Max",
+        "u8Max", "u16Max", "u32Max", "u64Max", "u128Max", 
+        "swap", "drop", "dropStack", "rot", "dup", "deepDup",
+        "==", "!=", ">", "<", ">=", "<=", "stringCompare", "++",
+        "and", "or", "xor", "not",
+        "push", "pop", "fpush", "fpop", "index", "length", 
+        "isEmpty", "clear", "contains", "changeItemAt",
+        "isWhitespaceChar", "isAlphaChar", "isNumChar",
+        "objAddField", "objGetField", "objMutField", "objRemField",
+        "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
+        "printLine", "readLine", "printChar", "readChar", "print", 
+        "read", "debugPrintStack", "debugPrintHeap",
+        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
+        "queryType", "leaveScopeIfTrue", "throwCustomError",
+        "getArgs", "isValidBox", "timeUnixNow", "timeWait"
+    ];
+    for s in unique_strs.iter(){
+        ops_map.insert(s.to_string(), i);
+        i += 1;
+    }
+
+    //The following inserts add all the aliases that exist for some of the operators. 
+    // The numbers given match the operation number 
+    // of the appropriate previously inserted operation.
+
+    //Alias for mod
+    ops_map.insert("%".to_string(), *(ops_map.get("mod").unwrap()));
+
+    //Alises for logical AND, OR, and NOT
+    ops_map.insert("&&".to_string(), *(ops_map.get("and").unwrap()));
+    ops_map.insert("||".to_string(), *(ops_map.get("or").unwrap()));
+    ops_map.insert("!".to_string(), *(ops_map.get("not").unwrap()));
+
+    //Aliases for push, pop, fpush, fpop, and length
+    ops_map.insert("p".to_string(), *(ops_map.get("push").unwrap()));
+    ops_map.insert("po".to_string(), *(ops_map.get("pop").unwrap()));
+    ops_map.insert("fp".to_string(), *(ops_map.get("fpush").unwrap()));
+    ops_map.insert("fpo".to_string(), *(ops_map.get("fpop").unwrap()));
+    ops_map.insert("len".to_string(), *(ops_map.get("length").unwrap()));
+
+    //Aliases for bitOr, bitAnd, and bitXor
+    ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
+    ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
+    ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
+    
+    let lexed = lex_tokens(tokens, &ops_map);
+
+    std::mem::drop(ops_map);
 
     let (ast, num_unique_loc_vars) = make_ast(lexed);
 
