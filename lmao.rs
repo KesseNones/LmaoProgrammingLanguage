@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.12.5
+//Version: 0.13.0
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4379,7 +4379,11 @@ fn replace_literals_with_escapes(s: &str) -> String{
 //Given reference to list of seperated tokens, 
 // differentiates each one as either a value or word.
 //WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
-fn lex_tokens(tokens: Vec<String>, ops_map: &HashMap<String, usize>) -> Vec<Token>{
+fn lex_tokens(
+    tokens: Vec<String>, 
+    ops_map: &HashMap<String, usize>, 
+    imported: &mut HashMap<String, ()>) -> Vec<Token>
+{
     let mut lexed: Vec<Token> = Vec::new();
 
     for tok in tokens.into_iter(){
@@ -4541,31 +4545,38 @@ fn lex_tokens(tokens: Vec<String>, ops_map: &HashMap<String, usize>) -> Vec<Toke
                 
                 let import_file_path = Path::new(file_str);
 
-                //Opens the input file to read from.
-                let mut import_file = match File::open(&import_file_path){
-                    Ok(f) => f,
-                    Err(reason) => {
-                        let import_file_name = import_file_path.display();
-                        panic!("Unable to open import \
-                            file {} for parsing because {}", import_file_name, reason) 
-                    }, 
-                };
+                //If file not already imported, inserts into file hashmap.
+                // If it is, then nothing happens.
+                if !imported.contains_key(file_str){
+                    imported.insert(file_str.to_string(), ());
 
-                //Reads in the code from the given file after opening it.
-                let mut import_code_str = String::new();
-                match import_file.read_to_string(&mut import_code_str){
-                    Ok(_) => {},
-                    Err(reason) => {
-                        let import_file_name = import_file_path.display();
-                        panic!("Unable to read in\
-                            import file {} because {}", import_file_name, reason) 
-                    }, 
-                }
+                    //Opens the input file to read from.
+                    let mut import_file = match File::open(&import_file_path){
+                        Ok(f) => f,
+                        Err(reason) => {
+                            let import_file_name = import_file_path.display();
+                            panic!("Unable to open import \
+                                file {} for parsing because {}", import_file_name, reason) 
+                        }, 
+                    };
 
-                //Pushes all tokens from recursive traversal into current lexed list.
-                let import_tokens = tokenize(import_code_str.chars().collect());
-                for tok in lex_tokens(import_tokens, ops_map).into_iter(){
-                    lexed.push(tok)    
+                    //Reads in the code from the given file after opening it.
+                    let mut import_code_str = String::new();
+                    match import_file.read_to_string(&mut import_code_str){
+                        Ok(_) => {},
+                        Err(reason) => {
+                            let import_file_name = import_file_path.display();
+                            panic!("Unable to read in\
+                                import file {} because {}", import_file_name, reason) 
+                        }, 
+                    }
+
+                    //Pushes all tokens from recursive traversal into current lexed list.
+                    let import_tokens = tokenize(import_code_str.chars().collect());
+                    for tok in lex_tokens(import_tokens, ops_map, imported).into_iter(){
+                        lexed.push(tok)    
+                    }
+
                 }
 
             }, 
@@ -5503,9 +5514,17 @@ fn main(){
     ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
     ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
     ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
-    
-    let lexed = lex_tokens(tokens, &ops_map);
+  
+    //Constructs means of checking for duplicate imports.
+    let mut imported_files: HashMap<String, ()> = HashMap::new();
+    if argc > 1{
+        imported_files.insert(argv[1].clone(), ());
+    }
 
+    let lexed = lex_tokens(tokens, &ops_map, &mut imported_files);
+
+    //Cleanup of now useless hashmaps.
+    std::mem::drop(imported_files);
     std::mem::drop(ops_map);
 
     let (ast, num_unique_loc_vars) = make_ast(lexed);
