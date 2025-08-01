@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //lmaoc the Lmao Compiler
-//Version: 0.12.1
+//Version: 0.13.0
 
 use std::collections::HashMap;
 use std::env;
@@ -341,7 +341,7 @@ impl Clone for ASTNode{
 }
 
 //Tokenizes list of chars into list of strings.
-fn tokenize(chars: &Vec<char>) -> Vec<String>{
+fn tokenize(chars: Vec<char>) -> Vec<String>{
     let mut tokens: Vec<String> = Vec::new();
     let mut curr_token: Vec<char> = Vec::new();
 
@@ -458,60 +458,12 @@ fn replace_literals_with_escapes(s: &str) -> String{
 //Given reference to list of seperated tokens, 
 // differentiates each one as either a value or word.
 //WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
-fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
+fn lex_tokens(
+    tokens: Vec<String>, 
+    ops_map: &HashMap<String, usize>, 
+    imported: &mut HashMap<String, ()>) -> Vec<Token>
+{
     let mut lexed: Vec<Token> = Vec::new();
-
-    //Creates and fills out the ops map with the operators, 
-    // ignoring the existing aliases for some of the operators.
-    let mut ops_map: HashMap<String, usize> = HashMap::new();
-    let mut i: usize = 1;
-    let unique_strs = [
-        "+", "-", "*", "/", "mod", "pow",
-        "isizeMax", "usizeMax", 
-        "i8Max", "i16Max", "i32Max", "i64Max", "i128Max",
-        "u8Max", "u16Max", "u32Max", "u64Max", "u128Max", 
-        "swap", "drop", "dropStack", "rot", "dup", "deepDup",
-        "==", "!=", ">", "<", ">=", "<=", "stringCompare", "++",
-        "and", "or", "xor", "not",
-        "push", "pop", "fpush", "fpop", "index", "length", 
-        "isEmpty", "clear", "contains", "changeItemAt",
-        "isWhitespaceChar", "isAlphaChar", "isNumChar",
-        "objAddField", "objGetField", "objMutField", "objRemField",
-        "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
-        "printLine", "readLine", "printChar", "readChar", "print", 
-        "read", "debugPrintStack", "debugPrintHeap",
-        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
-        "queryType", "leaveScopeIfTrue", "throwCustomError",
-        "getArgs", "isValidBox", "timeUnixNow"
-    ];
-    for s in unique_strs.iter(){
-        ops_map.insert(s.to_string(), i);
-        i += 1;
-    }
-
-    //The following inserts add all the aliases that exist for some of the operators. 
-    // The numbers given match the operation number 
-    // of the appropriate previously inserted operation.
-
-    //Alias for mod
-    ops_map.insert("%".to_string(), *(ops_map.get("mod").unwrap()));
-
-    //Alises for logical AND, OR, and NOT
-    ops_map.insert("&&".to_string(), *(ops_map.get("and").unwrap()));
-    ops_map.insert("||".to_string(), *(ops_map.get("or").unwrap()));
-    ops_map.insert("!".to_string(), *(ops_map.get("not").unwrap()));
-
-    //Aliases for push, pop, fpush, fpop, and length
-    ops_map.insert("p".to_string(), *(ops_map.get("push").unwrap()));
-    ops_map.insert("po".to_string(), *(ops_map.get("pop").unwrap()));
-    ops_map.insert("fp".to_string(), *(ops_map.get("fpush").unwrap()));
-    ops_map.insert("fpo".to_string(), *(ops_map.get("fpop").unwrap()));
-    ops_map.insert("len".to_string(), *(ops_map.get("length").unwrap()));
-
-    //Aliases for bitOr, bitAnd, and bitXor
-    ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
-    ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
-    ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
 
     for tok in tokens.into_iter(){
         match tok{
@@ -664,6 +616,50 @@ fn lex_tokens(tokens: Vec<String>) -> Vec<Token>{
                 }
             },
 
+            //Recursive import() statement case.
+            ref t if t.starts_with("import(") && t.ends_with(")") => {
+                //Grabs file string out of import statement. 
+                let import_str = "import("; 
+                let file_str = &t[(import_str.len())..(t.len() - 1)];
+                
+                let import_file_path = Path::new(file_str);
+
+                //If file not already imported, inserts into file hashmap.
+                // If it is, then nothing happens.
+                if !imported.contains_key(file_str){
+                    imported.insert(file_str.to_string(), ());
+
+                    //Opens the input file to read from.
+                    let mut import_file = match File::open(&import_file_path){
+                        Ok(f) => f,
+                        Err(reason) => {
+                            let import_file_name = import_file_path.display();
+                            panic!("Unable to open import \
+                                file {} for parsing because {}", import_file_name, reason) 
+                        }, 
+                    };
+
+                    //Reads in the code from the given file after opening it.
+                    let mut import_code_str = String::new();
+                    match import_file.read_to_string(&mut import_code_str){
+                        Ok(_) => {},
+                        Err(reason) => {
+                            let import_file_name = import_file_path.display();
+                            panic!("Unable to read in\
+                                import file {} because {}", import_file_name, reason) 
+                        }, 
+                    }
+
+                    //Pushes all tokens from recursive traversal into current lexed list.
+                    let import_tokens = tokenize(import_code_str.chars().collect());
+                    for tok in lex_tokens(import_tokens, ops_map, imported).into_iter(){
+                        lexed.push(tok)    
+                    }
+
+                }
+
+            }, 
+            
             //General catch-all case mostly meant for operators.
             _ => {
                 let n: usize = *ops_map.get(&tok).unwrap_or(&0);
@@ -1311,11 +1307,67 @@ fn main(){
     }
 
     println!("Tokenizing file String");
-    let file_chars: Vec<char> = file_string.chars().collect();
-    let tokens = tokenize(&file_chars);
+    let tokens = tokenize(file_string.chars().collect());
 
     println!("Lexing file tokens");
-    let lexed = lex_tokens(tokens);
+    //Creates and fills out the ops map with the operators, 
+    // ignoring the existing aliases for some of the operators.
+    let mut ops_map: HashMap<String, usize> = HashMap::new();
+    let mut i: usize = 1;
+    let unique_strs = [
+        "+", "-", "*", "/", "mod", "pow",
+        "isizeMax", "usizeMax", 
+        "i8Max", "i16Max", "i32Max", "i64Max", "i128Max",
+        "u8Max", "u16Max", "u32Max", "u64Max", "u128Max", 
+        "swap", "drop", "dropStack", "rot", "dup", "deepDup",
+        "==", "!=", ">", "<", ">=", "<=", "stringCompare", "++",
+        "and", "or", "xor", "not",
+        "push", "pop", "fpush", "fpop", "index", "length", 
+        "isEmpty", "clear", "contains", "changeItemAt",
+        "isWhitespaceChar", "isAlphaChar", "isNumChar",
+        "objAddField", "objGetField", "objMutField", "objRemField",
+        "bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
+        "printLine", "readLine", "printChar", "readChar", "print", 
+        "read", "debugPrintStack", "debugPrintHeap",
+        "fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
+        "queryType", "leaveScopeIfTrue", "throwCustomError",
+        "getArgs", "isValidBox", "timeUnixNow", "timeWait"
+    ];
+    for s in unique_strs.iter(){
+        ops_map.insert(s.to_string(), i);
+        i += 1;
+    }
+
+    //The following inserts add all the aliases that exist for some of the operators. 
+    // The numbers given match the operation number 
+    // of the appropriate previously inserted operation.
+
+    //Alias for mod
+    ops_map.insert("%".to_string(), *(ops_map.get("mod").unwrap()));
+
+    //Alises for logical AND, OR, and NOT
+    ops_map.insert("&&".to_string(), *(ops_map.get("and").unwrap()));
+    ops_map.insert("||".to_string(), *(ops_map.get("or").unwrap()));
+    ops_map.insert("!".to_string(), *(ops_map.get("not").unwrap()));
+
+    //Aliases for push, pop, fpush, fpop, and length
+    ops_map.insert("p".to_string(), *(ops_map.get("push").unwrap()));
+    ops_map.insert("po".to_string(), *(ops_map.get("pop").unwrap()));
+    ops_map.insert("fp".to_string(), *(ops_map.get("fpush").unwrap()));
+    ops_map.insert("fpo".to_string(), *(ops_map.get("fpop").unwrap()));
+    ops_map.insert("len".to_string(), *(ops_map.get("length").unwrap()));
+
+    //Aliases for bitOr, bitAnd, and bitXor
+    ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
+    ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
+    ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
+  
+    //Constructs means of checking for duplicate imports.
+    let mut imported_files: HashMap<String, ()> = HashMap::new();
+    imported_files.insert(argv[1].clone(), ());
+
+    //Lexes tokens.
+    let lexed = lex_tokens(tokens, &ops_map, &mut imported_files);
 
     println!("Building Abstract Syntax Tree");
     let (ast, num_unique_var_names) = make_ast(lexed);
