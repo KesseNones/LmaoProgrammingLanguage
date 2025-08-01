@@ -37,10 +37,12 @@ This documentation may be "complete" but still requires proofreading and revisio
 	- [4.7 Attempt on Error Fancy Operator](#att-err-op)
 	- [4.8 Defer Fancy Operator](#defer-fan-op)
     - [4.9 Cast to Fancy Operator](#cast-fan-op)
-- [5 Running Lmao](#running)
-	- [5.1 Running Lmao Interpreter](#running-interp)
-	- [5.2 Running Lmao Compiler](#running-compile)
-- [6 Conclusion](#conclusion)
+- [5 Decorators](#decs)
+    - [5.1 The Import Decorator](#imp-dec)
+- [6 Running Lmao](#running)
+	- [6.1 Running Lmao Interpreter](#running-interp)
+	- [6.2 Running Lmao Compiler](#running-compile)
+- [7 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
 
@@ -7601,7 +7603,104 @@ Program Output:
 1753309347
 ```
 
-## <a name = "running"></a> 5 Running Lmao
+## <a name = "decs"></a> 5 Decorators 
+### [**Return to Table of Contents**](#toc)
+Decorators are the odd outsiders of Lmao, manipulating the reality of the program before compilation even occurs or before the AST is even built. Decorators are like macros in C and can be used to do some neat pre-processing actions.
+
+### <a name = "imp-dec"></a> 5.1 Import Decorator
+#### [**Return to Table of Contents**](#toc)
+The `import()` decorator is used to import code from other files, acting much like import in Python or include in C. 
+
+The general syntax for import is this:
+```
+import(path/to/file.lmao)
+```
+Where `path/to/file.lmao` is a code file to import to a given program to run.
+
+Under the hood, the given file's code is copy-pasted into the program file before the program
+runs or is compiled, allowing for things like libraries to exist. Light checking also exists to prevent the user from importing the program file into itself or importing the same file more than once. This is also recursive so imports of imported files are covered and so on.
+
+Example Current Directory:
+```
+drwxr-xr-x  2 janJesi users     100 Jul 31 22:58 .
+drwxr-xr-x 49 janJesi users    1340 Jul 31 22:59 ..
+-rw-r--r--  1 janJesi users     414 Jul 31 22:58 foo.lmao
+-rwxr-xr-x  1 janJesi users 1353368 Jul 31 21:34 lmao
+-rw-r--r--  1 janJesi users     700 Jul 31 22:51 rand.lmao
+```
+
+`rand.lmao`:
+```
+//Useful in random number generation.
+1664525 var mak mul ; 
+1013904223 var mak add ;
+//This modulo value sets the random number in a range from 0 to 2^32.
+2f32 32f32 pow "isize" cast var mak modulo ; 
+//Initial seed set by current Unix time, ensuring high randomness!
+//Cast to integer for type matching.
+timeUnixNow "isize" cast var mak seed ;
+
+//Simple linear congruential generator function 
+// to generate pseudorandom values, updating the seed each time.
+func def lcg
+    //Calculates random number, the basis of the new seed.
+    var get seed ;
+    var get mul ; *
+    var get add ; +
+    var get modulo ; mod
+
+    //Updates seed and leaves copy on stack as return.
+    dup var mut seed ; 
+;
+```
+
+`foo.lmao`:
+```
+import(rand.lmao)
+
+//Prints 10 random numbers using rand.lmao's lcg function.
+func def print10Random 
+    0 loc mak i ;
+    10 loc mak max ;
+
+    loc get i ;
+    loc get max ;
+    <
+    while
+        func call lcg ; 
+        castTo String ;
+        dup printLine box free ;
+
+        loc get i ; 
+        1 +
+        dup
+        loc mut i ;
+        loc get max ; 
+        <
+    ;
+     
+;
+
+func call print10Random ;
+```
+
+`foo.lmao` output
+```
+132141035
+3499992142
+2944753493
+2575149232
+2453054543
+2053358946
+2058814809
+3918311140
+981904627
+3253308854
+```
+
+`foo.lmao` was able to use `rand.lmao` as a library to provide random values for it to then print. `rand.lmao` could then go on to be used in many other programs, making Lmao much more modular than before.
+
+## <a name = "running"></a> 6 Running Lmao
 ### [**Return to Table of Contents**](#toc)
 Getting Lmao working on most computers is a pretty simple matter. The steps below should work fine on Linux, Mac, and even Windows, though the last one has different command syntax.
 
@@ -7619,7 +7718,7 @@ Here's how to get Lmao working:
 
 5. With both of these programs compiled, they can be used to run or compile Lmao programs.
 
-### <a name = "running-interp"></a>5.1 Running Lmao Interpreter
+### <a name = "running-interp"></a>6.1 Running Lmao Interpreter
 #### [**Return to Table of Contents**](#toc)
 Now that the Lmao interpreter, known as the simple executable `lmao`, it's possible to run Lmao programs!
 The syntax detailed below will be different on Windows most likely but not that different.
@@ -7733,7 +7832,7 @@ This is code entirely in the terminal!!!
 While this is a very limited editor, it does allow for code to come into existence without any pre-requisite files. 
 In theory, you could create a huge program this way, though it's not the most enjoyable experience.
 
-### <a name = "running-compile"></a>5.2 Running Lmao Compiler
+### <a name = "running-compile"></a>6.2 Running Lmao Compiler
 #### [**Return to Table of Contents**](#toc)
 The compiler is a powerful tool in Lmao. It allows for `.lmao` files to be directly transformed into executable files that can be run independently of the interpreter!
 
@@ -7796,6 +7895,6 @@ As can be seen, `helloArgs` functions the same way as `helloArgs.lmao` except th
 
 One may ask why anyone would want to compile Lmao programs. The main answer is speed. When compiling a Lmao program into machine code, the speed boost allows it to surpass Python in some cases! Also, it's handy being able to build a Lmao program and have it become its own stand-alone executable that doesn't need the interpreter, making it more portable.
 
-## <a name = "conclusion"></a> 6 Conclusion 
+## <a name = "conclusion"></a> 7 Conclusion 
 ### [**Return to Table of Contents**](#toc)
 Lmao is quite the neat programming language. From its usage of a stack for operands to its static typing, Lmao has many practical features included. In time, more features will come, including optimizations to make Lmao even faster. It's been very fun making all this documentation describing how Lmao works and all its features. Beyond docs, it's also been fun building this language from the ground-up, watching as more features come into the fray. In time, I hope to even build a bootstrapped compiler, allowing Lmao a degree of independence from Rust, though that will be tricky to pull off. I hope you have as much fun messing around with this language as I have! 
