@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.12.4
+//Version: 0.12.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4262,7 +4262,7 @@ impl State{
 }
 
 //Tokenizes list of chars into list of strings.
-fn tokenize(chars: &Vec<char>) -> Vec<String>{
+fn tokenize(chars: Vec<char>) -> Vec<String>{
     let mut tokens: Vec<String> = Vec::new();
     let mut curr_token: Vec<char> = Vec::new();
 
@@ -4563,7 +4563,7 @@ fn lex_tokens(tokens: Vec<String>, ops_map: &HashMap<String, usize>) -> Vec<Toke
                 }
 
                 //Pushes all tokens from recursive traversal into current lexed list.
-                let import_tokens = tokenize(&import_code_str.chars().collect());
+                let import_tokens = tokenize(import_code_str.chars().collect());
                 for tok in lex_tokens(import_tokens, ops_map).into_iter(){
                     lexed.push(tok)    
                 }
@@ -5450,9 +5450,8 @@ fn main(){
         println!("\n{}\nProgram result:\n", sep_str);
     }
 
-    let file_chars: Vec<char> = file_string.chars().collect();
-    let tokens = tokenize(&file_chars);
-
+    let tokens = tokenize(file_string.chars().collect());
+    
     //Creates and fills out the ops map with the operators, 
     // ignoring the existing aliases for some of the operators.
     let mut ops_map: HashMap<String, usize> = HashMap::new();
