@@ -249,6 +249,9 @@ contexts:
     - match: '\bfile(Write|Read|Create|Remove|Exists)\b'
       scope: keyword.operator.lmao
 
+    - match: '\btime(UnixNow|Wait)\b'
+      scope: keyword.operator.lmao
+
     #Getting args.
     - match: '\bgetArgs\b'
       scope: keyword.operator.lmao
