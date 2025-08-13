@@ -1,0 +1,14 @@
+highlight LmaoComment ctermfg=DarkGray 
+highlight LmaoFunction ctermfg=blue 
+highlight LmaoVar ctermfg=darkred
+highlight LmaoLocVar ctermfg=red
+highlight LmaoBox ctermfg=cyan
+highlight LmaoString ctermfg=darkgreen
+highlight LmaoChar ctermfg=green
+highlight LmaoBool ctermfg=magenta
+highlight LmaoLsObj ctermfg=lightgreen
+highlight LmaoControlKeys ctermfg=darkmagenta
+highlight LmaoNumbers ctermfg=yellow
+highlight LmaoOperators ctermfg=lightyellow
+highlight LmaoCastTo ctermfg=cyan
+highlight LmaoDefAttErr ctermfg=darkmagenta
