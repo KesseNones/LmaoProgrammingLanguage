@@ -24,8 +24,8 @@ In addition, syntax highlighting for Vim also exists!
 	- This makes Vim able to detect patterns for highlighting.
 - Append the lines contained in `vim/vimRcAdditions` to the file `~/.vimrc` 
 	- This tells Vim what colors to highlight the Lmao patterns.
-- That's all! Vim should now have syntax highlighting 
-	for Lmao when opening `.lmao` files.
+- That's all! Vim should now have syntax highlighting for Lmao when opening `.lmao` files.
+- If it still isn't working, add `syntax on` to the `~/.vimrc` file if it's not there.
 
 # Conclusion
 While not super useful, it does make Lmao much easier to code in Vim or Sublime Text since 
