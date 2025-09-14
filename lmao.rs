@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.13.1
+//Version: 0.13.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5487,6 +5487,24 @@ fn make_ops_hashmap() -> HashMap<String, usize>{
 	ops_map
 }
 
+//Takes in a file string and calls the necessary functions 
+// to build an AST from it.
+fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> (ASTNode, usize){
+    let tokens = tokenize(program_string.chars().collect());
+
+	let ops_map = make_ops_hashmap();
+  
+    //Constructs means of checking for duplicate imports.
+    let mut imported_files: HashMap<String, ()> = HashMap::new();
+    if argc > 1{
+        imported_files.insert(argv[1].clone(), ());
+    }
+
+    let lexed = lex_tokens(tokens, &ops_map, &mut imported_files);
+
+    make_ast(lexed)
+}
+
 fn main(){
     //Creates argv and argc for finding file paths and stuff.
     let argv: Vec<String> = env::args().collect();
@@ -5518,23 +5536,7 @@ fn main(){
         println!("\n{}\nProgram result:\n", sep_str);
     }
 
-    let tokens = tokenize(file_string.chars().collect());
-
-	let ops_map = make_ops_hashmap();
-  
-    //Constructs means of checking for duplicate imports.
-    let mut imported_files: HashMap<String, ()> = HashMap::new();
-    if argc > 1{
-        imported_files.insert(argv[1].clone(), ());
-    }
-
-    let lexed = lex_tokens(tokens, &ops_map, &mut imported_files);
-
-    //Cleanup of now useless hashmaps.
-    std::mem::drop(imported_files);
-    std::mem::drop(ops_map);
-
-    let (ast, num_unique_loc_vars) = make_ast(lexed);
+    let (ast, num_unique_loc_vars) = parse_string_to_ast(&argv, argc, file_string);
 
     let mut state = State::new(num_unique_loc_vars);
 
