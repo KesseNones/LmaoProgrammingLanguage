@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.13.0
+//Version: 0.13.1
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5430,39 +5430,8 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
     Ok(false)
 }
 
-fn main(){
-    //Creates argv and argc for finding file paths and stuff.
-    let argv: Vec<String> = env::args().collect();
-    let argc = argv.len();
-    
-    //Used to hold a string read in from an input file or stdin directly.
-    let mut file_string = String::new();
-
-    //Reads in data from file or from stdin, 
-    // depending on inputs or lack thereof.
-    if argc > 1{
-        let file_path = Path::new(&argv[1]);
-        let file_name = file_path.display();
-
-        let mut code_file = match File::open(&file_path){
-            Ok(f) => f,
-            Err(reason) => panic!("Unable to open Lmao file {} for parsing because {}", file_name, reason),
-        };
-
-        match code_file.read_to_string(&mut file_string){
-            Ok(_) => {},
-            Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
-        }
-    }else{
-        let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
-        println!("Enter Lmao code below:\n{}", sep_str);
-        io::stdin().read_to_string(&mut file_string)
-            .expect("Stdin read error! Failed to read from stdin!");
-        println!("\n{}\nProgram result:\n", sep_str);
-    }
-
-    let tokens = tokenize(file_string.chars().collect());
-    
+//Builds hashmap to translate operator strings to their respective indices.
+fn make_ops_hashmap() -> HashMap<String, usize>{
     //Creates and fills out the ops map with the operators, 
     // ignoring the existing aliases for some of the operators.
     let mut ops_map: HashMap<String, usize> = HashMap::new();
@@ -5514,6 +5483,44 @@ fn main(){
     ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
     ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
     ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
+	
+	ops_map
+}
+
+fn main(){
+    //Creates argv and argc for finding file paths and stuff.
+    let argv: Vec<String> = env::args().collect();
+    let argc = argv.len();
+    
+    //Used to hold a string read in from an input file or stdin directly.
+    let mut file_string = String::new();
+
+    //Reads in data from file or from stdin, 
+    // depending on inputs or lack thereof.
+    if argc > 1{
+        let file_path = Path::new(&argv[1]);
+        let file_name = file_path.display();
+
+        let mut code_file = match File::open(&file_path){
+            Ok(f) => f,
+            Err(reason) => panic!("Unable to open Lmao file {} for parsing because {}", file_name, reason),
+        };
+
+        match code_file.read_to_string(&mut file_string){
+            Ok(_) => {},
+            Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
+        }
+    }else{
+        let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+        println!("Enter Lmao code below:\n{}", sep_str);
+        io::stdin().read_to_string(&mut file_string)
+            .expect("Stdin read error! Failed to read from stdin!");
+        println!("\n{}\nProgram result:\n", sep_str);
+    }
+
+    let tokens = tokenize(file_string.chars().collect());
+
+	let ops_map = make_ops_hashmap();
   
     //Constructs means of checking for duplicate imports.
     let mut imported_files: HashMap<String, ()> = HashMap::new();
