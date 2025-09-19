@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.1
+//Version: 0.14.2
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5598,34 +5598,59 @@ fn main(){
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
     
-    //Used to hold a string read in from an input file or stdin directly.
-    let mut file_string = String::new();
 
     //Reads in data from file or from stdin, 
     // depending on inputs or lack thereof.
     if argc > 1{
-        let file_path = Path::new(&argv[1]);
-        let file_name = file_path.display();
+		//If regular file name is given, run the program from file.
+		// Otherwise activate the REPL.
+		if argv[1] != "--repl"{
+			//Used to hold a string read in from an input file.
+			let mut file_string = String::new();
+			let file_path = Path::new(&argv[1]);
+			let file_name = file_path.display();
 
-        let mut code_file = match File::open(&file_path){
-            Ok(f) => f,
-            Err(reason) => panic!("Unable to open Lmao file {} for parsing because {}", file_name, reason),
-        };
+			let mut code_file = match File::open(&file_path){
+				Ok(f) => f,
+				Err(reason) => panic!("Unable to open Lmao file {} for parsing because {}", file_name, reason),
+			};
 
-        match code_file.read_to_string(&mut file_string){
-            Ok(_) => {},
-            Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
-        }
+			match code_file.read_to_string(&mut file_string){
+				Ok(_) => {},
+				Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
+			}
+
+			match run_prog_from_str(&argv, argc, file_string){
+				Ok(_) => (),
+				Err(e) => println!("{}", e),
+			}
+		}else{
+			println!("Lmao REPL:\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+			let mut single_line_prog_str = String::new();
+			loop{
+				io::stdin().read_line(&mut single_line_prog_str).expect("FAILED TO READ!");
+				match run_prog_from_str(&argv, argc, single_line_prog_str.clone()){
+					Ok(mut state) => {
+        				println!("\n{}\nProgram result:\n", "<<<<<<<<<<<<<<<<<<<<<<<<");
+						debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");		
+					},
+					Err(e) => println!("{}", e),
+				}
+				single_line_prog_str.clear();
+			}
+		}
     }else{
         let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+		let mut program_string = String::new();
         println!("Enter Lmao code below:\n{}", sep_str);
-        io::stdin().read_to_string(&mut file_string)
+        io::stdin().read_to_string(&mut program_string)
             .expect("Stdin read error! Failed to read from stdin!");
         println!("\n{}\nProgram result:\n", sep_str);
+
+		match run_prog_from_str(&argv, argc, program_string){
+			Ok(_) => (),
+			Err(e) => println!("{}", e),
+		}
     }
 
-	match run_prog_from_str(&argv, argc, file_string){
-		Ok(_) => (),
-		Err(e) => println!("{}", e),
-	}
 }
