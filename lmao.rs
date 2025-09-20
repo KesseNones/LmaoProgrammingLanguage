@@ -5628,9 +5628,26 @@ fn main(){
         	let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
 			println!("Lmao REPL:\n{}", sep_str);
 			let mut single_line_prog_str = String::new();
+			let mut command_str = String::new();
 			loop{
 				println!("Enter code or command below:\n{}", sep_str);
 				io::stdin().read_line(&mut single_line_prog_str).expect("FAILED TO READ!");
+
+				//Sees if there's a valid command contained by the first token.	
+				//Executes if so else treats like normal single-line program.
+				for c in single_line_prog_str.chars(){
+					if !c.is_whitespace(){
+						command_str.push(c);
+					}else{
+						break;	
+					}	
+				}
+
+				//Given the command string, executes the command.
+				if command_str == "EXIT"{
+					break;
+				}
+
         		println!("\n{}\nProgram result:\n", sep_str);
 				match run_prog_from_str(&argv, argc, single_line_prog_str.clone()){
 					Ok(mut state) => {
@@ -5639,6 +5656,7 @@ fn main(){
 					Err(e) => println!("{}", e),
 				}
 				single_line_prog_str.clear();
+				command_str.clear();
 			}
 		}
     }else{
