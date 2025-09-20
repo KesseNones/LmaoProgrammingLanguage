@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.2
+//Version: 0.14.3
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5625,13 +5625,15 @@ fn main(){
 				Err(e) => println!("{}", e),
 			}
 		}else{
-			println!("Lmao REPL:\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+        	let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+			println!("Lmao REPL:\n{}", sep_str);
 			let mut single_line_prog_str = String::new();
 			loop{
+				println!("Enter code or command below:\n{}", sep_str);
 				io::stdin().read_line(&mut single_line_prog_str).expect("FAILED TO READ!");
+        		println!("\n{}\nProgram result:\n", sep_str);
 				match run_prog_from_str(&argv, argc, single_line_prog_str.clone()){
 					Ok(mut state) => {
-        				println!("\n{}\nProgram result:\n", "<<<<<<<<<<<<<<<<<<<<<<<<");
 						debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");		
 					},
 					Err(e) => println!("{}", e),
