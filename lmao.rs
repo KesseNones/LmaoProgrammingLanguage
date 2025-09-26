@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.3
+//Version: 0.14.4
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5625,6 +5625,8 @@ fn main(){
 				Err(e) => println!("{}", e),
 			}
 		}else{
+			let mut source_code: HashMap<usize, String> = HashMap::new();			
+
         	let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
 			println!("Lmao REPL:\n{}", sep_str);
 			let mut single_line_prog_str = String::new();
@@ -5647,6 +5649,59 @@ fn main(){
 				if command_str == "EXIT"{
 					break;
 				}
+
+				//Running source code.
+				if command_str == "RUN"{
+					let mut source_string = String::new();
+					for kv in source_code.iter(){
+						source_string.push_str(&format!("{}\n", kv.1));
+					}
+
+					println!("\n{}\nProgram result:\n", sep_str);
+					match run_prog_from_str(&argv, argc, source_string){
+						Ok(mut state) => {
+							debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");	
+						},
+						Err(e) => println!("{}", e),
+					}
+					command_str.clear();
+					single_line_prog_str.clear();
+					continue;
+				}
+
+				//Code line case.
+				if command_str.len() > 1 && 
+					command_str.chars().nth(0).unwrap() == 'L' &&
+					command_str.chars().nth(1).unwrap() != 'I' 
+				{
+					let mut code_str = String::new();
+					let mut i = 0;
+					for c in single_line_prog_str.chars(){
+						if i >= command_str.len(){
+							code_str.push(c)	
+						}
+						i += 1;	
+					}	
+					let mut is_first = true;	
+					let mut line_num_str = String::new();
+					for c in command_str.chars(){
+						if !is_first{
+							line_num_str.push(c)
+						}
+						is_first = false;
+					}
+					match line_num_str.parse::<usize>(){
+						Ok(n) => {
+							source_code.insert(n, code_str);	
+						},
+						Err(_) => println!("Error! Invalid line number provided! Attempted line number: {}", line_num_str),
+					}
+					command_str.clear();
+					single_line_prog_str.clear();
+					continue;
+				}
+						
+
 
         		println!("\n{}\nProgram result:\n", sep_str);
 				match run_prog_from_str(&argv, argc, single_line_prog_str.clone()){
