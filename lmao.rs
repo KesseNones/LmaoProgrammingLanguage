@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.8
+//Version: 0.14.9
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5628,6 +5628,7 @@ fn main(){
 		}else{
 			let mut source_code: BTreeMap<usize, String> = BTreeMap::new();			
 			let mut source_included = false;
+			let mut print_stack = true;
         	let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
 			println!("Lmao REPL:\n{}", sep_str);
 			let mut single_line_prog_str = String::new();
@@ -5661,7 +5662,9 @@ fn main(){
 					println!("\n{}\nProgram result:\n", sep_str);
 					match run_prog_from_str(&argv, argc, source_string){
 						Ok(mut state) => {
-							debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");	
+							if print_stack{
+								debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");	
+							}
 						},
 						Err(e) => println!("{}", e),
 					}
@@ -5714,6 +5717,18 @@ fn main(){
 					continue;
 				}
 
+				//STACK command toggles the printing of the stack.
+				if command_str == "STACK"{
+					let en_or_dis = ["disabled", "enabled"];
+					print_stack = !print_stack;
+					println!("Stack printing {}.", en_or_dis[print_stack as usize]);
+										
+					command_str.clear();
+					single_line_prog_str.clear();
+					continue;
+					
+				}
+
 				//Resets the state of the REPL, 
 				// clearing source code and resetting bools.
 				if command_str == "NEW"{
@@ -5722,6 +5737,7 @@ fn main(){
 					single_line_prog_str.clear();
 					source_code.clear();
 					source_included = false;
+					print_stack = true;
 					continue;
 				}
 		
@@ -5748,7 +5764,9 @@ fn main(){
 				}
 				match run_prog_from_str(&argv, argc, single_line_prog_str.clone()){
 					Ok(mut state) => {
-						debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");		
+						if print_stack{
+							debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");		
+						}
 					},
 					Err(e) => println!("{}", e),
 				}
