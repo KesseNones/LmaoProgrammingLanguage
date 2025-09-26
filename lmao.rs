@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.6
+//Version: 0.14.7
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5627,7 +5627,7 @@ fn main(){
 			}
 		}else{
 			let mut source_code: BTreeMap<usize, String> = BTreeMap::new();			
-
+			let mut source_included = false;
         	let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
 			println!("Lmao REPL:\n{}", sep_str);
 			let mut single_line_prog_str = String::new();
@@ -5701,7 +5701,19 @@ fn main(){
 					single_line_prog_str.clear();
 					continue;
 				}
-						
+				
+				//INCLUDE command makes source code part of line code 
+				// or disables it.
+				if command_str == "INCLUDE"{
+					let en_or_dis = ["disabled", "enabled"];
+					source_included = !source_included;
+					println!("Source code inclusion {}.", en_or_dis[source_included as usize]);
+										
+					command_str.clear();
+					single_line_prog_str.clear();
+					continue;
+				}
+		
 				//LIST command lists the source code.
 				if command_str == "LIST"{
 					println!("Current Written Program:\n{}", sep_str);	
@@ -5715,6 +5727,14 @@ fn main(){
 				}
 
         		println!("\n{}\nProgram result:\n", sep_str);
+				if source_included{
+					let mut code_with_include = String::new();
+					for kv in source_code.iter(){
+						code_with_include.push_str(&format!("{}\n", kv.1));
+					}	
+					code_with_include.push_str(&single_line_prog_str);
+					single_line_prog_str = code_with_include;
+				}
 				match run_prog_from_str(&argv, argc, single_line_prog_str.clone()){
 					Ok(mut state) => {
 						debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");		
