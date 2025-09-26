@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.5
+//Version: 0.14.6
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5702,7 +5702,17 @@ fn main(){
 					continue;
 				}
 						
-
+				//LIST command lists the source code.
+				if command_str == "LIST"{
+					println!("Current Written Program:\n{}", sep_str);	
+					for kv in source_code.iter(){
+						print!("{} {}", kv.0, kv.1);
+					}
+	
+					command_str.clear();
+					single_line_prog_str.clear();
+					continue;
+				}
 
         		println!("\n{}\nProgram result:\n", sep_str);
 				match run_prog_from_str(&argv, argc, single_line_prog_str.clone()){
