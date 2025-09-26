@@ -1,10 +1,11 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.4
+//Version: 0.14.5
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
 use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::env;
 use std::path::Path;
 use std::fs::File;
@@ -5625,7 +5626,7 @@ fn main(){
 				Err(e) => println!("{}", e),
 			}
 		}else{
-			let mut source_code: HashMap<usize, String> = HashMap::new();			
+			let mut source_code: BTreeMap<usize, String> = BTreeMap::new();			
 
         	let sep_str = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
 			println!("Lmao REPL:\n{}", sep_str);
