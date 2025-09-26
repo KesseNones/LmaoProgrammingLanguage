@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.7
+//Version: 0.14.8
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5711,6 +5711,17 @@ fn main(){
 										
 					command_str.clear();
 					single_line_prog_str.clear();
+					continue;
+				}
+
+				//Resets the state of the REPL, 
+				// clearing source code and resetting bools.
+				if command_str == "NEW"{
+					println!("REPL State Reset!");	
+					command_str.clear();
+					single_line_prog_str.clear();
+					source_code.clear();
+					source_included = false;
 					continue;
 				}
 		
