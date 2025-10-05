@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.9
+//Version: 0.14.10
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5746,6 +5746,37 @@ fn main(){
 					println!("Current Written Program:\n{}", sep_str);	
 					for kv in source_code.iter(){
 						print!("{} {}", kv.0, kv.1);
+					}
+	
+					command_str.clear();
+					single_line_prog_str.clear();
+					continue;
+				}
+
+				if command_str == "SAVE"{
+					let mut file_name = String::new();
+					print!("Enter file name: ");
+                    io::stdout().flush().expect("FAILED TO FLUSH");
+					io::stdin().read_line(&mut file_name).expect("FAILED TO READ");	
+
+					file_name.pop().unwrap();
+					let save_path = Path::new(&file_name);
+                    match OpenOptions::new().write(true).truncate(true).create(true).open(save_path)
+					{
+						Ok(mut file) => {
+							let mut string_to_write = String::new();
+							for kv in source_code.iter(){
+								string_to_write.push_str(kv.1);
+							}
+							match file.write_all(string_to_write.as_bytes()){
+								Ok(_) => (),
+								Err(reason) => {
+									println!("Failed to save to file {} because {}", file_name, reason);
+									
+								},
+							}
+						},
+						Err(reason) => println!("Failed to open file {} for saving because {}", file_name, reason),
 					}
 	
 					command_str.clear();
