@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.10
+//Version: 0.14.11
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -5676,7 +5676,8 @@ fn main(){
 				//Code line case.
 				if command_str.len() > 1 && 
 					command_str.chars().nth(0).unwrap() == 'L' &&
-					command_str.chars().nth(1).unwrap() != 'I' 
+					command_str.chars().nth(1).unwrap() != 'I' &&
+					command_str.chars().nth(1).unwrap() != 'O' 
 				{
 					let mut code_str = String::new();
 					let mut i = 0;
@@ -5769,7 +5770,7 @@ fn main(){
 								string_to_write.push_str(kv.1);
 							}
 							match file.write_all(string_to_write.as_bytes()){
-								Ok(_) => (),
+								Ok(_) => println!("File {} written successfully!", file_name),
 								Err(reason) => {
 									println!("Failed to save to file {} because {}", file_name, reason);
 									
@@ -5778,7 +5779,51 @@ fn main(){
 						},
 						Err(reason) => println!("Failed to open file {} for saving because {}", file_name, reason),
 					}
+
+					command_str.clear();
+					single_line_prog_str.clear();
+					continue;
+				}
+
+				if command_str == "LOAD"{
+					let mut file_name = String::new();
+					let mut line_mul_str = String::new();
+
+					print!("Enter file name: ");
+                    io::stdout().flush().expect("FAILED TO FLUSH");
+					io::stdin().read_line(&mut file_name).expect("FAILED TO READ");	
+					file_name.pop().unwrap();
+		
+					print!("Enter line number multiple (default=1): ");
+                    io::stdout().flush().expect("FAILED TO FLUSH");
+					io::stdin().read_line(&mut line_mul_str).expect("FAILED TO READ");	
+					line_mul_str.pop().unwrap();
 	
+					//Goes with default value of 1 if invalid number is provided.
+					let line_number_mul: usize = line_mul_str.parse().unwrap_or(1);
+
+					//Reads in hashmap and overwrites old source code contents with new ones.
+					match OpenOptions::new().read(true).open(Path::new(&file_name)){
+						Ok(mut file) => {
+							let mut read_source = String::new();
+							match file.read_to_string(&mut read_source) {
+								Ok(_) => {
+									println!("Successfully read in file {}", file_name);
+									source_code.clear();
+									let mut line_num: usize = 1;
+									for line in read_source.split("\n").into_iter(){
+										source_code.insert(line_num * line_number_mul, format!("{}\n", line));
+										line_num += 1;	
+									}	
+								}
+								Err(reason) => println!("Failed to read file {} because {}", file_name, reason),	
+							}
+						},
+						Err(reason) => {
+							println!("Failed to open file {} for reading because {}", file_name, reason);
+						}	
+					}
+					
 					command_str.clear();
 					single_line_prog_str.clear();
 					continue;
