@@ -10,6 +10,6 @@ uninstall:
 clean:
 	rm ${Execs}	
 
-${Execs}:
+${Execs}: lmao.rs lmaoc.rs
 	rustc -C opt-level=2 lmao.rs
 	rustc -C opt-level=2 lmaoc.rs
