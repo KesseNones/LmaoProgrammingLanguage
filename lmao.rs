@@ -5697,7 +5697,11 @@ fn main(){
 					}
 					match line_num_str.parse::<usize>(){
 						Ok(n) => {
-							source_code.insert(n, code_str);	
+							if code_str.len() > 2{
+								source_code.insert(n, code_str);	
+							}else{
+								source_code.remove(&n);
+							}
 						},
 						Err(_) => println!("Error! Invalid line number provided! Attempted line number: {}", line_num_str),
 					}
