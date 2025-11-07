@@ -5816,7 +5816,9 @@ fn main(){
 									source_code.clear();
 									let mut line_num: usize = 1;
 									for line in read_source.split("\n").into_iter(){
-										source_code.insert(line_num * line_number_mul, format!("{}\n", line));
+										if line.len() > 0{
+											source_code.insert(line_num * line_number_mul, format!("{}\n", line));
+										}
 										line_num += 1;	
 									}	
 								}
