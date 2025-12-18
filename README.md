@@ -41,7 +41,8 @@ This documentation may be "complete" but still requires proofreading and revisio
     - [5.1 The Import Decorator](#imp-dec)
 - [6 Running Lmao](#running)
 	- [6.1 Running Lmao Interpreter](#running-interp)
-	- [6.2 Running Lmao Compiler](#running-compile)
+	- [6.2 Running Lmao REPL](#running-repl)
+	- [6.3 Running Lmao Compiler](#running-compile)
 - [7 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
@@ -7832,7 +7833,42 @@ This is code entirely in the terminal!!!
 While this is a very limited editor, it does allow for code to come into existence without any pre-requisite files. 
 In theory, you could create a huge program this way, though it's not the most enjoyable experience.
 
-### <a name = "running-compile"></a>6.2 Running Lmao Compiler
+### <a name = "running-repl"></a>6.2 Running Lmao REPL 
+#### [**Return to Table of Contents**](#toc)
+A REPL or Read Eval Print Loop, is a means of running code live in memory, rather than having to write it to a file first.
+
+The REPL works pretty simply: code written in the input line is run immediately when enter is pressed.
+This makes it so some code can be created and ran without needing files.
+
+Seems cool but a little pointless.
+
+This is where commands come in.
+
+The REPL has several commands to chose from:
+- `L[LINE_NUMBER]`
+	- With a little whitespace following, a line of code can be written at `[LINE_NUMBER]` and then enter is pressed.
+	- This makes it so a program can be built to run beyond the immediate code in the line.
+	- An example would be something like `L10 "Hello, World!" printLine` which writes the code at line 10 in the source code.
+- `EXIT`
+	- Exits the REPL, simple as.
+- `LIST`
+	- Lists the source code written.
+- `RUN`
+	- Runs the written source code.
+- `STACK`
+	- Enables/disables printing the stack at the end of the program.
+	- By default the stack prints which makes the Lmao REPL a useful postfix calculator.
+- `INCLUDE`
+	- A really cool command that includes the source code as part of the one-liner you type out.
+	- This way, you could write functions and define variables that you then use in your one-liner.
+	- This is disabled by default so you can do one-liner calculations without unfinished source code messing with things.
+	- This also means that the `RUN` command isn't needed. Enter can just be mashed repeatedly.
+
+The REPL itself is initiated using the command:
+
+`lmao --repl` which starts the REPL and prompts for a command/code.
+
+### <a name = "running-compile"></a>6.3 Running Lmao Compiler
 #### [**Return to Table of Contents**](#toc)
 The compiler is a powerful tool in Lmao. It allows for `.lmao` files to be directly transformed into executable files that can be run independently of the interpreter!
 
