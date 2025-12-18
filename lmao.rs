@@ -1,6 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.14.11
+//Version: 0.14.12
 
 //LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
 
@@ -4368,13 +4368,39 @@ fn throw_parse_error(t: &str, attempted_token: &String) -> String{
 }
 
 fn replace_literals_with_escapes(s: &str) -> String{
-    s
-        .replace("\\n", "\n")
-        .replace("\\t", "\t")
-        .replace("\\r", "\r")
-        .replace("\\\"", "\"")
-        .replace("\\\'", "\'")
-        .replace("\\0", "\0")
+	let chars: Vec<char> = s.chars().collect();	
+	let max = chars.len();
+	let mut new_str = String::new();
+
+	let mut is_escaped = false;
+
+	for i in 0..max{
+		//Skips current char if it's already been escaped.
+		if is_escaped{
+			is_escaped = false;
+			continue;
+		}			
+
+		if i + 1 < max && chars[i] == '\\'{
+			match chars[i + 1]{
+				'\\' => new_str.push('\\'),
+				'n' => new_str.push('\n'),
+				't' => new_str.push('\t'),
+				'r' => new_str.push('\r'),
+				'\"' => new_str.push('\"'),
+				'\'' => new_str.push('\''),
+				'0' => new_str.push('\0'),
+				'b' => new_str.push('\x08'),
+				'f' => new_str.push('\x0c'),
+				other => new_str.push(other),
+			}
+			is_escaped = true;
+		}else{
+			new_str.push(chars[i]);
+		}
+	
+	}
+	new_str
 }
 
 //Given reference to list of seperated tokens, 
@@ -4421,6 +4447,8 @@ fn lex_tokens(
                         '0' => '\0',
                         '\'' => '\'',
                         '\"' => '\"',
+						'b' => '\x08',
+						'f' => '\x0c',
                         _ => captured,
                     };
                 }
