@@ -6,9 +6,9 @@ install:$(Execs)
 	cp lmao /usr/bin/
 	cp lmaoc /usr/bin/
 uninstall:
-	rm /usr/bin/lmao /usr/bin/lmaoc
+	rm -f /usr/bin/lmao /usr/bin/lmaoc
 clean:
-	rm $(Execs)	
+	rm -f $(Execs)	
 
 lmao: lmao.rs
 	rustc -C opt-level=2 lmao.rs
