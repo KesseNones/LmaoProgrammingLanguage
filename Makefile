@@ -1,18 +1,12 @@
-Execs = lmao lmaoc
+default:
+	cargo build --release
 
-default:$(Execs)
-
-install:$(Execs)
-	cp lmao /usr/bin/
-	cp lmaoc /usr/bin/
+install:
+	cargo build --release
+	cp target/release/lmao /usr/bin/
+	cp target/release/lmaoc /usr/bin/
 uninstall:
 	rm -f /usr/bin/lmao /usr/bin/lmaoc
 clean:
-	rm -f $(Execs)	
-
-lmao: lmao.rs
-	rustc -C opt-level=2 lmao.rs
-
-lmaoc: lmaoc.rs
-	rustc -C opt-level=2 lmaoc.rs
+	rm -rf target
 

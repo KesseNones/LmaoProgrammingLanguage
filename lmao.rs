@@ -1,8 +1,6 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.15.0
-
-//LONG TERM: MAKE OPERATOR FUNCTIONS MORE SLICK USING GENERICS!
+//Version: 0.16.0
 
 use std::collections::HashMap;
 use std::collections::BTreeMap;
@@ -1628,7 +1626,7 @@ fn concat(s: &mut State) -> Result<(), String>{
                     (true, true) => {
                         //Concatenates string from Box B to string in Box A.
                         let mut a_str: HeapValue = std::mem::take(&mut s.heap[a].0);
-                        if let (HeapValue::String(ref mut s1), HeapValue::String(ref s2)) = (&mut a_str, &s.heap[b].0){
+                        if let (HeapValue::String(s1), HeapValue::String(s2)) = (&mut a_str, &s.heap[b].0){
                             s1.push_str(s2);
                             s.heap[a].0 = a_str;
                             Ok(Value::StringBox(a))
@@ -1661,7 +1659,7 @@ fn concat(s: &mut State) -> Result<(), String>{
                         //Concatenates list from Box B to list in Box A.
                         //THIS IS CRINGE, TRY TO MAYBE FIGURE OUT A BETTER WAY LATER
                         let mut list_a: HeapValue = std::mem::take(&mut s.heap[a].0);
-                        if let (HeapValue::List(ref mut ls1), HeapValue::List(ref ls2)) = (&mut list_a, &s.heap[b].0){
+                        if let (HeapValue::List(ls1), HeapValue::List(ls2)) = (&mut list_a, &s.heap[b].0){
                             for el in ls2.iter(){
                                 ls1.push(el.clone());
                             }
@@ -1802,7 +1800,7 @@ fn list_push(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
         (Some(Value::ListBox(bn)), Some(v)) => {
             if s.validate_box(bn){
-                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ls) = &mut s.heap[bn].0{
                     ls.push(v);
                     Ok(Value::ListBox(bn))
                 }else{
@@ -1814,7 +1812,7 @@ fn list_push(s: &mut State) -> Result<(), String>{
         },
         (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(st) = &mut s.heap[bn].0{
                     st.push(c);
                     Ok(Value::StringBox(bn))
                 }else{
@@ -1853,7 +1851,7 @@ fn list_pop(s: &mut State) -> Result<(), String>{
     let res: Result<(Value, Value), String> = match s.pop(){
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ls) = &mut s.heap[bn].0{
                     match ls.pop(){
                         Some(v) => Ok((Value::ListBox(bn), v)),
                         None => Err(pop_error("pop/po", "List", "pop")),
@@ -1867,7 +1865,7 @@ fn list_pop(s: &mut State) -> Result<(), String>{
         },
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(st) = &mut s.heap[bn].0{
                     match st.pop(){
                         Some(v) => Ok((Value::StringBox(bn), Value::Char(v))),
                         None => Err(pop_error("pop/po", "String", "pop")),
@@ -1903,7 +1901,7 @@ fn list_front_push(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop2(){
         (Some(Value::ListBox(bn)), Some(v)) => {
             if s.validate_box(bn){
-                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ls) = &mut s.heap[bn].0{
                     ls.insert(0, v);
                     Ok(Value::ListBox(bn))
                 }else{
@@ -1915,7 +1913,7 @@ fn list_front_push(s: &mut State) -> Result<(), String>{
         },
         (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(st) = &mut s.heap[bn].0{
                     st.insert(0, c);
                     Ok(Value::StringBox(bn))
                 }else{
@@ -1948,7 +1946,7 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
     let res: Result<(Value, Value), String> = match s.pop(){
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ls) = &mut s.heap[bn].0{
                     if ls.len() > 0{
                         Ok((Value::ListBox(bn), ls.remove(0)))
                     }else{
@@ -1963,7 +1961,7 @@ fn list_front_pop(s: &mut State) -> Result<(), String>{
         },
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(st) = &mut s.heap[bn].0{
                     if st.len() > 0{
                         Ok((Value::StringBox(bn), Value::Char(st.remove(0))))
                     }else{
@@ -2121,7 +2119,7 @@ fn list_clear(s: &mut State) -> Result<(), String>{
     let res: Result<Value, String> = match s.pop(){
         Some(Value::ListBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ls) = &mut s.heap[bn].0{
                     ls.clear();
                     Ok(Value::ListBox(bn))
                 }else{
@@ -2133,7 +2131,7 @@ fn list_clear(s: &mut State) -> Result<(), String>{
         },
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref mut st) = &mut s.heap[bn].0{
+                if let HeapValue::String(st) = &mut s.heap[bn].0{
                     st.clear();
                     Ok(Value::StringBox(bn))
                 }else{
@@ -2160,7 +2158,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
     let res = match s.pop2(){
         (Some(Value::ListBox(bn)), Some(v)) => {
             if s.validate_box(bn){
-                if let HeapValue::List(ref ls) = &s.heap[bn].0{
+                if let HeapValue::List(ls) = &s.heap[bn].0{
                     Ok(Value::Boolean(ls.contains(&v)))
                 }else{
                     Err(should_never_get_here_for_func("list_contains"))
@@ -2172,7 +2170,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
         (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
-                    if let (HeapValue::Object(ref o), HeapValue::String(ref s)) = (&s.heap[a].0, &s.heap[b].0){
+                    if let (HeapValue::Object(o), HeapValue::String(s)) = (&s.heap[a].0, &s.heap[b].0){
                         Ok(Value::Boolean(o.contains_key(s)))
                     }else{
                         Err(should_never_get_here_for_func("list_contains"))
@@ -2191,7 +2189,7 @@ fn list_contains(s: &mut State) -> Result<(), String>{
         },
         (Some(Value::StringBox(bn)), Some(Value::Char(c))) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref st) = &s.heap[bn].0{
+                if let HeapValue::String(st) = &s.heap[bn].0{
                     Ok(Value::Boolean(st.contains(c)))
                 }else{
                     Err(should_never_get_here_for_func("list_contains"))
@@ -2223,7 +2221,7 @@ fn change_item_at(s: &mut State) -> Result<(), String>{
             //Changes item in list to new value at 
             // index i assuming list is valid and index is in range.
             if s.validate_box(bn){
-                if let HeapValue::List(ref mut ls) = &mut s.heap[bn].0{
+                if let HeapValue::List(ls) = &mut s.heap[bn].0{
                     if i < ls.len(){
                         ls[i] = v;
                         Ok(Value::ListBox(bn))
@@ -2318,7 +2316,7 @@ fn add_field(s: &mut State) -> Result<(), String>{
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
                     let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
-                    if let (HeapValue::Object(ref mut o), HeapValue::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                    if let (HeapValue::Object(o), HeapValue::String(st)) = (&mut obj_to_mut, &s.heap[b].0){
                         if !o.contains_key(st){
                             o.insert(st.clone(), v);
                             s.heap[a].0 = obj_to_mut;
@@ -2369,7 +2367,7 @@ fn get_field(s: &mut State) -> Result<(), String>{
         (Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
-                    if let (HeapValue::Object(ref o), HeapValue::String(ref st)) = (&s.heap[a].0, &s.heap[b].0){
+                    if let (HeapValue::Object(o), HeapValue::String(st)) = (&s.heap[a].0, &s.heap[b].0){
                         match o.get(st){
                             Some(v) => Ok(v.clone()),
                             None => Err(field_not_in_obj_err("objGetField", a, st))
@@ -2450,7 +2448,7 @@ fn mut_field(s: &mut State) -> Result<(), String>{
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
                     let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
-                    if let (HeapValue::Object(ref mut o), HeapValue::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                    if let (HeapValue::Object(o), HeapValue::String(st)) = (&mut obj_to_mut, &s.heap[b].0){
                         match o.get_mut(st){
                             Some(old_v) => {
                                 if is_valid_mutation(old_v, &v){
@@ -2498,7 +2496,7 @@ fn remove_field(s: &mut State) -> Result<(), String>{
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
                     let mut obj_to_mut = std::mem::take(&mut s.heap[a].0);
-                    if let (HeapValue::Object(ref mut o), HeapValue::String(ref st)) = (&mut obj_to_mut, &s.heap[b].0){
+                    if let (HeapValue::Object(o), HeapValue::String(st)) = (&mut obj_to_mut, &s.heap[b].0){
                         match o.remove(st){
                             Some(_) => {
                                 s.heap[a].0 = obj_to_mut;
@@ -2541,7 +2539,7 @@ fn string_compare(s: &mut State) -> Result<(), String>{
         (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
-                    if let (HeapValue::String(ref str_a), HeapValue::String(ref str_b)) = (&s.heap[a].0, &s.heap[b].0){
+                    if let (HeapValue::String(str_a), HeapValue::String(str_b)) = (&s.heap[a].0, &s.heap[b].0){
                         let comp_res: isize = match str_a.cmp(str_b){
                             Ordering::Less => -1,
                             Ordering::Equal => 0,
@@ -3319,7 +3317,7 @@ fn general_cast_action(s: &mut State, v: Value, c: &str) -> Result<Value, String
 
         Value::StringBox(string_num) => {
             if s.validate_box(string_num){
-                if let HeapValue::String(ref st) = &s.heap[string_num].0{
+                if let HeapValue::String(st) = &s.heap[string_num].0{
                     match c {
                         "isize" => {
                             match (*st).parse(){
@@ -3526,7 +3524,7 @@ fn cast_stuff(s: &mut State) -> Result<(), String>{
         let res = match s.pop2(){
             (Some(v), Some(Value::StringBox(bn))) => {
                 if s.validate_box(bn){
-                    if let HeapValue::String(ref st) = &s.heap[bn].0{
+                    if let HeapValue::String(st) = &s.heap[bn].0{
                         //This is gross but it works.
                         // It's fine because st never changes so there's 
                         // no risk of clobbering or other memory horrors.
@@ -3584,7 +3582,7 @@ fn print_line(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref st) = &s.heap[bn].0{
+                if let HeapValue::String(st) = &s.heap[bn].0{
                     println!("{}", st);
                     Ok(())
                 }else{
@@ -3671,7 +3669,7 @@ fn print_string(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref st) = &s.heap[bn].0{
+                if let HeapValue::String(st) = &s.heap[bn].0{
                     print!("{}", st);
                     match io::stdout().flush(){
                         Ok(_) => Ok(()),
@@ -3813,7 +3811,7 @@ fn write_data_to_file(s: &mut State) -> Result<(), String>{
         (Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
             match (s.validate_box(a), s.validate_box(b)){
                 (true, true) => {
-                    if let (HeapValue::String(ref file_name), HeapValue::String(ref string_to_write)) = (&s.heap[a].0, &s.heap[b].0){
+                    if let (HeapValue::String(file_name), HeapValue::String(string_to_write)) = (&s.heap[a].0, &s.heap[b].0){
                         let file_path = Path::new(file_name);
                         let mut file = match OpenOptions::new().write(true).truncate(true).open(file_path){
                             Ok(f) => f,
@@ -3862,7 +3860,7 @@ fn read_data_from_file(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref file_name) = &s.heap[bn].0{
+                if let HeapValue::String(file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
                     let mut file = match OpenOptions::new().read(true).open(file_path){
                         Ok(f) => f,
@@ -3904,7 +3902,7 @@ fn create_file_based_on_string(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref file_name) = &s.heap[bn].0{
+                if let HeapValue::String(file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
 
                     //Throws error if file with given name already exists.
@@ -3943,7 +3941,7 @@ fn delete_file_based_on_string(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref file_name) = &s.heap[bn].0{
+                if let HeapValue::String(file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
 
                     match remove_file(file_path){
@@ -3973,7 +3971,7 @@ fn file_exists(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref file_name) = &s.heap[bn].0{
+                if let HeapValue::String(file_name) = &s.heap[bn].0{
                     let file_path = Path::new(file_name);
 
                     //THIS MIGHT BE TOO BROAD, WITH PERMISSIONS EDGE CASES GETTING IN THE WAY
@@ -4033,7 +4031,7 @@ fn throw_custom_error(s: &mut State) -> Result<(), String>{
     match s.pop(){
         Some(Value::StringBox(bn)) => {
             if s.validate_box(bn){
-                if let HeapValue::String(ref err_str) = &s.heap[bn].0{
+                if let HeapValue::String(err_str) = &s.heap[bn].0{
                     Err(err_str.clone())
                 }else{
                     Err(should_never_get_here_for_func("throw_custom_error"))
@@ -5048,7 +5046,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                 should_never_get_here_for_func("pushing to stack in run program")),
                         }
                     },
-                    ASTNode::Terminal(Token::Word((ref op, ref n))) => {
+                    ASTNode::Terminal(Token::Word((op, n))) => {
                         if *n > 0{
                             //Runs operator at index equivalent to a valid operator name.
                             match state.ops[n - 1](state){
@@ -5204,7 +5202,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                 match state.stack.pop(){
                                     Some(Value::MiscBox(bn)) => {
                                         if state.validate_box(bn){
-                                            if let HeapValue::Primitive(ref v) = &state.heap[bn].0{
+                                            if let HeapValue::Primitive(v) = &state.heap[bn].0{
                                                 state.stack.push(v.clone());    
                                             }else{
                                                 return error_and_remove_frame(state, 
@@ -5230,7 +5228,7 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                                 match state.pop2(){
                                     (Some(Value::MiscBox(bn)), Some(v)) => {
                                         if state.validate_box(bn){
-                                            if let HeapValue::Primitive(ref mut old_v) = &mut state.heap[bn].0{
+                                            if let HeapValue::Primitive(old_v) = &mut state.heap[bn].0{
                                                 if is_valid_mutation(old_v, &v){
                                                     *old_v = v;
                                                     state.stack.push(Value::MiscBox(bn));
