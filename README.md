@@ -7709,15 +7709,13 @@ Here's how to get Lmao working:
 
 1. Have `rustc` installed which can be managed through installing Rust itself using your system's package manager or installing it in a more manual fashion like on Windows. 
 2. Clone this repository in a directory of your chosing: `git clone https://github.com/KesseNones/LmaoProgrammingLanguage`.
-3. Compile the interpreter: `rustc lmao.rs`
-	
-	3.1. Optionally, you can compile using an optimization flag to make the interpreter much faster: `rustc -C opt-level=3 lmao.rs`
+3. Run `make`.
+	- This will call Cargo to build the project for release.
 
-4. Compile the compiler: `rustc lmaoc.rs`
-
-	4.1. As with the interpreter, the same optimization flag can be used to compile a more optimal compiler, though this is less necessary.  
-
-5. With both of these programs compiled, they can be used to run or compile Lmao programs.
+If you want to install it:
+- Run `sudo make install`.
+- This will build the programs and copy the appropriate binaries into `/usr/bin/`.
+- If on a different OS, just run `make` and then copy the binaries to where you want.
 
 ### <a name = "running-interp"></a>6.1 Running Lmao Interpreter
 #### [**Return to Table of Contents**](#toc)
