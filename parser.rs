@@ -7,6 +7,7 @@ use std::io::Read;
 
 //This pub enum is used to contain all the possible data types of Lmao 
 // that live everywhere but the Heap.
+#[derive(PartialEq, Clone)]
 pub enum Value{
 	//Signed integers.
 	Int8(i8),
@@ -40,119 +41,7 @@ pub enum Value{
 	NULLBox,
 }
 
-//Used to contain values on the heap only.
-pub enum HeapValue{
-	String(String),
-	List(Vec<Value>),
-	Object(HashMap<String, Value>),
-	Primitive(Value),
-}
-
-//Exists in token lists and AST.
-pub enum SuperValue{
-	Reg(Value), 
-	Heap(HeapValue),
-}
-
-impl PartialEq for SuperValue{
-	fn eq(&self, other: &Self) -> bool{
-		match(self, other){
-			(SuperValue::Reg(r1), SuperValue::Reg(r2)) => r1 == r2,
-			(SuperValue::Heap(h1), SuperValue::Heap(h2)) => h1 == h2,
-			_ => false,
-		}
-	}
-}
-
-impl Eq for SuperValue {}
-
-impl Clone for Value{
-	fn clone(&self) -> Value{
-		match self{
-			Value::Int8(i) => Value::Int8(*i),
-			Value::Int16(i) => Value::Int16(*i),
-			Value::Int32(i) => Value::Int32(*i),
-			Value::Int64(i) => Value::Int64(*i),
-			Value::Int128(i) => Value::Int128(*i),
-			Value::IntSize(i) => Value::IntSize(*i),
-
-			Value::UInt8(i) => Value::UInt8(*i),
-			Value::UInt16(i) => Value::UInt16(*i),
-			Value::UInt32(i) => Value::UInt32(*i),
-			Value::UInt64(i) => Value::UInt64(*i),
-			Value::UInt128(i) => Value::UInt128(*i),
-			Value::UIntSize(i) => Value::UIntSize(*i),
-
-			Value::Float32(f) => Value::Float32(*f),
-			Value::Float64(f) => Value::Float64(*f),
-			Value::Char(c) => Value::Char(*c),
-			Value::Boolean(b) => Value::Boolean(*b),
-			Value::StringBox(sb) => Value::StringBox(*sb),
-			Value::ListBox(bn) => Value::ListBox(*bn),
-			Value::ObjectBox(bn) => Value::ObjectBox(*bn),
-			Value::MiscBox(bn) => Value::MiscBox(*bn),
-			Value::NULLBox => Value::NULLBox,
-		}
-	}
-}
-
-impl Clone for HeapValue{
-	fn clone(&self) -> HeapValue{
-		match self{
-			HeapValue::String(st) => HeapValue::String((st).clone()),
-			HeapValue::List(l) => HeapValue::List((l).clone()),
-			HeapValue::Object(o) => HeapValue::Object(o.clone()),
-			HeapValue::Primitive(p) => HeapValue::Primitive(p.clone()),
-		}
-	}
-}
-
-impl PartialEq for Value{
-	fn eq(&self, other: &Self) -> bool{
-		match(self, other){
-			(Value::Int8(a), Value::Int8(b)) => a == b,
-			(Value::Int16(a), Value::Int16(b)) => a == b,
-			(Value::Int32(a), Value::Int32(b)) => a == b,
-			(Value::Int64(a), Value::Int64(b)) => a == b,
-			(Value::Int128(a), Value::Int128(b)) => a == b,
-			(Value::IntSize(a), Value::IntSize(b)) => a == b,
-
-			(Value::UInt8(a), Value::UInt8(b)) => a == b,
-			(Value::UInt16(a), Value::UInt16(b)) => a == b,
-			(Value::UInt32(a), Value::UInt32(b)) => a == b,
-			(Value::UInt64(a), Value::UInt64(b)) => a == b,
-			(Value::UInt128(a), Value::UInt128(b)) => a == b,
-			(Value::UIntSize(a), Value::UIntSize(b)) => a == b,
-
-			(Value::Float32(a), Value::Float32(b)) => a == b,
-			(Value::Float64(a), Value::Float64(b)) => a == b,
-			(Value::Char(a), Value::Char(b)) => a == b,
-			(Value::Boolean(a), Value::Boolean(b)) => a == b,
-			(Value::StringBox(a), Value::StringBox(b)) => a == b,
-			(Value::ListBox(a), Value::ListBox(b)) => a == b,
-			(Value::ObjectBox(a), Value::ObjectBox(b)) => a == b,
-			(Value::MiscBox(a), Value::MiscBox(b)) => a == b,
-			(Value::NULLBox, Value::NULLBox) => true,
-			_ => false,
-		}
-	}
-}
-
 impl Eq for Value {}
-
-impl PartialEq for HeapValue{
-	fn eq(&self, other: &Self) -> bool{
-		match(self, other){
-			(HeapValue::String(a), HeapValue::String(b)) => a == b,
-			(HeapValue::List(a), HeapValue::List(b)) => a == b,
-			(HeapValue::Object(a), HeapValue::Object(b)) => a == b,
-			(HeapValue::Primitive(a), HeapValue::Primitive(b)) => a == b, //MIGHT DESTROY THE UNIVERSE
-			_ => false,
-		}
-	}
-}
-
-impl Eq for HeapValue {}
 
 impl fmt::Display for Value{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
@@ -202,6 +91,15 @@ impl Default for Value{
 	}
 }
 
+//Used to contain values on the heap only.
+#[derive(PartialEq, Eq, Clone)]
+pub enum HeapValue{
+	String(String),
+	List(Vec<Value>),
+	Object(HashMap<String, Value>),
+	Primitive(Value),
+}
+
 impl fmt::Display for HeapValue{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self {
@@ -224,8 +122,15 @@ impl fmt::Display for HeapValue{
 
 impl Default for HeapValue{
 	fn default() -> Self{
-		HeapValue::Primitive(Value::NULLBox)
+		HeapValue::Primitive(Value::default())
 	}
+}
+
+//Exists in token lists and AST.
+#[derive(PartialEq, Eq, Clone)]
+pub enum SuperValue{
+	Reg(Value), 
+	Heap(HeapValue),
 }
 
 impl fmt::Display for SuperValue{
@@ -234,6 +139,12 @@ impl fmt::Display for SuperValue{
 			SuperValue::Reg(r) => write!(f, "{}", r),
 			SuperValue::Heap(h) => write!(f, "{}", h),
 		}
+	}
+}
+
+impl Default for SuperValue {
+	fn default() -> Self{
+		SuperValue::Reg(Value::default())
 	}
 }
 
@@ -247,7 +158,7 @@ pub enum Token{
 
 impl Default for Token{
 	fn default() -> Self{
-		Token::V(SuperValue::Reg(Value::NULLBox))
+		Token::V(SuperValue::default())
 	}
 }
 
