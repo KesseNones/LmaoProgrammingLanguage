@@ -188,7 +188,7 @@ pub enum ASTNode{
 
 impl Default for ASTNode{
 	fn default() -> Self{
-		ASTNode::Terminal(Token::V(SuperValue::Reg(Value::NULLBox)))
+		ASTNode::Terminal(Token::default())
 	}
 }
 
