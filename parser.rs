@@ -61,17 +61,17 @@ impl fmt::Display for Value{
 			Value::UIntSize(n) => write!(f, "usize {}", n),
 
 			Value::Float32(flt32) => {
-				if flt32.abs() > 9999999999999999.0{
-					write!(f, "f32 {:e}", flt32)
-				}else{
+				if flt32.abs() <= 1000000.0 && flt32.abs() >= 0.000001{
 					write!(f, "f32 {}", flt32)
+				}else{
+					write!(f, "f32 {:e}", flt32)
 				}
 			},
 			Value::Float64(flt64) => {
-				if flt64.abs() > 9999999999999999.0{
-					write!(f, "f64 {:e}", flt64)
-				}else{
+				if flt64.abs() <= 1000000.0 && flt64.abs() >= 0.000001{
 					write!(f, "f64 {}", flt64)
+				}else{
+					write!(f, "f64 {:e}", flt64)
 				}
 			},
 			Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
