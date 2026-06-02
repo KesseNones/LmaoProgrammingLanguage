@@ -150,7 +150,7 @@ impl Default for SuperValue {
 
 //Can either be a value to push to the stack or 
 // a command to run an operator or something like that.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum Token{
 	V(SuperValue),
 	Word((String, usize))
@@ -172,6 +172,7 @@ impl fmt::Display for Token{
 }
 
 //The various types of nodes that are part of the Abstract Syntax Tree
+#[derive(Clone)]
 pub enum ASTNode{
 	Terminal(Token),
 	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
@@ -211,37 +212,6 @@ impl fmt::Display for ASTNode{
 			ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
 			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
-		}
-	}
-}
-
-impl Clone for ASTNode{
-	fn clone(&self) -> ASTNode{
-		match self{
-			ASTNode::Terminal(Token::V(SuperValue::Reg(r))) => ASTNode::Terminal(Token::V(SuperValue::Reg(r.clone()))),
-			ASTNode::Terminal(Token::V(SuperValue::Heap(h))) => ASTNode::Terminal(Token::V(SuperValue::Heap(h.clone()))),
-			ASTNode::Terminal(Token::Word(w)) => ASTNode::Terminal(Token::Word(w.clone())),
-			ASTNode::If{if_true: true_branch, if_false: false_branch} => {
-				ASTNode::If{if_true: Box::new(*true_branch.clone()), 
-					if_false: Box::new(*false_branch.clone())}
-			},
-			ASTNode::While(bod) => ASTNode::While(Box::new(*bod.clone())),
-			ASTNode::Expression(nodes) => {
-				let new_nodes: Vec<ASTNode> = nodes.iter().map(|n| n.clone()).collect();
-				ASTNode::Expression(new_nodes)
-			},
-			ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
-				ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
-					func_bod: Rc::clone(&bod)}
-			},
-			ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
-				ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone(), var_num: *n}
-			},
-			ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
-			ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
-			ASTNode::AttErr{attempt: att, err: e} => ASTNode::AttErr{attempt: att.clone(), err: e.clone()},
-			ASTNode::Defer(bod) => ASTNode::Defer(Rc::clone(bod)),
-			ASTNode::CastTo(data_type) => ASTNode::CastTo(data_type.clone())
 		}
 	}
 }
