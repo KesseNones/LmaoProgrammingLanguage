@@ -7,6 +7,7 @@ use std::io::Read;
 
 //This pub enum is used to contain all the possible data types of Lmao 
 // that live everywhere but the Heap.
+#[derive(PartialEq, Clone)]
 pub enum Value{
 	//Signed integers.
 	Int8(i8),
@@ -40,119 +41,7 @@ pub enum Value{
 	NULLBox,
 }
 
-//Used to contain values on the heap only.
-pub enum HeapValue{
-	String(String),
-	List(Vec<Value>),
-	Object(HashMap<String, Value>),
-	Primitive(Value),
-}
-
-//Exists in token lists and AST.
-pub enum SuperValue{
-	Reg(Value), 
-	Heap(HeapValue),
-}
-
-impl PartialEq for SuperValue{
-	fn eq(&self, other: &Self) -> bool{
-		match(self, other){
-			(SuperValue::Reg(r1), SuperValue::Reg(r2)) => r1 == r2,
-			(SuperValue::Heap(h1), SuperValue::Heap(h2)) => h1 == h2,
-			_ => false,
-		}
-	}
-}
-
-impl Eq for SuperValue {}
-
-impl Clone for Value{
-	fn clone(&self) -> Value{
-		match self{
-			Value::Int8(i) => Value::Int8(*i),
-			Value::Int16(i) => Value::Int16(*i),
-			Value::Int32(i) => Value::Int32(*i),
-			Value::Int64(i) => Value::Int64(*i),
-			Value::Int128(i) => Value::Int128(*i),
-			Value::IntSize(i) => Value::IntSize(*i),
-
-			Value::UInt8(i) => Value::UInt8(*i),
-			Value::UInt16(i) => Value::UInt16(*i),
-			Value::UInt32(i) => Value::UInt32(*i),
-			Value::UInt64(i) => Value::UInt64(*i),
-			Value::UInt128(i) => Value::UInt128(*i),
-			Value::UIntSize(i) => Value::UIntSize(*i),
-
-			Value::Float32(f) => Value::Float32(*f),
-			Value::Float64(f) => Value::Float64(*f),
-			Value::Char(c) => Value::Char(*c),
-			Value::Boolean(b) => Value::Boolean(*b),
-			Value::StringBox(sb) => Value::StringBox(*sb),
-			Value::ListBox(bn) => Value::ListBox(*bn),
-			Value::ObjectBox(bn) => Value::ObjectBox(*bn),
-			Value::MiscBox(bn) => Value::MiscBox(*bn),
-			Value::NULLBox => Value::NULLBox,
-		}
-	}
-}
-
-impl Clone for HeapValue{
-	fn clone(&self) -> HeapValue{
-		match self{
-			HeapValue::String(st) => HeapValue::String((st).clone()),
-			HeapValue::List(l) => HeapValue::List((l).clone()),
-			HeapValue::Object(o) => HeapValue::Object(o.clone()),
-			HeapValue::Primitive(p) => HeapValue::Primitive(p.clone()),
-		}
-	}
-}
-
-impl PartialEq for Value{
-	fn eq(&self, other: &Self) -> bool{
-		match(self, other){
-			(Value::Int8(a), Value::Int8(b)) => a == b,
-			(Value::Int16(a), Value::Int16(b)) => a == b,
-			(Value::Int32(a), Value::Int32(b)) => a == b,
-			(Value::Int64(a), Value::Int64(b)) => a == b,
-			(Value::Int128(a), Value::Int128(b)) => a == b,
-			(Value::IntSize(a), Value::IntSize(b)) => a == b,
-
-			(Value::UInt8(a), Value::UInt8(b)) => a == b,
-			(Value::UInt16(a), Value::UInt16(b)) => a == b,
-			(Value::UInt32(a), Value::UInt32(b)) => a == b,
-			(Value::UInt64(a), Value::UInt64(b)) => a == b,
-			(Value::UInt128(a), Value::UInt128(b)) => a == b,
-			(Value::UIntSize(a), Value::UIntSize(b)) => a == b,
-
-			(Value::Float32(a), Value::Float32(b)) => a == b,
-			(Value::Float64(a), Value::Float64(b)) => a == b,
-			(Value::Char(a), Value::Char(b)) => a == b,
-			(Value::Boolean(a), Value::Boolean(b)) => a == b,
-			(Value::StringBox(a), Value::StringBox(b)) => a == b,
-			(Value::ListBox(a), Value::ListBox(b)) => a == b,
-			(Value::ObjectBox(a), Value::ObjectBox(b)) => a == b,
-			(Value::MiscBox(a), Value::MiscBox(b)) => a == b,
-			(Value::NULLBox, Value::NULLBox) => true,
-			_ => false,
-		}
-	}
-}
-
 impl Eq for Value {}
-
-impl PartialEq for HeapValue{
-	fn eq(&self, other: &Self) -> bool{
-		match(self, other){
-			(HeapValue::String(a), HeapValue::String(b)) => a == b,
-			(HeapValue::List(a), HeapValue::List(b)) => a == b,
-			(HeapValue::Object(a), HeapValue::Object(b)) => a == b,
-			(HeapValue::Primitive(a), HeapValue::Primitive(b)) => a == b, //MIGHT DESTROY THE UNIVERSE
-			_ => false,
-		}
-	}
-}
-
-impl Eq for HeapValue {}
 
 impl fmt::Display for Value{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
@@ -172,17 +61,17 @@ impl fmt::Display for Value{
 			Value::UIntSize(n) => write!(f, "usize {}", n),
 
 			Value::Float32(flt32) => {
-				if flt32.abs() > 9999999999999999.0{
-					write!(f, "f32 {:e}", flt32)
-				}else{
+				if flt32.abs() <= 1000000.0 && flt32.abs() >= 0.000001{
 					write!(f, "f32 {}", flt32)
+				}else{
+					write!(f, "f32 {:e}", flt32)
 				}
 			},
 			Value::Float64(flt64) => {
-				if flt64.abs() > 9999999999999999.0{
-					write!(f, "f64 {:e}", flt64)
-				}else{
+				if flt64.abs() <= 1000000.0 && flt64.abs() >= 0.000001{
 					write!(f, "f64 {}", flt64)
+				}else{
+					write!(f, "f64 {:e}", flt64)
 				}
 			},
 			Value::Char(c) => write!(f, "Char \'{}\'", c.escape_default().collect::<String>()),
@@ -200,6 +89,15 @@ impl Default for Value{
 	fn default() -> Self{
 		Value::NULLBox
 	}
+}
+
+//Used to contain values on the heap only.
+#[derive(PartialEq, Eq, Clone)]
+pub enum HeapValue{
+	String(String),
+	List(Vec<Value>),
+	Object(HashMap<String, Value>),
+	Primitive(Value),
 }
 
 impl fmt::Display for HeapValue{
@@ -224,8 +122,15 @@ impl fmt::Display for HeapValue{
 
 impl Default for HeapValue{
 	fn default() -> Self{
-		HeapValue::Primitive(Value::NULLBox)
+		HeapValue::Primitive(Value::default())
 	}
+}
+
+//Exists in token lists and AST.
+#[derive(PartialEq, Eq, Clone)]
+pub enum SuperValue{
+	Reg(Value), 
+	Heap(HeapValue),
 }
 
 impl fmt::Display for SuperValue{
@@ -237,9 +142,15 @@ impl fmt::Display for SuperValue{
 	}
 }
 
+impl Default for SuperValue {
+	fn default() -> Self{
+		SuperValue::Reg(Value::default())
+	}
+}
+
 //Can either be a value to push to the stack or 
 // a command to run an operator or something like that.
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum Token{
 	V(SuperValue),
 	Word((String, usize))
@@ -247,7 +158,7 @@ pub enum Token{
 
 impl Default for Token{
 	fn default() -> Self{
-		Token::V(SuperValue::Reg(Value::NULLBox))
+		Token::V(SuperValue::default())
 	}
 }
 
@@ -261,6 +172,7 @@ impl fmt::Display for Token{
 }
 
 //The various types of nodes that are part of the Abstract Syntax Tree
+#[derive(Clone)]
 pub enum ASTNode{
 	Terminal(Token),
 	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
@@ -277,7 +189,7 @@ pub enum ASTNode{
 
 impl Default for ASTNode{
 	fn default() -> Self{
-		ASTNode::Terminal(Token::V(SuperValue::Reg(Value::NULLBox)))
+		ASTNode::Terminal(Token::default())
 	}
 }
 
@@ -300,37 +212,6 @@ impl fmt::Display for ASTNode{
 			ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
 			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
-		}
-	}
-}
-
-impl Clone for ASTNode{
-	fn clone(&self) -> ASTNode{
-		match self{
-			ASTNode::Terminal(Token::V(SuperValue::Reg(r))) => ASTNode::Terminal(Token::V(SuperValue::Reg(r.clone()))),
-			ASTNode::Terminal(Token::V(SuperValue::Heap(h))) => ASTNode::Terminal(Token::V(SuperValue::Heap(h.clone()))),
-			ASTNode::Terminal(Token::Word(w)) => ASTNode::Terminal(Token::Word(w.clone())),
-			ASTNode::If{if_true: true_branch, if_false: false_branch} => {
-				ASTNode::If{if_true: Box::new(*true_branch.clone()), 
-					if_false: Box::new(*false_branch.clone())}
-			},
-			ASTNode::While(bod) => ASTNode::While(Box::new(*bod.clone())),
-			ASTNode::Expression(nodes) => {
-				let new_nodes: Vec<ASTNode> = nodes.iter().map(|n| n.clone()).collect();
-				ASTNode::Expression(new_nodes)
-			},
-			ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
-				ASTNode::Function{func_cmd: cmd.clone(), func_name: name.clone(), 
-					func_bod: Rc::clone(&bod)}
-			},
-			ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
-				ASTNode::Variable{var_name: name.clone(), var_cmd: cmd.clone(), var_num: *n}
-			},
-			ASTNode::LocVar{name: nam, cmd: c, num: n} => ASTNode::LocVar{name: nam.clone(), cmd: c.clone(), num: *n},
-			ASTNode::BoxOp(op) => ASTNode::BoxOp(op.clone()),
-			ASTNode::AttErr{attempt: att, err: e} => ASTNode::AttErr{attempt: att.clone(), err: e.clone()},
-			ASTNode::Defer(bod) => ASTNode::Defer(Rc::clone(bod)),
-			ASTNode::CastTo(data_type) => ASTNode::CastTo(data_type.clone())
 		}
 	}
 }
