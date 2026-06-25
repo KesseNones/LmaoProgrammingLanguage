@@ -18,6 +18,39 @@ use std::{thread, time};
 pub struct Stack{
 	data: Vec<Value>,
 }
+impl Stack{
+	pub fn new() -> Self{
+		Stack{data: Vec::new()}
+	}
+
+	pub fn pop(&mut self) -> Option<Value>{
+		self.data.pop()
+	}
+
+	pub fn pop2(&mut self) -> (Option<Value>, Option<Value>){
+		let top = self.pop();
+		let second_to_top = self.pop();
+		(second_to_top, top)
+	}
+
+	pub fn pop3(&mut self) -> (Option<Value>, Option<Value>, Option<Value>){
+		let top = self.pop();
+		let second_to_top = self.pop();
+		let third_to_top = self.pop();
+		(third_to_top, second_to_top, top)
+	}
+	
+	pub fn push(&mut self, v: Value){
+		self.data.push(v)	
+	}
+
+	pub fn clear_stack(&mut self){
+		self.data.clear()
+	}
+	pub fn read_stack(&self) -> &Vec<Value>{
+		&self.data
+	}
+}
 
 pub struct Heap{
 	heap: Vec<(HeapValue, bool)>,
