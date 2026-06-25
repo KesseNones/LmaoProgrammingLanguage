@@ -15,7 +15,31 @@ use std::env;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::{thread, time};
 
+pub struct Stack{
+	data: Vec<Value>,
+}
+
+pub struct Heap{
+	heap: Vec<(HeapValue, bool)>,
+	free_list: Vec<usize>
+}
+
+pub struct Variables{
+	vars: HashMap<String, Value>,
+	curr_scope: usize,
+	loc_frames: Vec<(usize, HashMap<String, Value>)>
+}
+
+pub struct Functions{
+	fns: HashMap<String, Rc<ASTNode>>
+}
+
 type OpFunc = fn(&mut State) -> Result<(), String>;
+type OpFunction = fn(&mut Stack, Option<&mut Heap>, Option<&str>) -> Result<(), String>;
+
+pub struct Operators{
+	ops: Box<[OpFunction]>,
+}
 
 //Main mutable state
 pub struct State{
