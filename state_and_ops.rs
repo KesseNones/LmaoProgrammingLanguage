@@ -140,6 +140,157 @@ pub struct Variables{
 	curr_scope: usize,
 	loc_frames: Vec<(usize, HashMap<String, Value>)>
 }
+impl Variables{
+	pub fn new() -> Self{
+		Variables{
+			vars: HashMap::new(),
+			curr_scope: 0,
+			loc_frames: Vec::new()
+		}
+	}
+
+	//Attempts to create a variable of name name with value val. 
+	// Returns boolean of if it succeeded.
+	pub fn mak_var(&mut self, name: &str, val: Value) -> bool{
+		if !self.vars.contains_key(name){
+			self.vars.insert(name.to_string(), val);
+			true	
+		}else{
+			false
+		}
+	}
+
+	//Attempts to get a variable by a name.
+	pub fn get_var(&self, name: &str) -> Option<Value>{
+		self.vars.get(name).copied()
+	}
+
+	//Determines if a translation from one value type to another is valid. 
+	// Typically the types have to match unless it's nullbox to box stuff.
+	fn is_valid_mutation(&self, a: &Value, b: &Value) -> bool{
+		match (a, b) {
+			(Value::IntSize(_), Value::IntSize(_)) => true,
+			(Value::UIntSize(_), Value::UIntSize(_)) => true,
+
+			(Value::Int8(_), Value::Int8(_)) => true,
+			(Value::Int16(_), Value::Int16(_)) => true,
+			(Value::Int32(_), Value::Int32(_)) => true,
+			(Value::Int64(_), Value::Int64(_)) => true,
+			(Value::Int128(_), Value::Int128(_)) => true,
+
+			(Value::UInt8(_), Value::UInt8(_)) => true,
+			(Value::UInt16(_), Value::UInt16(_)) => true,
+			(Value::UInt32(_), Value::UInt32(_)) => true,
+			(Value::UInt64(_), Value::UInt64(_)) => true,
+			(Value::UInt128(_), Value::UInt128(_)) => true,
+
+			(Value::Float32(_), Value::Float32(_)) => true,
+			(Value::Float64(_), Value::Float64(_)) => true,
+
+			(Value::Char(_), Value::Char(_)) => true,
+			(Value::Boolean(_), Value::Boolean(_)) => true,
+
+			(Value::StringBox(_), Value::StringBox(_)) => true,
+			(Value::ListBox(_), Value::ListBox(_)) => true,
+			(Value::MiscBox(_), Value::MiscBox(_)) => true,
+
+			(Value::NULLBox, Value::StringBox(_)) => true,
+			(Value::StringBox(_), Value::NULLBox) => true,
+			(Value::NULLBox, Value::ListBox(_)) => true,
+			(Value::ListBox(_), Value::NULLBox) => true,
+			(Value::NULLBox, Value::ObjectBox(_)) => true,
+			(Value::ObjectBox(_), Value::NULLBox) => true,
+			(Value::NULLBox, Value::MiscBox(_)) => true,
+			(Value::MiscBox(_), Value::NULLBox) => true,
+			(Value::NULLBox, Value::NULLBox) => true,
+
+			_ => false,
+
+		}
+	}
+
+	//Mutates a variable to the new value.
+	//Returns an integer indicating results.
+	// 0 -> it worked
+	// 1 -> the variable doesn't exist
+	// 2 -> the mutation is invalid
+	pub fn mut_var(&mut self, name: &str, new_val: Value) -> usize{
+		match self.vars.get(name).copied(){
+			Some(old_val) => {
+				if is_valid_mutation(&old_val, &new_val){
+					self.vars.insert(name.to_string(), new_val);
+					0
+				}
+				else{2}
+			},
+			None => 1,
+		}
+	}
+
+	//Tries to delete a variable.
+	// If it exists, it's gone.
+	// If not, nothing happens.
+	// Boolean indicates success.
+	pub fn del_var(&mut self, name: &str) -> bool{
+		match self.vars.get(name){
+			Some(_) => {self.vars.remove(name); true},
+			None => {false}
+		}
+	}
+	pub fn add_frame(&mut self){
+		self.curr_scope += 1;		
+	}
+	pub fn remove_frame(&mut self){
+		//Pops frame from stack if current scope had a frame.
+		let len = self.loc_frames.len();
+		if self.loc_frames[len - 1].0 == self.curr_scope{
+			self.loc_frames.pop();
+		}
+		self.curr_scope -= 1;		
+	}
+
+	//Creates a local variable, potentially a whole frame if needed.
+	// Returns a boolean of success.
+	// Failure is if the variable is already there.
+	pub fn mak_loc(&mut self, name: &str, val: Value) -> bool{
+		let len = self.loc_frames.len();
+
+		//Creates local var frame if it doesn't exist for current scope.
+		if len == 0 || self.loc_frames[len - 1].0 != self.curr_scope{
+			self.loc_frames.push((self.curr_scope, HashMap::new()));
+		}
+
+		if !self.loc_frames[len - 1].1.contains_key(name){
+			self.loc_frames[len - 1].1.insert(name.to_string(), val);
+			true	
+		}else{false}
+	}
+
+	//Traverses back up the stack, searching each frame for the given variable.
+	// If found, it's returned, if not, it's none.
+	pub fn get_loc(&self, name: &str) -> Option<Value>{
+		for i in (self.loc_frames.len() - 1)..=0{
+			if let Some(v) = self.loc_frames[i].1.get(name).copied(){
+				return Some(v);
+			}
+		}
+		None
+	}
+
+	//Like mut_var but handles the multi-scoping logic.
+	pub fn mut_loc(&mut self, name: &str, new_val: Value) -> usize{
+		for i in (self.loc_frames.len() - 1)..=0{
+			if let Some(v) = self.loc_frames[i].1.get(name).copied(){
+				if self.is_valid_mutation(&v, &new_val){
+					self.loc_frames[i].1.insert(name.to_string(), new_val);
+					return 0;
+				}else{return 2;}
+			}
+		}
+		1
+	}
+
+}
 
 pub struct Functions{
 	fns: HashMap<String, Rc<ASTNode>>
