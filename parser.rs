@@ -7,7 +7,7 @@ use std::io::Read;
 
 //This pub enum is used to contain all the possible data types of Lmao 
 // that live everywhere but the Heap.
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Copy)]
 pub enum Value{
 	//Signed integers.
 	Int8(i8),

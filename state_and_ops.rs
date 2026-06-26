@@ -56,6 +56,84 @@ pub struct Heap{
 	heap: Vec<(HeapValue, bool)>,
 	free_list: Vec<usize>
 }
+impl Heap{
+	pub fn new() -> Self{
+		Heap{
+			heap: Vec::new(),
+			free_list: Vec::new()
+		}
+	}		
+
+	//Inserts item into Heap and returns a Box pointing to it.
+	pub fn insert_to_heap(&mut self, ins_val: HeapValue) -> Value{
+		//Inserts to heap or reuses cell if one exists.
+		let mut box_num: usize = 0;
+		match self.free_list.pop(){
+			Some(index) => {
+				self.heap[index] = (ins_val, true);
+				box_num = index;	
+			},
+			None => {
+				box_num = self.heap.len();
+				self.heap.push((ins_val, true));
+			},
+		}
+		
+		//Wraps box number into proper box value.
+		match &self.heap[box_num].0{
+			HeapValue::String(_) => Value::StringBox(box_num),
+			HeapValue::List(_) => Value::ListBox(box_num),
+			HeapValue::Object(_) => Value::ObjectBox(box_num),
+			HeapValue::Primitive(_) => Value::MiscBox(box_num),
+		}
+
+	}
+		
+	//If it's an actual Box type with a number, 
+	// it kicks it back, otherwise None.
+	fn box_to_int(&self, v: Value) -> Option<usize>{
+		match(v){
+			Value::StringBox(n) => Some(n),
+			Value::ListBox(n) => Some(n),
+			Value::ObjectBox(n) => Some(n),
+			Value::MiscBox(n) => Some(n),
+			_ => None,
+		}	
+	}
+		
+	fn is_valid_index(&self, idx: usize) -> bool{
+		idx < self.heap.len() && self.heap[idx].1
+	}
+
+	//Returns a boolean based on whether or not the desired box number is valid.
+	pub fn validate_box(&self, bx: Value) -> bool{
+		if let Some(num) = self.box_to_int(bx) && self.is_valid_index(num){
+			match (bx, &self.heap[num].0){
+				(Value::StringBox(_), HeapValue::String(_)) => true,
+				(Value::ListBox(_), HeapValue::List(_)) => true,
+				(Value::ObjectBox(_), HeapValue::Object(_)) => true,
+				(Value::MiscBox(_), HeapValue::Primitive(_)) => true,
+				_ => false
+			}
+		}else{
+			false
+		}
+		
+	}
+
+	//Frees heap cell the given box is pointing to.
+	//Returns boolean based on if it succeeded or not.
+	pub fn free_heap_cell(&mut self, bx: Value) -> bool{
+		if self.validate_box(bx){
+			let box_num = self.box_to_int(bx).unwrap();
+			self.heap[box_num].1 = false;
+			self.free_list.push(box_num);
+			true
+		}else{
+			false
+		}
+	}
+}
 
 pub struct Variables{
 	vars: HashMap<String, Value>,
