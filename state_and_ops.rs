@@ -295,6 +295,28 @@ impl Variables{
 pub struct Functions{
 	fns: HashMap<String, Rc<ASTNode>>
 }
+impl Functions{
+	pub fn new() -> Self{
+		Functions{fns: HashMap::new()}	
+	}
+	
+	//Attempts to define a function. 
+	// true -> it worked.
+	// false -> it's already defined.
+	pub fn func_def(&mut self, name: &str, body: Rc<ASTNode>) -> bool{
+		if !self.fns.contains_key(name)	{
+			self.fns.insert(name.to_string(), Rc::clone(&body));
+			true
+		}else{
+			false
+		}
+	}
+
+	pub fn get_body(&self, name: &str) -> Option<Rc<ASTNode>> {
+		self.fns.get(name).cloned()
+	}
+
+}
 
 type OpFunc = fn(&mut State) -> Result<(), String>;
 type OpFunction = fn(&mut Stack, Option<&mut Heap>, Option<&str>) -> Result<(), String>;
