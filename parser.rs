@@ -287,6 +287,7 @@ macro_rules! impl_integer_casts {
 						Uint64, UInt64, u64,	
 						Uint128, UInt128, u128,	
 
+						Size, IntSize, isize,
 						Int8, Int8, i8,	
 						Int16, Int16, i16,	
 						Int32, Int32, i32,	

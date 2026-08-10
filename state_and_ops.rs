@@ -2111,7 +2111,7 @@ pub fn cast_stuff(s: &mut Stack, h: &mut Heap, c_type: Option<&str>) -> Result<R
 							Ok(RetCode::Normal)
 						},
 						Ok(SuperValue::Reg(val)) => {s.push(val); Ok(RetCode::Normal)},
-						Err(_) => Err(casting_failed_error(
+						Err(e) => Err(casting_failed_error(
 							$op_name, Value::$type(v), $cast_type))
 					}
 				},)*
