@@ -325,7 +325,7 @@ impl Variables{
 	pub fn remove_frame(&mut self){
 		//Pops frame from stack if current scope had a frame.
 		let len = self.loc_frames.len();
-		if self.loc_frames[len - 1].0 == self.curr_scope{
+		if len > 0 && self.loc_frames[len - 1].0 == self.curr_scope{
 			self.loc_frames.pop();
 		}
 		self.curr_scope -= 1;		
