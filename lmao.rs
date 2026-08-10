@@ -333,7 +333,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
 								if let Some(v) = vars.get_loc(nam){
 									s.push(v);
 								}else{
-									err_break!{variable_nonexist_error("loc mak", nam)}	
+									err_break!{variable_nonexist_error("loc get", nam)}	
 								}
                             },
                             VarCmd::Mutate => {

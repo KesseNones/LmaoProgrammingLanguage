@@ -352,8 +352,8 @@ impl Variables{
 	//Traverses back up the stack, searching each frame for the given variable.
 	// If found, it's returned, if not, it's none.
 	pub fn get_loc(&self, name: &str) -> Option<Value>{
-		for i in (self.loc_frames.len() - 1)..=0{
-			if let Some(v) = self.loc_frames[i].1.get(name).copied(){
+		for frame in self.loc_frames.iter().rev(){
+			if let Some(v) = frame.1.get(name).copied(){
 				return Some(v);
 			}
 		}
