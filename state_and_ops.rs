@@ -335,11 +335,12 @@ impl Variables{
 	// Returns a boolean of success.
 	// Failure is if the variable is already there.
 	pub fn mak_loc(&mut self, name: &str, val: Value) -> bool{
-		let len = self.loc_frames.len();
+		let mut len = self.loc_frames.len();
 
 		//Creates local var frame if it doesn't exist for current scope.
 		if len == 0 || self.loc_frames[len - 1].0 != self.curr_scope{
 			self.loc_frames.push((self.curr_scope, HashMap::new()));
+			len += 1;
 		}
 
 		if !self.loc_frames[len - 1].1.contains_key(name){
