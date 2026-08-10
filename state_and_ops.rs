@@ -362,10 +362,10 @@ impl Variables{
 
 	//Like mut_var but handles the multi-scoping logic.
 	pub fn mut_loc(&mut self, name: &str, new_val: Value) -> usize{
-		for i in (self.loc_frames.len() - 1)..=0{
-			if let Some(v) = self.loc_frames[i].1.get(name).copied(){
+		for frame in self.loc_frames.iter_mut().rev(){
+			if let Some(v) = frame.1.get(name).copied(){
 				if is_valid_mutation(v, new_val){
-					self.loc_frames[i].1.insert(name.to_string(), new_val);
+					frame.1.insert(name.to_string(), new_val);
 					return 0;
 				}else{return 2;}
 			}
