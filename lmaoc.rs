@@ -194,13 +194,13 @@ fn translate_ast_to_rust_code(
                             },
                         }
                     },
-                    ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => {
+                    ASTNode::Variable{var_name: name, cmd: c, var_num: n} => {
                         let code_str = format!("
                             match var_action(state, \"{}\", \"{}\", {}){{
                                 Ok(_) => (),
                                 Err(e) => return error_and_remove_frame(state, e),
                             }}
-                        ", &name, &cmd, n);
+                        ", &name, c, n);
                         code_strings.push(code_str)
                     },
                     ASTNode::BoxOp(op) => {
@@ -209,7 +209,7 @@ fn translate_ast_to_rust_code(
                                 Ok(_) => (),
                                 Err(e) => return error_and_remove_frame(state, e),
                             }}
-                        ", &op);
+                        ", op);
                         code_strings.push(code_str)
                     },
                     ASTNode::If{if_true: true_branch, if_false: false_branch} => {
@@ -294,9 +294,9 @@ fn translate_ast_to_rust_code(
 
                         code_strings.push(code_str)
                     },
-                    ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: body} => {
-                        match cmd as &str{
-                            "def" => {
+                    ASTNode::Function{cmd: c, func_name: name, func_bod: body} => {
+                        match c{
+                            FunCmd::Define => {
                                 let func_code = make_code_str_from_ast(&body, ops_to_funcs);
 
                                 let code_str = format!("
@@ -317,7 +317,7 @@ fn translate_ast_to_rust_code(
 
                                 code_strings.push(code_str);
                             },
-                            "call" => {
+                            FunCmd::Call => {
                                 let code_str = format!("
                                     match state.fns.get(\"{}\"){{
                                         Some(func) => {{

@@ -4,10 +4,11 @@ use std::fmt;
 use std::path::Path;
 use std::fs::File;
 use std::io::Read;
+use std::mem::discriminant;
 
 //This pub enum is used to contain all the possible data types of Lmao 
 // that live everywhere but the Heap.
-#[derive(PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy, PartialOrd)]
 pub enum Value{
 	//Signed integers.
 	Int8(i8),
@@ -39,6 +40,26 @@ pub enum Value{
 	ObjectBox(usize),
 	MiscBox(usize),
 	NULLBox,
+}
+
+//Determines if a translation from one value type to another is valid. 
+// Typically the types have to match unless it's nullbox to box stuff.
+pub fn is_valid_mutation(a: Value, b: Value) -> bool{
+	if discriminant(&a) == discriminant(&b){
+		true
+	}else{
+		match (a, b){
+			(Value::NULLBox, Value::StringBox(_)) => true,
+			(Value::StringBox(_), Value::NULLBox) => true,
+			(Value::NULLBox, Value::ListBox(_)) => true,
+			(Value::ListBox(_), Value::NULLBox) => true,
+			(Value::NULLBox, Value::ObjectBox(_)) => true,
+			(Value::ObjectBox(_), Value::NULLBox) => true,
+			(Value::NULLBox, Value::MiscBox(_)) => true,
+			(Value::MiscBox(_), Value::NULLBox) => true,
+			_ => false,
+		}	
+	}
 }
 
 impl Eq for Value {}
@@ -100,20 +121,34 @@ pub enum HeapValue{
 	Primitive(Value),
 }
 
+//Function used in displaying Lists as well as casting them to strings.
+fn stringify_val_vec(ls: &Vec<Value>) -> String{
+	let stringified = ls	
+		.iter()
+		.map(|el| format!("{}", el))
+		.collect::<Vec<String>>()
+		.join(", ");
+	format!("[{}]", stringified)
+}
+
+fn stringify_obj(obj: &HashMap<String, Value>) -> String{
+	let stringified = obj
+		.iter()
+		.map(|(k, v)| format!("{}: {}", k, v))
+		.collect::<Vec<String>>()
+		.join(", ");
+	format!("{}{}{}", "{", stringified, "}")
+}
+
 impl fmt::Display for HeapValue{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self {
 			HeapValue::String(s) => write!(f, "String {:?}", s),
 			HeapValue::List(ls) => {
-				let ls_strs: Vec<String> = ls.iter().map(|el| format!("{}", el)).collect();
-				write!(f, "List [{}]", ls_strs.join(", "))
+				write!(f, "List {}", stringify_val_vec(ls))
 			},
 			HeapValue::Object(o) => {
-				let mut obj_strs: Vec<String> = Vec::new();
-				for (key, value) in o.iter(){
-					obj_strs.push(format!("{}: {}", key, value));
-				}
-				write!(f, "Object {}{}{}", "{", obj_strs.join(", "), "}")
+				write!(f, "Object {}", stringify_obj(o))
 			},
 			HeapValue::Primitive(p) => write!(f, "{}", p),
 		}
@@ -148,6 +183,267 @@ impl Default for SuperValue {
 	}
 }
 
+pub enum CastType{
+	Usize, Uint8, Uint16, Uint32, Uint64,
+	Uint128, Size, Int8, Int16, Int32,
+	Int64, Int128, F32, F64, Char,
+	Bool, StringBox, String, ListBox,
+	List, ObjectBox, MiscBox
+}
+
+pub enum CastError{
+	InvalidCast
+}
+
+pub trait TryCast<T>: Sized{
+	type CastError;
+	
+	fn try_cast(v: T, target: CastType) -> Result<Self,Self::CastError>;
+}
+
+//Used to make match statement less bloated for conversions.
+macro_rules! target_match{
+	($target:ident, $($tar:literal, $res:ident),* $(,)?) => {
+		match $target{
+			$($tar => Ok(CastType::$res),)*
+			_ => Err(CastError::InvalidCast)
+		}	
+	};
+}
+
+impl TryCast<&str> for CastType{
+	type CastError = CastError;
+	fn try_cast(tar: &str, _: CastType) -> Result<Self, Self::CastError>{
+		target_match!{tar,
+			"usize", Usize,
+			"u8", Uint8,
+			"u16", Uint16,
+			"u32", Uint32,
+			"u64", Uint64,
+			"u128", Uint128,
+
+			"isize", Size,
+			"i8", Int8,
+			"i16", Int16,
+			"i32", Int32,
+			"i64", Int64,
+			"i128", Int128,
+			
+			"f32", F32,
+			"f64", F64,
+
+			"Char", Char,
+			"Boolean", Bool,
+
+			"StringBox", StringBox,
+			"String", String,
+			"ListBox", ListBox,
+			"ObjectBox", ObjectBox,
+			"List", List,
+			"MiscBox", MiscBox
+		}
+	}
+}
+
+//Macro that compacts the match statement for integer casting.
+macro_rules! integer_match {
+	($t:ty, $v:ident, $target:ident, $($var:ident, $cast_to:ident, $type:ty),* $(,)?) => {
+		match $target {
+			$(CastType::$var => Ok(SuperValue::Reg(Value::$cast_to($v as $type))),)*
+			CastType::Bool => Ok(SuperValue::Reg(Value::Boolean($v != (0 as $t)))),
+			
+			CastType::Char => {
+				let char_num = $v as u32;
+				if let Some(chr) = std::char::from_u32(char_num){
+					Ok(SuperValue::Reg(Value::Char(chr)))
+				}else{Err(Self::CastError::InvalidCast)} 
+			},
+
+			CastType::StringBox => Ok(SuperValue::Reg(Value::StringBox($v as usize))),
+			CastType::ListBox => Ok(SuperValue::Reg(Value::ListBox($v as usize))),
+			CastType::ObjectBox => Ok(SuperValue::Reg(Value::ObjectBox($v as usize))),
+			CastType::MiscBox => Ok(SuperValue::Reg(Value::MiscBox($v as usize))),
+
+			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			
+			_ => Err(Self::CastError::InvalidCast)
+		}
+	};
+}
+
+macro_rules! impl_integer_casts {
+	//What this block basically says is to loop through zero 
+	// or more type arguments given and generate the two impl's below.
+	($($t:ty),*) => {
+		$(
+			impl TryCast<$t> for SuperValue{
+				type CastError = CastError;
+				fn try_cast(v: $t, target: CastType) -> Result<Self, Self::CastError>{
+					integer_match!{$t, v, target, 
+						Usize, UIntSize, usize,
+						Uint8, UInt8, u8,	
+						Uint16, UInt16, u16,	
+						Uint32, UInt32, u32,	
+						Uint64, UInt64, u64,	
+						Uint128, UInt128, u128,	
+
+						Int8, Int8, i8,	
+						Int16, Int16, i16,	
+						Int32, Int32, i32,	
+						Int64, Int64, i64,	
+						Int128, Int128, i128,	
+			
+						F32, Float32, f32,
+						F64, Float64, f64,
+					}
+				}	
+			}
+		)*
+	}
+}
+
+impl_integer_casts!{usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64}
+
+//Macro that compacts the match statement for bool casting.
+macro_rules! bool_match{
+	($v:ident , $target:ident, $($var:ident, $cast_to:ident, $type:ty),* $(,)?) => {
+		match $target {
+			$(CastType::$var => 
+				Ok(SuperValue::Reg(Value::$cast_to((if $v {1} else {0}) as $type))),)*
+			CastType::Bool => Ok(SuperValue::Reg(Value::Boolean($v))),
+			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			_ => Err(Self::CastError::InvalidCast)
+		}
+	};
+}
+impl TryCast<bool> for SuperValue{
+	type CastError = CastError;
+	fn try_cast(v: bool, target: CastType) -> Result<Self, Self::CastError>{
+		bool_match!{v, target, 
+			Usize, UIntSize, usize,
+			Uint8, UInt8, u8,	
+			Uint16, UInt16, u16,	
+			Uint32, UInt32, u32,	
+			Uint64, UInt64, u64,	
+			Uint128, UInt128, u128,	
+
+			Int8, Int8, i8,	
+			Int16, Int16, i16,	
+			Int32, Int32, i32,	
+			Int64, Int64, i64,	
+			Int128, Int128, i128,	
+
+			F32, Float32, f32,
+			F64, Float64, f64
+		}
+	}	
+}
+
+//Macro that compacts the match statement for Char casting.
+macro_rules! char_match{
+	($v:ident , $target:ident, $($var:ident, $cast_to:ident, $type:ty),* $(,)?) => {
+		match $target {
+			$(CastType::$var => Ok(SuperValue::Reg(Value::$cast_to(($v as u32) as $type))),)*
+			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			_ => Err(Self::CastError::InvalidCast)
+		}
+	};
+}
+impl TryCast<char> for SuperValue{
+	type CastError = CastError;
+	fn try_cast(v: char, target: CastType) -> Result<Self, Self::CastError>{
+		char_match!{v, target, 
+			Usize, UIntSize, usize,
+			Uint8, UInt8, u8,	
+			Uint16, UInt16, u16,	
+			Uint32, UInt32, u32,	
+			Uint64, UInt64, u64,	
+			Uint128, UInt128, u128,	
+
+			Int8, Int8, i8,	
+			Int16, Int16, i16,	
+			Int32, Int32, i32,	
+			Int64, Int64, i64,	
+			Int128, Int128, i128,	
+
+			F32, Float32, f32,
+			F64, Float64, f64
+		}
+	}	
+}
+
+//Macro that compacts the match statement for String casting.
+macro_rules! string_match{
+	(&$v:ident , $target:ident, $($var:ident, $cast_to:ident, $type:ty),* $(,)?) => {
+		match $target {
+			$(CastType::$var => {
+				if let Ok(parsed) = $v.parse(){
+					Ok(SuperValue::Reg(Value::$cast_to(parsed)))
+				}else{
+					Err(Self::CastError::InvalidCast)
+				}
+			},)*
+			CastType::List => {
+				let char_ls: Vec<Value> = $v	
+					.chars()
+					.map(|c| Value::Char(c))
+					.collect();
+				Ok(SuperValue::Heap(HeapValue::List(char_ls)))
+			},
+			CastType::Bool => {
+				match $v.as_str(){
+					"True" | "true" => Ok(SuperValue::Reg(Value::Boolean(true))),
+					"False" | "false" => Ok(SuperValue::Reg(Value::Boolean(false))),
+					_ => Err(Self::CastError::InvalidCast)
+				}
+			}
+			_ => Err(Self::CastError::InvalidCast)
+		}
+	};
+}
+impl TryCast<&String> for SuperValue{
+	type CastError = CastError;
+	fn try_cast(v: &String, target: CastType) -> Result<Self, Self::CastError>{
+		string_match!{&v, target, 
+			Usize, UIntSize, usize,
+			Uint8, UInt8, u8,	
+			Uint16, UInt16, u16,	
+			Uint32, UInt32, u32,	
+			Uint64, UInt64, u64,	
+			Uint128, UInt128, u128,	
+
+			Int8, Int8, i8,	
+			Int16, Int16, i16,	
+			Int32, Int32, i32,	
+			Int64, Int64, i64,	
+			Int128, Int128, i128,	
+
+			F32, Float32, f32,
+			F64, Float64, f64
+		}
+	}	
+}
+
+impl TryCast<&Vec<Value>> for SuperValue{
+	type CastError = CastError;
+	fn try_cast(v: &Vec<Value>, target: CastType) -> Result<Self, Self::CastError>{
+		match target{
+			CastType::String => Ok(SuperValue::Heap(HeapValue::String(stringify_val_vec(v)))),
+			_ => Err(Self::CastError::InvalidCast)
+		}
+	}
+}
+
+impl TryCast<&HashMap<String, Value>> for SuperValue{
+	type CastError = CastError;
+	fn try_cast(v: &HashMap<String, Value>, target: CastType) -> Result<Self, Self::CastError>{
+		match target{
+			CastType::String => Ok(SuperValue::Heap(HeapValue::String(stringify_obj(v)))),
+			_ => Err(Self::CastError::InvalidCast)
+		}
+	}
+}
+
 //Can either be a value to push to the stack or 
 // a command to run an operator or something like that.
 #[derive(PartialEq, Eq, Clone)]
@@ -171,6 +467,108 @@ impl fmt::Display for Token{
 	}
 }
 
+#[derive(Copy, Eq, PartialEq, Clone)]
+pub enum VarCmd{
+	Make,
+	Get,
+	Mutate,
+	Delete,
+	Unknown
+}
+
+impl VarCmd{
+	pub fn new(val: &str) -> Self{
+		match val{
+			"mak" => VarCmd::Make,
+			"get" => VarCmd::Get,
+			"mut" => VarCmd::Mutate,
+			"del" => VarCmd::Delete,
+			_ => VarCmd::Unknown
+		}
+	}	
+}
+
+impl fmt::Display for VarCmd{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+		let cmd_str = match self{
+			VarCmd::Make => "mak",
+			VarCmd::Get => "get",
+			VarCmd::Mutate => "mut",
+			VarCmd::Delete => "del",
+			VarCmd::Unknown => "UNKNOWN"
+		};		
+
+		write!(f, "{}", cmd_str)
+	}	
+}
+
+#[derive(Copy, Eq, PartialEq, Clone)]
+pub enum BoxCmd{
+	Free,
+	Null,
+	Make,
+	Open,
+	Alter,
+	Unknown
+}
+
+impl BoxCmd{
+	pub fn new(val: &str) -> Self{
+		match val{
+			"make" => BoxCmd::Make,
+			"open" => BoxCmd::Open,
+			"altr" => BoxCmd::Alter,
+			"null" => BoxCmd::Null,
+			"free" => BoxCmd::Free,
+			_ => BoxCmd::Unknown
+		}
+	}	
+}
+
+impl fmt::Display for BoxCmd{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+		let cmd_str = match self{
+			BoxCmd::Make => "make",
+			BoxCmd::Open => "open",
+			BoxCmd::Alter => "altr",
+			BoxCmd::Null => "null",
+			BoxCmd::Free => "free",
+			BoxCmd::Unknown => "UNKNOWN"
+		};	
+
+		write!(f, "{}", cmd_str)
+	}	
+}
+
+#[derive(Copy, Eq, PartialEq, Clone)]
+pub enum FunCmd{
+	Define,
+	Call,
+	Unknown
+}
+
+impl FunCmd{
+	pub fn new(val: &str) -> Self{
+		match val{
+			"def" => FunCmd::Define,
+			"call" => FunCmd::Call,
+			_ => FunCmd::Unknown,
+		}
+	}	
+}
+
+impl fmt::Display for FunCmd{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+		let cmd_str = match self{
+			FunCmd::Define => "def",
+			FunCmd::Call => "call",
+			FunCmd::Unknown => "UNKNOWN"
+		};		
+
+		write!(f, "{}", cmd_str)
+	}	
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
@@ -178,10 +576,10 @@ pub enum ASTNode{
 	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
 	While(Box<ASTNode>),
 	Expression(Vec<ASTNode>),
-	Function{func_cmd: String, func_name: String, func_bod: Rc<ASTNode>},
-	Variable{var_name: String, var_cmd: String, var_num: usize},
-	LocVar{name: String, cmd: String, num: usize},
-	BoxOp(String),
+	Function{cmd: FunCmd, func_name: String, func_bod: Rc<ASTNode>},
+	Variable{var_name: String, cmd: VarCmd, var_num: usize},
+	LocVar{name: String, cmd: VarCmd, num: usize},
+	BoxOp(BoxCmd),
 	AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
 	Defer(Rc<ASTNode>),
 	CastTo(String),
@@ -203,10 +601,10 @@ impl fmt::Display for ASTNode{
 				let strs: Vec<String> = vec.iter().map(|n| format!("{}", n)).collect();
 				write!(f, "Expression [{}]", strs.join(", "))
 			},
-			ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: body} => {
-				write!(f, "Function [cmd: {}, name: {}, body: {}]", cmd, name, body)
+			ASTNode::Function{cmd: c, func_name: name, func_bod: body} => {
+				write!(f, "Function [cmd: {}, name: {}, body: {}]", c, name, body)
 			},
-			ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: n} => write!(f, "Variable [name: {}, cmd: {}, num: {}]", name, cmd, n),
+			ASTNode::Variable{var_name: name, cmd: c, var_num: n} => write!(f, "Variable [name: {}, cmd: {}, num: {}]", name, c, n),
 			ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
 			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
 			ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
@@ -219,7 +617,7 @@ impl fmt::Display for ASTNode{
 //Uses the implemented format traits to build a string for the given Value type. 
 // From there, it only consumes the characters that name the actual type.
 // This avoids needing a big match statement. 
-pub fn type_to_string(v: &Value) -> String{
+pub fn type_to_string(v: Value) -> String{
 	let mut chrs = String::new();
 	for c in format!("{}", v).chars(){
 		if c == ' '{
@@ -751,7 +1149,7 @@ pub fn make_ast_prime(
 				match make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]){
 					Ok((fbod, tokens_prime, token_index_prime, _)) => {
 						let fbod_ast = Rc::new(ASTNode::Expression(fbod));
-						already_parsed.push(ASTNode::Function{func_cmd: command_str, func_name: name_str, func_bod: fbod_ast});
+						already_parsed.push(ASTNode::Function{cmd: FunCmd::new(&command_str), func_name: name_str, func_bod: fbod_ast});
 						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 					},
 					Err(e) => return Err(e),
@@ -777,7 +1175,7 @@ pub fn make_ast_prime(
 									ret
 								},
 							};
-							already_parsed.push(ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: vn});
+							already_parsed.push(ASTNode::Variable{var_name: name, cmd: VarCmd::new(&cmd), var_num: vn});
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
 						}else{
@@ -807,7 +1205,7 @@ pub fn make_ast_prime(
 									ret
 								},
 							};
-							already_parsed.push(ASTNode::LocVar{name: name, cmd: cmd, num: var_num});
+							already_parsed.push(ASTNode::LocVar{name: name, cmd: VarCmd::new(&cmd), num: var_num});
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
 						}else{
@@ -829,7 +1227,7 @@ pub fn make_ast_prime(
 								_ => return Err("Malformed box command!".to_string()),
 							};
 
-							already_parsed.push(ASTNode::BoxOp(box_cmd));
+							already_parsed.push(ASTNode::BoxOp(BoxCmd::new(&box_cmd)));
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 						}else{
 							return Err("Malformed box command! No box command token given!".to_string());
