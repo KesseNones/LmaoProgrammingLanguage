@@ -445,6 +445,149 @@ impl TryCast<&HashMap<String, Value>> for SuperValue{
 	}
 }
 
+pub enum Operator{
+	Add, Sub, Mul, Div, 
+	Mod, Pow, 
+
+	UsizeMax, U8Max, U16Max, U32Max, U64Max, U128Max, 
+	IsizeMax, I8Max, I16Max, I32Max, I64Max, I128Max, 
+
+	Swap, Drop, DropStack, Rot, Dup, DeepDup, 
+
+	Equal, NotEqual, GreaterThan, LessThan, GreaterThanEqualTo,
+	LessThanEqualTo, StringCompare, Concat,
+
+	And, Or, Xor, Not,
+
+	Push, Pop, Fpush, Fpop, Index, Length,
+
+	IsEmpty, Clear, Contains, ChangeItemAt,
+	
+	IsWhitespaceChar, IsAlphaChar, IsNumChar,
+
+	ObjAddField, ObjGetField, ObjMutField, ObjRemField,
+
+	BitOr, BitAnd, BitXor, BitNot, BitShift, Cast,
+
+	PrintLine, ReadLine, PrintChar, ReadChar, Print, Read, 
+	DebugPrintStack, DebugPrintHeap,
+
+	FileWrite, FileRead, FileCreate, FileRemove, FileExists,
+
+	QueryType, LeaveScopeIfTrue, ThrowCustomError, GetArgs, 
+	IsValidBox, TimeUnixNow, TimeWait, 
+
+	Unknown
+}
+
+impl Operator{
+	fn new(op_name: &str) -> Self{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match op_name{
+					$($name => Operator::$var,)*			
+					_ => Operator::Unknown,
+				}	
+			};
+		}
+		op_match!{
+			("+", Add),
+			("-", Sub),
+			("*", Mul),
+			("/", Div),
+			("mod", Mod),
+			("pow", Pow),
+
+			("isizeMax", IsizeMax),
+			("usizeMax", UsizeMax),
+
+			("i8Max", I8Max),
+			("i16Max", I16Max),
+			("i32Max", I32Max),
+			("i64Max", I64Max),
+			("i128Max", I128Max),
+
+			("u8Max", U8Max),
+			("u16Max", U16Max),
+			("u32Max", U32Max),
+			("u64Max", U64Max),
+			("u128Max", U128Max),
+
+			("swap", Swap),	
+			("drop", Drop),	
+			("dropStack", DropStack),	
+			("rot", Rot),	
+			("dup", Dup),	
+			("deepDup", DeepDup),	
+
+			("==", Equal),
+			("!=", NotEqual),
+			(">", GreaterThan),
+			("<", LessThan),
+			(">=", GreaterThanEqualTo),
+			("<=", LessThanEqualTo),
+			("stringCompare", StringCompare),
+			("++", Concat),
+
+			("and", And),
+			("or", Or),
+			("xor", Xor),
+			("not", Not),
+
+			("push", Push),
+			("pop", Pop),
+			("fpush", Fpush),
+			("fpop", Fpop),
+			("index", Index),
+			("length", Length),
+
+			("isEmpty", IsEmpty),
+			("clear", Clear),
+			("contains", Contains),
+			("changeItemAt", ChangeItemAt),
+
+			("isWhitespaceChar", IsWhitespaceChar),
+			("isAlphaChar", IsAlphaChar),
+			("isNumChar", IsNumChar),
+
+			("objAddField", ObjAddField),
+			("objGetField", ObjGetField),
+			("objMutField", ObjMutField),
+			("objRemField", ObjRemField),
+
+			("bitOr", BitOr),
+			("bitAnd", BitAnd),
+			("bitXor", BitXor),
+			("bitNot", BitNot),
+			("bitShift", BitShift),
+			("cast", Cast),
+
+			("printLine", PrintLine),
+			("readLine", ReadLine),
+			("printChar", PrintChar),
+			("readChar", ReadChar),
+			("print", Print),
+			("read", Read),
+			("debugPrintStack", DebugPrintStack),
+			("debugPrintHeap", DebugPrintHeap),
+
+			("fileWrite", FileWrite),
+			("fileRead", FileRead),
+			("fileCreate", FileCreate),
+			("fileRemove", FileRemove),
+			("fileExists", FileExists),
+
+			("queryType", QueryType),
+			("leaveScopeIfTrue", LeaveScopeIfTrue),
+			("throwCustomError", ThrowCustomError),
+			("getArgs", GetArgs),
+			("isValidBox", IsValidBox),
+			("timeUnixNow", TimeUnixNow),
+			("timeWait", TimeWait),
+		}	
+	}
+}
+
 //Can either be a value to push to the stack or 
 // a command to run an operator or something like that.
 #[derive(PartialEq, Eq, Clone)]
