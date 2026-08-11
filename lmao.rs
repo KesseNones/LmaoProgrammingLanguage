@@ -30,44 +30,39 @@ fn local_variable_lack_of_args_error(var_action: &str) -> String{
         item on the stack! None provided!", var_action)
 }
 
-//Frees a box on the heap or kicks back an error.
-fn box_free_func(s: &mut State, v: Value, box_num: usize) -> Result<(), String>{
-    if s.validate_box(box_num){
-        s.free_heap_cell(box_num);
-        Ok(())
-    }else{
-        Err(format!("Box free error! {} is invalid due \
-            to having already been free'd!", &v))
-    }
+fn variable_already_exists_error(op_name: &str, name: &str) -> String{
+	format!("Variable creation ({}) error! Variable {} already exists! Try deleting it using del!", op_name, name)
 }
 
-//Finds frame index of frame containing desired variable if found.
-fn find_var(s: &mut State, num: usize) -> Option<usize>{
-    for i in (0..(s.frames.len())).rev(){
-        if s.frames[i].1[num].1{
-            return Some(i);
-        }
-    }
-    None
+fn variable_nonexist_error(op: &str, name: &str) -> String{
+	format!("Variable ({}) error! Variable {} doesn't exist. Try making it first!", op, name)
 }
 
-//Iterates over vec of deferred code backwards 
-// to replicate stack behavior, 
-fn run_deferred(s: &mut State, deferred: Vec<Rc<ASTNode>>) -> Result<(), String>{
-    for code in deferred.iter().rev(){
-        add_frame(s);
-        match run_program(code, s){
-            Ok(_) => (),
-            Err(e) => return Err(e),
-        }
-    }
+fn box_free_error(v: Value) -> String{
+	format!("Box free error! Unable to free {} because it's not a valid box type to free!", v)
+}
 
-    Ok(())
+fn box_alter_type_error(v1: Value, v2: Value) -> String{
+	format!("Box altr error! Second to top of stack must be type MiscBox and top of stack type Value! Attempted values: {} and {}", v1, v2)
+}
+
+fn invalid_mutation_error(op_name: &str, v1: Value, v2: Value) -> String{
+	format!("Operator ({}) error! Unable to mutate {} to {}, as it is an invalid mutation!", op_name, v1, v2)
 }
 
 //Iterates recursively through the AST and effectively runs the program doing so.
-fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
+fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
+vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, String>
+{
     let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
+	let mut res: Result<RetCode, String> = Ok(RetCode::Normal); 
+	vars.add_frame();
+
+	macro_rules! err_break{
+		($err:expr) => {
+			res = Err($err); break;	
+		};
+	}
 
     match ast{
         ASTNode::Expression(nodes) => {
@@ -75,507 +70,371 @@ fn run_program(ast: &ASTNode, state: &mut State) -> Result<bool, String>{
                 match node{
                     ASTNode::Terminal(Token::V(v)) => {
                         match v{
-                            SuperValue::Heap(HeapValue::String(s)) => {
-                                let new_bn = state.insert_to_heap(HeapValue::String(s.clone()));
-                                state.stack.push(Value::StringBox(new_bn));
-                            },
-                            SuperValue::Heap(HeapValue::List(l)) => {
-                                let new_bn = state.insert_to_heap(HeapValue::List(l.clone()));
-                                state.stack.push(Value::ListBox(new_bn));
-                            },
-                            SuperValue::Heap(HeapValue::Object(o)) => {
-                                let new_bn = state.insert_to_heap(HeapValue::Object(o.clone()));
-                                state.stack.push(Value::ObjectBox(new_bn));
-                            },
-                            SuperValue::Reg(reg_val) => state.stack.push(reg_val.clone()),
-                            _ => return error_and_remove_frame(state, 
-                                should_never_get_here_for_func("pushing to stack in run program")),
+							SuperValue::Heap(hval) => s.push(h.insert_to_heap(hval.clone())),
+							SuperValue::Reg(val) => s.push(*val),
                         }
                     },
                     ASTNode::Terminal(Token::Word((op, n))) => {
-                        if *n > 0{
-                            //Runs operator at index equivalent to a valid operator name.
-                            match state.ops[n - 1](state){
-                                Ok(_) => (),
-                                Err(e) => return error_and_remove_frame(state, e),
-                            }
-                            //Leaves current scope if necessary, running 
-                            // all deferred code that's been encountered and leaves the scope.
-                            if state.leaving_scope{
-                                state.leaving_scope = false;
-
-                                //Runs deferred code if any has been deferred in scope.
-                                if let Some(def) = deferred{
-                                    match run_deferred(state, def){
-                                        Ok(_) => (),
-                                        Err(e) => return error_and_remove_frame(state, e),
-                                    }
-                                }
-
-                                remove_frame(state);
-                                return Ok(true);
-                            }
-                        }else{
-                            return error_and_remove_frame(state, format!("Unrecognized Operator: {}", op));
-                        } 
+						match ops.run_op(*n, s, h, None){
+							Some(Ok(RetCode::Normal)) => (),
+							Some(Ok(RetCode::LeavingScopeEarly)) => {
+								res = Ok(RetCode::LeavingScopeEarly);
+								break;
+							},
+							Some(Err(e)) => {err_break!{e}},
+							None => {err_break!{format!("Unrecognized Operator: {}", op)}}
+						}									
                     },
-                    ASTNode::Variable{var_name: name, var_cmd: cmd, var_num: num} => {
-                        match cmd as &str{
-                            "mak" => {
-                                if !state.vars[*num].1{
-                                    match state.pop(){
-                                        Some(v) => {
-                                            state.vars[*num].0 = v;
-                                            state.vars[*num].1 = true;
-                                        },
-                                        None => {
-                                            return error_and_remove_frame(state, 
-                                                variable_lack_of_args_error("creation (mak)"));
-                                        },
-                                    }
-                                }else{
-                                    return error_and_remove_frame(state, format!("Variable creation (var mak) \
-                                        error! Variable {} already exists! \
-                                        Try deleting it using del!", &name));
-                                }
+                    ASTNode::Variable{var_name: name, cmd: c, var_num: num} => {
+                        match c{
+                            VarCmd::Make => {
+								match s.pop(){
+									Some(v) => {
+										if !vars.mak_var(name, v){
+											err_break!{variable_already_exists_error("var mak", name)}
+										}
+									},
+									None => {
+										err_break!{variable_lack_of_args_error("creation (mak)")}
+									},
+								}
                             },
-                            "get" => {
-                                if state.vars[*num].1{
-                                    state.stack.push(state.vars[*num].0.clone());
-                                }else{
-                                    return error_and_remove_frame(state, format!("Variable get (var get) error! \
-                                        Variable {} doesn't exist. \
-                                        Try making it first using var mak!", &name));
-                                }
+                            VarCmd::Get => {
+								if let Some(v) = vars.get_var(name){
+									s.push(v);
+								}else{
+									err_break!{variable_nonexist_error("var get", name)}
+								}
                             },
-                            "mut" => {
-                                if state.vars[*num].1{
-                                    match state.pop(){
-                                        Some(new_v) => {
-                                            let old_v: &mut Value = &mut state.vars[*num].0;
-                                            if is_valid_mutation(old_v, &new_v){
-                                                *old_v = new_v;
-                                            }else{
-                                                let mut_err = invalid_mutation_error("var mut", 
-                                                    "variable", name, &old_v, &new_v); 
-                                                return error_and_remove_frame(state, mut_err);
-                                            }
-                                        },
-                                        None => return error_and_remove_frame(state, 
-                                            variable_lack_of_args_error("mutation (mut)")),
-                                    }
-                                }else{
-                                    return error_and_remove_frame(state, 
-                                        format!("Variable mutation (var mut) error! Variable {} doesn't exist. \
-                                        Try making it first using var mak!", &name));
-                                }
+                            VarCmd::Mutate => {
+								match s.pop(){
+									Some(new_v) => {
+										match vars.mut_var(name, new_v){
+											0 => (),	
+											1 => {
+												err_break!{variable_nonexist_error("var mut", name)}
+											},
+											2 => {
+												let old_v = vars.get_var(name).unwrap();
+												err_break!{invalid_mutation_error("var mut", old_v, new_v)}	
+											},
+											_ => {err_break!{should_never_get_here_for_func("var mut")}}
+										}
+									},
+									None => {
+										err_break!{variable_lack_of_args_error("mutation (mut)")}
+							
+									}
+								}
                             },
-                            "del" => {
-                                //Marks given variable as invalid, allowing slot 
-                                // to be reused by var of the same number. 
-                                //Otherwise, throws error.
-                                if state.vars[*num].1{
-                                    state.vars[*num].1 = false;
-                                }else{ 
-                                    return error_and_remove_frame(state, 
-                                        format!("Variable deletion (var del) error! \
-                                        Variable {} doesn't exist or was already deleted! \
-                                        Try making it first using var mak!", &name));
-                                }
+                            VarCmd::Delete => {
+								if !vars.del_var(name){
+									err_break!{variable_nonexist_error("var del", name)}
+								}
                             },
-                            c => {
-                                return error_and_remove_frame(state, format!("Variable (var) error! \
-                                    Unrecognized variable command! Valid: mak, get, mut, del . \
-                                    Attempted: {}", c));
+                            VarCmd::Unknown => {
+                                err_break!{"Variable (var) error! Unrecognized variable command! Valid: mak, get, mut, del .".to_string()}
                             },
                         }
                     },
                     ASTNode::BoxOp(box_op) => {
-                        match &box_op as &str{
-                            "free" => {
-                                match state.stack.pop(){
-                                    Some(Value::StringBox(bn)) => {
-                                        match box_free_func(state, Value::StringBox(bn), bn){
-                                            Ok(_) => {},
-                                            Err(e) => return error_and_remove_frame(state, e),
-                                        }
-                                    },
-                                    Some(Value::ListBox(bn)) => {
-                                        match box_free_func(state, Value::ListBox(bn), bn){
-                                            Ok(_) => {},
-                                            Err(e) => return error_and_remove_frame(state, e),
-                                        }
-                                    },
-                                    Some(Value::ObjectBox(bn)) => {
-                                        match box_free_func(state, Value::ObjectBox(bn), bn){
-                                            Ok(_) => {},
-                                            Err(e) => return error_and_remove_frame(state, e),
-                                        }
-                                    },
-                                    Some(Value::MiscBox(bn)) => {
-                                        match box_free_func(state, Value::MiscBox(bn), bn){
-                                            Ok(_) => {},
-                                            Err(e) => return error_and_remove_frame(state, e),
-                                        }
-                                    },
+                        match box_op{
+                            BoxCmd::Free => {
+                                match s.pop(){
                                     Some(v) => {
-                                        return error_and_remove_frame(state, 
-                                            format!("Box free error! Top of stack must be of type StringBox, \
-                                            ListBox, ObjectBox, or MiscBox! Attempted value: {}", &v));
+										if !h.free_heap_cell(v){
+											err_break!{box_free_error(v)}
+										}
                                     },
-
                                     None => {
-                                        return error_and_remove_frame(state, 
-                                            needs_n_args_only_n_provided("box free", "One", "none"));
+                                        err_break!{needs_n_args_only_n_provided("box free", "One", "none")}
                                     },
-
                                 }
                             },
-                            "null" => {
-                                state.stack.push(Value::NULLBox);
+                            BoxCmd::Null => {
+                                s.push(Value::NULLBox);
                             },
-                            "make" => {
-                                match state.stack.pop(){
+                            BoxCmd::Make => {
+                                match s.pop(){
                                     Some(v) => {
-                                        let new_bn = state.insert_to_heap(HeapValue::Primitive(v));
-                                        state.stack.push(Value::MiscBox(new_bn));
+										let prim = HeapValue::Primitive(v);
+										s.push(h.insert_to_heap(prim));
                                     },
-                                    None => return error_and_remove_frame(state, 
-                                        needs_n_args_only_n_provided("box make", "One", "none")),
+                                    None => {
+										err_break!{needs_n_args_only_n_provided("box make", "One", "none")}
+									}
                                 }
                             },
-                            "open" => {
-                                match state.stack.pop(){
+                            BoxCmd::Open => {
+                                match s.pop(){
                                     Some(Value::MiscBox(bn)) => {
-                                        if state.validate_box(bn){
-                                            if let HeapValue::Primitive(v) = &state.heap[bn].0{
-                                                state.stack.push(v.clone());    
-                                            }else{
-                                                return error_and_remove_frame(state, 
-                                                    should_never_get_here_for_func("box open (run program)"));
-                                            }
-                                        }else{
-                                            return error_and_remove_frame(state, 
-                                                bad_box_error("box open", "MiscBox", "NA", 
-                                                    bn, usize::MAX, false));
-                                        }
+										let mbx = Value::MiscBox(bn);
+										if let Some(HeapValue::Primitive(v)) = 
+										h.get_heap_ref(mbx)
+										{
+											s.push(*v);	
+										}else{
+											err_break!{bad_box_error("box open", mbx, Value::NULLBox, false)}
+										}						
                                     },
                                     Some(v) => {
-                                        return error_and_remove_frame(state, 
-                                            format!("Box open error!\
+                                        err_break!{format!("Box open error!\
                                              Top of stack must be type MiscBox! \
-                                            Attempted value: {}", &v));
+                                            Attempted value: {}", v)}
                                     },
-                                    None => return error_and_remove_frame(state, 
-                                        needs_n_args_only_n_provided("box open", "One", "none")),
+                                    None => {
+										err_break!{needs_n_args_only_n_provided("box open", "One", "none")}
+									}
                                 }
                             },
-                            "altr" => {
-                                match state.pop2(){
-                                    (Some(Value::MiscBox(bn)), Some(v)) => {
-                                        if state.validate_box(bn){
-                                            if let HeapValue::Primitive(old_v) = &mut state.heap[bn].0{
-                                                if is_valid_mutation(old_v, &v){
-                                                    *old_v = v;
-                                                    state.stack.push(Value::MiscBox(bn));
-                                                }else{
-                                                    let old_v_cloned = old_v.clone();
-                                                    return error_and_remove_frame(state, 
-                                                        invalid_mutation_error("box altr", 
-                                                        "MiscBox", &bn.to_string(), &old_v_cloned, &v));
-                                                }
-                                            }else{
-                                                return error_and_remove_frame(state, 
-                                                    should_never_get_here_for_func("box altr (run program)"));
-                                            }
-                                        }else{
-                                            return error_and_remove_frame(state, 
-                                                bad_box_error("box altr", "MiscBox", 
-                                                    "NA", bn, usize::MAX, false));
-                                        }
+                            BoxCmd::Alter => {
+                                match s.pop2(){
+                                    (Some(Value::MiscBox(bn)), Some(new_v)) => {
+										let mbx = Value::MiscBox(bn);
+										if let Some(HeapValue::Primitive(old_v)) = 
+										h.get_heap_ref_mut(mbx)
+										{
+											if is_valid_mutation(*old_v, new_v){
+												*old_v = new_v;
+											}else{
+												err_break!{invalid_mutation_error("box altr", *old_v, new_v)}
+											}
+										}else{
+											err_break!{bad_box_error("box altr", mbx, Value::NULLBox, false)}
+										}
                                     },
                                     (Some(a), Some(b)) => {
-                                        return error_and_remove_frame(state, 
-                                            format!("Box altr error! Second to top of stack \
-                                            must be type MiscBox and top of stack type Value! \
-                                            Attempted values: {} and {}", &a, &b));
+                                        err_break!{box_alter_type_error(a, b)}
                                     },
-                                    (None, Some(_)) => return error_and_remove_frame(state, 
-                                        needs_n_args_only_n_provided("box altr", "Two", "only one")),
-                                    (None, None) => return error_and_remove_frame(state, 
-                                        needs_n_args_only_n_provided("box altr", "Two", "none")),
-                                    _ => return error_and_remove_frame(state, 
-                                        should_never_get_here_for_func("box altr")),
+                                    (None, Some(_)) => {
+										err_break!{needs_n_args_only_n_provided("box altr", "Two", "only one")}
+									},
+                                    (None, None) => {
+										err_break!{needs_n_args_only_n_provided("box altr", "Two", "none")}
+									},
+                                    _ => {err_break!{should_never_get_here_for_func("box altr")}},
                                 }
                             },
-                            o => {
-                                return error_and_remove_frame(state, 
-                                    format!("Box error! Unrecognized box operation! \
-                                    Valid: free, null, make, open, altr . Attempted: {}", o));
+                            BoxCmd::Unknown => {
+                                err_break!{"Box error! Unrecognized box operation! \
+                                    Valid: free, null, make, open, altr".to_string()}
                             },
                         }
                     },
                     ASTNode::If{if_true: true_branch, if_false: false_branch} => {
-                        match state.pop(){
+                        match s.pop(){
                             Some(Value::Boolean(b)) => {
-                                add_frame(state);
-                                let res = match b{
-                                    true => run_program(&true_branch, state),
-                                    false => run_program(&false_branch, state),
-                                };
+								let branches = [&false_branch, &true_branch];
+								let branch_res = 
+								run_program(branches[b as usize], s, h, vars, fns, ops);
 
-                                match res{
-                                    Ok(_) => {},
-                                    Err(e) => return error_and_remove_frame(state, e),
+                                match branch_res{
+                                    Ok(_) => (),
+                                    Err(e) => {err_break!{e}}
                                 }
                             },
                             Some(v) => {
-                                return error_and_remove_frame(state, format!("If statement error! \
+                                err_break!{format!("If statement error! \
                                     Top of stack needs to be type Boolean \
                                     for effective branching to occur! \
-                                    Attempted value: {}", &v));
+                                    Attempted value: {}", v)}
                             },
-                            None => return error_and_remove_frame(state, 
-                                needs_n_args_only_n_provided("if", "One", "none")),
+                            None => {err_break!{needs_n_args_only_n_provided("if", "One", "none")}}
                         }
                     },
                     ASTNode::While(bod) => {
                         loop {
-                            match state.pop(){
+                            match s.pop(){
                                 Some(Value::Boolean(b)) => {
                                     if b{
-                                        add_frame(state);
-                                        match run_program(&bod, state){
-                                            Ok(left_early) => {
-                                                if left_early{
-                                                    break;
-                                                }
-                                            },
-                                            Err(e) => return error_and_remove_frame(state, e),
-                                        }
+										let body_res = 
+										run_program(&bod, s, h, vars, fns, ops);
+
+										match body_res{
+											Ok(RetCode::Normal) => (),
+											Ok(RetCode::LeavingScopeEarly) => {
+												break;	
+											},
+											Err(e) => {err_break!{e}},
+										}
                                     }else{
                                         break;
                                     }
                                 },
                                 Some(v) => {
-                                    return error_and_remove_frame(state, 
-                                        format!("While loop error! Top of stack needs \
+                                    err_break!{format!("While loop error! Top of stack needs \
                                         to be of type Boolean to determine if loop needs \
-                                        to run/run again! Attempted value: {}", &v));
+                                        to run/run again! Attempted value: {}", v)}
                                 },
-                                None => return error_and_remove_frame(state, 
-                                    needs_n_args_only_n_provided("while", "One", "none")),
+                                None => {err_break!{needs_n_args_only_n_provided("while", "One", "none")}},
                             }
                         }
+						//If the loop had an error, break out of the main loop.
+						if let Err(_) = res {break;}
                     },
-                    ASTNode::Function{func_cmd: cmd, func_name: name, func_bod: bod} => {
-                        match &cmd as &str{
-                            "def" => {
-                                match state.fns.get(name){
-                                    Some(_) => {
-                                        return error_and_remove_frame(state, 
-                                            format!("Function definition (func def) error! \
-                                            Function \"{}\" is already defined!", &name));
-                                    },
-                                    None => {
-                                        state.fns.insert(name.clone(), Rc::clone(&bod));
-                                    },
-                                }
+                    ASTNode::Function{cmd: c, func_name: name, func_bod: bod} => {
+                        match c{
+                            FunCmd::Define => {
+								if !fns.func_def(name, Rc::clone(&bod)){
+									err_break!{format!("Function definition (func def) error!\
+									 Function \"{}\" is already defined!", name)}
+								}
                             },
-                            "call" => {
-                                let func_body = match state.fns.get(name){
+                            FunCmd::Call => {
+                                let func_body = match fns.get_body(name){
                                     Some(b) => b,
                                     None => {
-                                        return error_and_remove_frame(state, 
-                                            format!("Function call (func call) error! \
+                                        err_break!{format!("Function call (func call) error! \
                                             Function \"{}\" is not defined! \
-                                            Try defining it using func def !", name));
+                                            Try defining it using func def !", name)}
                                     }, 
                                 };
+								let bod_res = 
+								run_program(&func_body, s, h, vars, fns, ops);
 
-                                //This gross blob of unsafe code makes function calls work.
-                                //It's okay though because even though state changes, func_body never will, 
-                                // so it's safe despite the borrow checker's complaints.
-                                unsafe {
-                                    add_frame(&mut *(state as *const State as *mut State));
-                                    match run_program(func_body, &mut *(state as *const State as *mut State)){
-                                        Ok(_) => {},
-                                        Err(e) => return error_and_remove_frame(state, e),
-                                    }
-                                }
-
+								if let Err(e) = bod_res{err_break!{e}}
                             },
-                            c => {
-                                return error_and_remove_frame(state, 
-                                    format!("Function error! Invalid function \
-                                    command given! Valid: def, call . Attempted: {}", c));
+                            FunCmd::Unknown => {
+                                err_break!{format!("Function error! Invalid function \
+                                    command given! Valid: def, call .")}
                             },
                         }
                     },
                     ASTNode::LocVar{name: nam, cmd: c, num: n} => {
-                        match c as &str{
-                            "mak" => {
-                                match state.pop(){
+                        match c{
+                            VarCmd::Make => {
+                                match s.pop(){
                                     Some(v) => {
-                                        let last_index: usize = state.frames.len() - 1;
-                                        if state.frames[last_index].0 == state.curr_frame{
-                                            //If not valid Overwrites garbage value held at memory cell 
-                                            // with value from stack and sets it to valid, 
-                                            // making it an accessable variable.
-                                            //Otherwise, throws error because cell is already taken, 
-                                            // meaning variable exists.
-                                            if !state.frames[last_index].1[*n].1{
-                                                state.frames[last_index].1[*n].0 = v;
-                                                state.frames[last_index].1[*n].1 = true;
-                                            }else{
-                                                return error_and_remove_frame(state, format!("Local Variable \
-                                                    creation (loc mak) \
-                                                    error! Local Variable {} already exists in given scope!", &nam));
-                                            }
-                                        }else{
-                                            let mut new_frame: Vec<(Value, bool)> = if state.frame_pool.len() > 0{
-                                                let mut new = state.frame_pool.pop().unwrap();
-                                                recycle_frame(&mut new);
-                                                new
-                                            }else{
-                                                create_frame(state.unique_var_name_count)    
-                                            };
-                                            new_frame[*n].0 = v;
-                                            new_frame[*n].1 = true;
-                                            state.frames.push((state.curr_frame, new_frame));
-                                        }
+										if !vars.mak_loc(nam, v){
+											err_break!{variable_already_exists_error("loc mak", nam)}
+										}
                                     },
                                     None => {
-                                        return error_and_remove_frame(state, 
-                                            local_variable_lack_of_args_error("creation (mak)"));
+                                        err_break!{local_variable_lack_of_args_error("creation (mak)")}
                                     },
                                 }
                             },
-                            "get" => {
-                                match find_var(state, *n){
-                                    Some(frame_index) => {
-                                        state.stack.push(state.frames[frame_index].1[*n].0.clone());
+                            VarCmd::Get => {
+								if let Some(v) = vars.get_loc(nam){
+									s.push(v);
+								}else{
+									err_break!{variable_nonexist_error("loc get", nam)}	
+								}
+                            },
+                            VarCmd::Mutate => {
+                                match s.pop(){
+                                    Some(new_v) => {
+										match vars.mut_loc(nam, new_v){
+											0 => (),
+											1 => {
+												err_break!{variable_nonexist_error("loc mut", nam)}
+											},
+											2 => {
+												let old_v = vars.get_loc(nam).unwrap();	
+												err_break!{invalid_mutation_error("loc mut", old_v, new_v)}
+											},
+											_ => {err_break!{should_never_get_here_for_func("var mut")}}
+										}	
                                     },
                                     None => {
-                                        return error_and_remove_frame(state, format!("\
-                                            Local Variable get (loc get) error! \
-                                            Local variable {} doesn't exist in any scope! \
-                                            Try making it using loc mak!", nam));
+                                        err_break!{local_variable_lack_of_args_error("mutation (mut)")}
                                     },
                                 }
                             },
-                            "mut" => {
-                                match state.stack.pop(){
-                                    Some(v) => {
-                                        match find_var(state, *n){
-                                            Some(frame_index) => {
-                                                let old_v: &mut Value = &mut state.frames[frame_index].1[*n].0;
-                                                if is_valid_mutation(old_v, &v){
-                                                    *old_v = v;
-                                                }else{
-                                                    let mut_err = invalid_mutation_error("loc mut", 
-                                                        "local variable", nam, &old_v, &v); 
-                                                    return error_and_remove_frame(state, mut_err);
-                                                }
-                                            },
-                                            None => {
-                                                return error_and_remove_frame(state, format!("\
-                                                    Local Variable mutation (loc mut) error! \
-                                                    Local variable {} doesn't exist in any scope! \
-                                                    Try making it using loc mak!", nam));
-                                            },
-                                        }
-                                    },
-                                    None => {
-                                        return error_and_remove_frame(state, 
-                                            local_variable_lack_of_args_error("mutation (mut)"))
-                                    },
-                                }
-                            },
-                            misc => {
-                                return error_and_remove_frame(state, format!("Local Variable (loc) error! \
-                                    Unrecognized local variable command! Valid: mak, get, mut . \
-                                    Attempted: {}", misc));
+                            _ => {
+                                err_break!{"Local Variable (loc) error! Unrecognized local variable command! Valid: mak, get, mut".to_string()}
                             },
                         }
                     },
-                    ASTNode::AttErr{attempt: att, err: e} => {
-                        add_frame(state);
-                        match run_program(att, state){
-                            Ok(_) => (),
-                            Err(e1) => {
-                                //Pushes error string to stack instead of returning it up stack. 
-                                let err_bn = state.insert_to_heap(HeapValue::String(e1));
-                                state.stack.push(Value::StringBox(err_bn));
+                    ASTNode::AttErr{attempt: att, err: error} => {
+						let att_res = 
+						run_program(att, s, h, vars, fns, ops);
 
-                                //Recursively runs error code block and explodes if there's a problem.
-                                add_frame(state);
-                                match run_program(e, state){
-                                    Ok(_) => (),
-                                    Err(e2) => return error_and_remove_frame(state, e2),
-                                }
-                            },
-                        }
+						match att_res{
+							Ok(_) => (),
+							Err(e1) => {
+								s.push(h.insert_to_heap(HeapValue::String(e1)));
+								
+								let err_res = 
+								run_program(error, s, h, vars, fns, ops);
+
+								match err_res{
+									Ok(_) => (),
+									Err(e2) => {
+										res = Err(e2);
+										break;
+									},
+								}
+									
+							},
+						}
                     },
                     ASTNode::Defer(body) => {
-                        if let Some(ref mut def) = deferred{
+                        if let Some(def) = &mut deferred{
                             def.push(Rc::clone(body));
                         }else{
                             deferred = Some(vec![Rc::clone(body)]);
                         }
                     },
                     ASTNode::CastTo(data_type) => {
-                        //58 is cast operator. 
-                        // I know, I know, hardcoding gross, but it's fast!
-                        let cast_index: usize = 58;
-
-                        state.buffer.push_str(&data_type);
-
-                        match state.ops[cast_index](state){
-                            Ok(_) => (),
-                            Err(e) => {
-                                state.buffer.clear(); 
-                                return error_and_remove_frame(state, e)
-                            } 
-                        }
-
-                        state.buffer.clear();
-                    }
+						match ops.run_op(
+						ops.cast_op_index(), s, h, Some(data_type))
+						{
+							Some(Ok(_)) => (),
+							Some(Err(e)) => {err_break!{e}},
+							None => {err_break!{"Should never get here for castTo!!!".to_string()}},
+						}
+					},
                     _ => {},
                 }
             }
         },
-        _ => {return Err("Should never get to this point!".to_string());},
+        _ => {res = Err("Should never get to this point in running!".to_string())},
     }
 
-    //Runs deferred code if any has been deferred.
-    if let Some(def) = deferred{
-        match run_deferred(state, def){
-            Ok(_) => (),
-            Err(e) => return error_and_remove_frame(state, e),
-        }
-    }
+	if let (Some(def), Ok(_)) = (deferred, &res){
+		for expr in def.iter().rev(){
+			let expr_res = 
+			run_program(expr, s, h, vars, fns, ops);
+			
+			match expr_res{
+				Ok(_) => (),
+				Err(e) => {err_break!{e}}
+			}	
+		}
+	}	
 
-    remove_frame(state);
-    Ok(false)
+	vars.remove_frame();
+	res
 }
 
 //Given an input program string and args, 
 // parses and runs the entire program!
 // It returns either the state generated by the program or an error string.
-fn run_prog_from_str(argv: &Vec<String>, argc: usize, program_string: String) -> Result<State, String>{
+fn run_prog_from_str(argv: &Vec<String>, argc: usize, program_string: String,
+prev_state: Option<(Stack, Heap, Variables, Functions, Operators)>
+) -> 
+(Result<RetCode, String>, Stack, Heap, Variables, Functions, Operators)
+{
+	//Clones previous state to be used in run_program, or makes new one.
+	let (mut s, mut h, mut vs, mut fs, os);
+	if let Some((ps, ph, pvs, pfs, pos)) = prev_state{
+		(s, h, vs, fs, os) = 
+		(ps.clone(), ph.clone(), pvs.clone(), pfs.clone(), pos.clone());	
+	}else{
+		(s, h, vs, fs, os) = 
+		(Stack::new(), Heap::new(), Variables::new(), 
+		Functions::new(), Operators::new());
+	}
+	
+	//Kicks back a parse error with the state 
+	// or runs the program and updates the state.
 	match parse_string_to_ast(&argv, argc, program_string){
 		Ok((ast, num_unique_loc_vars)) => {
-			let mut state = State::new(num_unique_loc_vars);
-
-			let result = run_program(&ast, &mut state);
-
-			match result{
-				Ok(_) => return Ok(state),
-				Err(e) => return Err(e),
-			}
+			let res = run_program(&ast, &mut s, &mut h, &mut vs, &mut fs, &os);
+			(res, s, h, vs, fs, os)
 		},
-		Err(e) => return Err(e),
+		Err(e) => (Err(e), s, h, vs, fs, os)
 	}
 }
 
@@ -606,7 +465,10 @@ fn main(){
 				Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
 			}
 
-			match run_prog_from_str(&argv, argc, file_string){
+			let (res, _, _, _, _, _) = 
+			run_prog_from_str(&argv, argc, file_string, None);
+
+			match res{
 				Ok(_) => (),
 				Err(e) => println!("{}", e),
 			}
@@ -645,10 +507,13 @@ fn main(){
 					}
 
 					println!("\n{}\nProgram result:\n", sep_str);
-					match run_prog_from_str(&argv, argc, source_string){
-						Ok(mut state) => {
+					let (res, mut s, mut h, _, _, _) = 
+					run_prog_from_str(&argv, argc, source_string, None);
+					match res{
+						Ok(_) => {
 							if print_stack{
-								debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");	
+								debug_stack_print(&mut s, &mut h, None)
+								.expect("FAILED TO PRINT STACK!");	
 							}
 						},
 						Err(e) => println!("{}", e),
@@ -829,10 +694,14 @@ fn main(){
 					code_with_include.push_str(&single_line_prog_str);
 					single_line_prog_str = code_with_include;
 				}
-				match run_prog_from_str(&argv, argc, single_line_prog_str.clone()){
-					Ok(mut state) => {
+				let (res, mut s, mut h, _, _, _) = 
+				run_prog_from_str(&argv, argc, single_line_prog_str.clone(), None);
+
+				match res{
+					Ok(_) => {
 						if print_stack{
-							debug_stack_print(&mut state).expect("FAILED TO PRINT STACK!");		
+							debug_stack_print(&mut s, &mut h, None)
+							.expect("FAILED TO PRINT STACK!");		
 						}
 					},
 					Err(e) => println!("{}", e),
@@ -849,7 +718,10 @@ fn main(){
             .expect("Stdin read error! Failed to read from stdin!");
         println!("\n{}\nProgram result:\n", sep_str);
 
-		match run_prog_from_str(&argv, argc, program_string){
+		let (res, _, _, _, _, _) = 
+		run_prog_from_str(&argv, argc, program_string, None);
+
+		match res{
 			Ok(_) => (),
 			Err(e) => println!("{}", e),
 		}
