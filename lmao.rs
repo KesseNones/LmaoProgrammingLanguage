@@ -30,16 +30,6 @@ fn local_variable_lack_of_args_error(var_action: &str) -> String{
         item on the stack! None provided!", var_action)
 }
 
-
-//IDEA: 
-// Have it add the frame at start of run_program and remove at any return point.
-// Makes it pretty automatic that way.
-// Only run deferred code at the bottom of the function to avoid repeated code.
-// Capture res into an option variable.
-// If it's okay, run the deferred code, if any.
-// If there was an error, quit and don't run deferred code.
-// Return up stack instead.
-
 fn variable_already_exists_error(op_name: &str, name: &str) -> String{
 	format!("Variable creation ({}) error! Variable {} already exists! Try deleting it using del!", op_name, name)
 }
@@ -61,9 +51,8 @@ fn invalid_mutation_error(op_name: &str, v1: Value, v2: Value) -> String{
 }
 
 //Iterates recursively through the AST and effectively runs the program doing so.
-fn run_program(ast: &ASTNode, 
-mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Operators) -> 
-	(Result<RetCode, String>, Stack, Heap, Variables, Functions, Operators)
+fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
+vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, String>
 {
     let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
 	let mut res: Result<RetCode, String> = Ok(RetCode::Normal); 
@@ -86,7 +75,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
                         }
                     },
                     ASTNode::Terminal(Token::Word((op, n))) => {
-						match ops.run_op(*n, &mut s,  &mut h, None){
+						match ops.run_op(*n, s, h, None){
 							Some(Ok(RetCode::Normal)) => (),
 							Some(Ok(RetCode::LeavingScopeEarly)) => {
 								res = Ok(RetCode::LeavingScopeEarly);
@@ -236,9 +225,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
                         match s.pop(){
                             Some(Value::Boolean(b)) => {
 								let branches = [&false_branch, &true_branch];
-								let mut branch_res = Ok(RetCode::Normal);
-		
-								(branch_res, s, h, vars, fns, ops) =
+								let branch_res = 
 								run_program(branches[b as usize], s, h, vars, fns, ops);
 
                                 match branch_res{
@@ -260,8 +247,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
                             match s.pop(){
                                 Some(Value::Boolean(b)) => {
                                     if b{
-										let body_res;
-										(body_res, s, h, vars, fns, ops) = 
+										let body_res = 
 										run_program(&bod, s, h, vars, fns, ops);
 
 										match body_res{
@@ -303,15 +289,14 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
                                             Try defining it using func def !", name)}
                                     }, 
                                 };
-								let bod_res;
-								(bod_res, s, h, vars, fns, ops) = 
+								let bod_res = 
 								run_program(&func_body, s, h, vars, fns, ops);
 
 								if let Err(e) = bod_res{err_break!{e}}
                             },
                             FunCmd::Unknown => {
                                 err_break!{format!("Function error! Invalid function \
-                                    command given! Valid: def, call . Attempted: {}", c)}
+                                    command given! Valid: def, call .")}
                             },
                         }
                     },
@@ -362,8 +347,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
                         }
                     },
                     ASTNode::AttErr{attempt: att, err: error} => {
-						let att_res;
-						(att_res, s, h, vars, fns, ops) = 
+						let att_res = 
 						run_program(att, s, h, vars, fns, ops);
 
 						match att_res{
@@ -371,8 +355,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
 							Err(e1) => {
 								s.push(h.insert_to_heap(HeapValue::String(e1)));
 								
-								let err_res;
-								(err_res, s, h, vars, fns, ops) = 
+								let err_res = 
 								run_program(error, s, h, vars, fns, ops);
 
 								match err_res{
@@ -395,7 +378,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
                     },
                     ASTNode::CastTo(data_type) => {
 						match ops.run_op(
-						ops.cast_op_index(), &mut s, &mut h, Some(data_type))
+						ops.cast_op_index(), s, h, Some(data_type))
 						{
 							Some(Ok(_)) => (),
 							Some(Err(e)) => {err_break!{e}},
@@ -411,8 +394,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
 
 	if let (Some(def), Ok(_)) = (deferred, &res){
 		for expr in def.iter().rev(){
-			let expr_res;
-			(expr_res, s, h, vars, fns, ops) = 
+			let expr_res = 
 			run_program(expr, s, h, vars, fns, ops);
 			
 			match expr_res{
@@ -423,7 +405,7 @@ mut s: Stack, mut h: Heap, mut vars: Variables, mut fns: Functions, mut ops: Ope
 	}	
 
 	vars.remove_frame();
-	(res, s, h, vars, fns, ops)
+	res
 }
 
 //Given an input program string and args, 
@@ -435,7 +417,7 @@ prev_state: Option<(Stack, Heap, Variables, Functions, Operators)>
 (Result<RetCode, String>, Stack, Heap, Variables, Functions, Operators)
 {
 	//Clones previous state to be used in run_program, or makes new one.
-	let (s, h, vs, fs, os);
+	let (mut s, mut h, mut vs, mut fs, os);
 	if let Some((ps, ph, pvs, pfs, pos)) = prev_state{
 		(s, h, vs, fs, os) = 
 		(ps.clone(), ph.clone(), pvs.clone(), pfs.clone(), pos.clone());	
@@ -449,7 +431,8 @@ prev_state: Option<(Stack, Heap, Variables, Functions, Operators)>
 	// or runs the program and updates the state.
 	match parse_string_to_ast(&argv, argc, program_string){
 		Ok((ast, num_unique_loc_vars)) => {
-			run_program(&ast, s, h, vs, fs, os)
+			let res = run_program(&ast, &mut s, &mut h, &mut vs, &mut fs, &os);
+			(res, s, h, vs, fs, os)
 		},
 		Err(e) => (Err(e), s, h, vs, fs, os)
 	}
