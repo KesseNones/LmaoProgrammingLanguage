@@ -445,12 +445,118 @@ impl TryCast<&HashMap<String, Value>> for SuperValue{
 	}
 }
 
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum Operator{
+	Add, Sub, Mul, Div, 
+	Mod, Pow, 
+
+	UsizeMax, U8Max, U16Max, U32Max, U64Max, U128Max, 
+	IsizeMax, I8Max, I16Max, I32Max, I64Max, I128Max, 
+
+	Swap, Drop, DropStack, Rot, Dup, DeepDup, 
+
+	Equal, NotEqual, GreaterThan, LessThan, GreaterThanEqualTo,
+	LessThanEqualTo, StringCompare, Concat,
+
+	And, Or, Xor, Not,
+
+	Push, Pop, Fpush, Fpop, Index, Length,
+
+	IsEmpty, Clear, Contains, ChangeItemAt,
+	
+	IsWhitespaceChar, IsAlphaChar, IsNumChar,
+
+	ObjAddField, ObjGetField, ObjMutField, ObjRemField,
+
+	BitOr, BitAnd, BitXor, BitNot, BitShift, Cast,
+
+	PrintLine, ReadLine, PrintChar, ReadChar, Print, Read, 
+	DebugPrintStack, DebugPrintHeap,
+
+	FileWrite, FileRead, FileCreate, FileRemove, FileExists,
+
+	QueryType, LeaveScopeIfTrue, ThrowCustomError, GetArgs, 
+	IsValidBox, TimeUnixNow, TimeWait, 
+
+	Unknown
+}
+
+impl Default for Operator{
+	fn default() -> Self{Operator::Unknown}
+}
+
+impl Operator{
+	fn new(op_name: &str) -> Self{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match op_name{
+					$($name => Operator::$var,)*			
+					_ => Operator::Unknown,
+				}	
+			};
+		}
+		op_match!{
+			("+", Add), ("-", Sub), ("*", Mul), ("/", Div), 
+			("mod", Mod), ("%", Mod), ("pow", Pow),
+
+			("isizeMax", IsizeMax), ("usizeMax", UsizeMax),
+
+			("i8Max", I8Max), ("i16Max", I16Max), ("i32Max", I32Max), 
+			("i64Max", I64Max), ("i128Max", I128Max),
+
+			("u8Max", U8Max), ("u16Max", U16Max), ("u32Max", U32Max),
+			("u64Max", U64Max), ("u128Max", U128Max),
+
+			("swap", Swap),	("drop", Drop),	("dropStack", DropStack),	
+			("rot", Rot), ("dup", Dup),	("deepDup", DeepDup),	
+
+			("==", Equal), ("!=", NotEqual), (">", GreaterThan), ("<", LessThan), 
+			(">=", GreaterThanEqualTo), ("<=", LessThanEqualTo), 
+			("stringCompare", StringCompare), ("++", Concat),
+
+			("and", And), ("&&", And), ("or", Or), ("||", Or), 
+			("xor", Xor), ("not", Not), ("!", Not),
+
+			("push", Push), ("p", Push), ("pop", Pop), ("po", Pop), 
+			("fpush", Fpush), ("fp", Fpush), ("fpop", Fpop), ("fpo", Fpop), 
+			("index", Index), ("length", Length), ("len", Length),
+
+			("isEmpty", IsEmpty), ("clear", Clear), 
+			("contains", Contains), ("changeItemAt", ChangeItemAt),
+
+			("isWhitespaceChar", IsWhitespaceChar), ("isAlphaChar", IsAlphaChar), 
+			("isNumChar", IsNumChar),
+
+			("objAddField", ObjAddField), ("objGetField", ObjGetField), 
+			("objMutField", ObjMutField), ("objRemField", ObjRemField),
+
+			("bitOr", BitOr), ("|", BitOr), ("bitAnd", BitAnd), 
+			("&", BitAnd), ("bitXor", BitXor), ("^", BitXor), ("bitNot", BitNot), 
+			("bitShift", BitShift), ("cast", Cast),
+
+			("printLine", PrintLine), ("readLine", ReadLine), 
+			("printChar", PrintChar), ("readChar", ReadChar), 
+			("print", Print), ("read", Read), ("debugPrintStack", DebugPrintStack), 
+			("debugPrintHeap", DebugPrintHeap),
+
+			("fileWrite", FileWrite), ("fileRead", FileRead), 
+			("fileCreate", FileCreate), ("fileRemove", FileRemove), 
+			("fileExists", FileExists),
+
+			("queryType", QueryType), ("leaveScopeIfTrue", LeaveScopeIfTrue), 
+			("throwCustomError", ThrowCustomError), ("getArgs", GetArgs), 
+			("isValidBox", IsValidBox), ("timeUnixNow", TimeUnixNow), 
+			("timeWait", TimeWait),
+		}	
+	}
+}
+
 //Can either be a value to push to the stack or 
 // a command to run an operator or something like that.
 #[derive(PartialEq, Eq, Clone)]
 pub enum Token{
 	V(SuperValue),
-	Word((String, usize))
+	Word((String, Operator))
 }
 
 impl Default for Token{
@@ -869,20 +975,20 @@ pub fn lex_tokens(
 	let mut lexed: Vec<Token> = Vec::new();
 
 	for tok in tokens.into_iter(){
-		match tok{
+		match &tok{
 			//Boolean lexing cases.
-			ref t if t == "True" || t == "true" => {
+			t if t == "True" || t == "true" => {
 				lexed.push(Token::V(
 					SuperValue::Reg(Value::Boolean(true)))
 				);
 			},
-			ref t if t == "False" || t == "false" => {
+			t if t == "False" || t == "false" => {
 				lexed.push(Token::V(
 					SuperValue::Reg(Value::Boolean(false)))
 				);
 			},
 			//String case.
-			ref t if t.starts_with("\"") && t.ends_with("\"") => {
+			t if t.starts_with("\"") && t.ends_with("\"") => {
 				lexed.push(Token::V(
 					SuperValue::Heap(
 						HeapValue::String(
@@ -891,7 +997,7 @@ pub fn lex_tokens(
 				);
 			}, 
 			//Char case.
-			ref t if t.starts_with("\'") && t.ends_with("\'") => {
+			t if t.starts_with("\'") && t.ends_with("\'") => {
 				let mut iter = tok[1..].chars();
 				let mut captured: char = iter.nth(0).unwrap();
 				if captured == '\\'{
@@ -910,97 +1016,97 @@ pub fn lex_tokens(
 				lexed.push(Token::V(SuperValue::Reg(Value::Char(captured))));
 			},
 			//List case.
-			ref t if t == "[]" => lexed.push(Token::V(SuperValue::Heap(HeapValue::List(Vec::new())))),
+			t if t == "[]" => lexed.push(Token::V(SuperValue::Heap(HeapValue::List(Vec::new())))),
 			//Object case.
-			ref t if t == "{}" => lexed.push(Token::V(SuperValue::Heap(HeapValue::Object(HashMap::new())))),
+			t if t == "{}" => lexed.push(Token::V(SuperValue::Heap(HeapValue::Object(HashMap::new())))),
 			//Float cases.
-			ref t if t.ends_with("f32") && t.len() > 3 => {
+			t if t.ends_with("f32") && t.len() > 3 => {
 				match tok[0..(tok.len() - 3)].parse::<f32>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float32(parsed)))),
 					Err(_) => return Err(throw_parse_error("f32", &tok)),
 				}
 			},
-			ref t if t.ends_with("f64") && t.len() > 3 => {
+			t if t.ends_with("f64") && t.len() > 3 => {
 				match tok[0..(tok.len() - 3)].parse::<f64>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float64(parsed)))),
 					Err(_) => return Err(throw_parse_error("f64", &tok)),
 				}
 			},
 			//Explicit integer cases for both signed and unsigned.
-			ref t if t.ends_with("u8") && t.len() > 2 => {
+			t if t.ends_with("u8") && t.len() > 2 => {
 				match tok[0..(tok.len() - 2)].parse::<u8>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt8(parsed)))),
 					Err(_) => return Err(throw_parse_error("u8", &tok)),
 				}
 			},
-			ref t if t.ends_with("i8") && t.len() > 2 => {
+			t if t.ends_with("i8") && t.len() > 2 => {
 				match tok[0..(tok.len() - 2)].parse::<i8>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int8(parsed)))),
 					Err(_) => return Err(throw_parse_error("i8", &tok)),
 				}
 			},
-			ref t if t.ends_with("u16") && t.len() > 3 => {
+			t if t.ends_with("u16") && t.len() > 3 => {
 				match tok[0..(tok.len() - 3)].parse::<u16>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt16(parsed)))),
 					Err(_) => return Err(throw_parse_error("u16", &tok)),
 				}
 			},
-			ref t if t.ends_with("i16") && t.len() > 3 => {
+			t if t.ends_with("i16") && t.len() > 3 => {
 				match tok[0..(tok.len() - 3)].parse::<i16>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int16(parsed)))),
 					Err(_) => return Err(throw_parse_error("i16", &tok)),
 				}
 			},
-			ref t if t.ends_with("u32") && t.len() > 3 => {
+			t if t.ends_with("u32") && t.len() > 3 => {
 				match tok[0..(tok.len() - 3)].parse::<u32>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt32(parsed)))),
 					Err(_) => return Err(throw_parse_error("u32", &tok)),
 				}
 			},
-			ref t if t.ends_with("i32") && t.len() > 3 => {
+			t if t.ends_with("i32") && t.len() > 3 => {
 				match tok[0..(tok.len() - 3)].parse::<i32>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int32(parsed)))),
 					Err(_) => return Err(throw_parse_error("i32", &tok)),
 				}
 			},
-			ref t if t.ends_with("u64") && t.len() > 3 => {
+			t if t.ends_with("u64") && t.len() > 3 => {
 				match tok[0..(tok.len() - 3)].parse::<u64>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt64(parsed)))),
 					Err(_) => return Err(throw_parse_error("u64", &tok)),
 				}
 			},
-			ref t if t.ends_with("i64") && t.len() > 3 => {
+			t if t.ends_with("i64") && t.len() > 3 => {
 				match tok[0..(tok.len() - 3)].parse::<i64>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int64(parsed)))),
 					Err(_) => return Err(throw_parse_error("u64", &tok)),
 				}
 			},
-			ref t if t.ends_with("u128") && t.len() > 4 => {
+			t if t.ends_with("u128") && t.len() > 4 => {
 				match tok[0..(tok.len() - 4)].parse::<u128>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt128(parsed)))),
 					Err(_) => return Err(throw_parse_error("u128", &tok)),
 				}
 			},
-			ref t if t.ends_with("i128") && t.len() > 4 => {
+			t if t.ends_with("i128") && t.len() > 4 => {
 				match tok[0..(tok.len() - 4)].parse::<i128>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int128(parsed)))),
 					Err(_) => return Err(throw_parse_error("i128", &tok)),
 				}
 			},
-			ref t if t.ends_with("usize") && t.len() > 5 => {
+			t if t.ends_with("usize") && t.len() > 5 => {
 				match tok[0..(tok.len() - 5)].parse::<usize>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UIntSize(parsed)))),
 					Err(_) => return Err(throw_parse_error("usize", &tok)),
 				}
 			},
-			ref t if t.ends_with("isize") && t.len() > 5 => {
+			t if t.ends_with("isize") && t.len() > 5 => {
 				match tok[0..(tok.len() - 5)].parse::<isize>(){
 					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::IntSize(parsed)))),
 					Err(_) => return Err(throw_parse_error("isize", &tok)),
 				}
 			},
 			//Type inference for float.
-			ref t if t.contains(".") 
+			t if t.contains(".") 
 					&& (t.chars().next().unwrap() == '-' 
 					|| (t.chars().next().unwrap() >= '0' 
 						&& t.chars().next().unwrap() <= '9')) 
@@ -1011,7 +1117,7 @@ pub fn lex_tokens(
 				}
 			},
 			//Type inference for integer.
-			ref t if (t.chars().next().unwrap() == '-' && t.len() > 1) 
+			t if (t.chars().next().unwrap() == '-' && t.len() > 1) 
 					|| (t.chars().next().unwrap() >= '0' 
 						&& t.chars().next().unwrap() <= '9') 
 					=> {
@@ -1022,7 +1128,7 @@ pub fn lex_tokens(
 			},
 
 			//Recursive import() statement case.
-			ref t if t.starts_with("import(") && t.ends_with(")") => {
+			t if t.starts_with("import(") && t.ends_with(")") => {
 				//Grabs file string out of import statement. 
 				let import_str = "import("; 
 				let file_str = &t[(import_str.len())..(t.len() - 1)];
@@ -1077,8 +1183,8 @@ pub fn lex_tokens(
 			
 			//General catch-all case mostly meant for operators.
 			_ => {
-				let n: usize = *ops_map.get(&tok).unwrap_or(&0);
-				lexed.push(Token::Word((tok, n)));
+				let op_val = Operator::new(&tok);
+				lexed.push(Token::Word((tok, op_val)));
 			}, 
 		}
 	}
@@ -1123,7 +1229,7 @@ pub fn make_ast_prime(
 			},
 			//While loop parsing case.
 			Token::Word(ref cmd) if cmd.0 == "while" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]){
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]){
 					Ok((loop_body, tokens_prime, token_index_prime, _)) => {
 						already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
 						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
@@ -1147,7 +1253,7 @@ pub fn make_ast_prime(
 					(_, _) => return Err("SHOULD NEVER GET HERE!!!".to_string()),
 				};
 
-				match make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]){
+				match make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]){
 					Ok((fbod, tokens_prime, token_index_prime, _)) => {
 						let fbod_ast = Rc::new(ASTNode::Expression(fbod));
 						already_parsed.push(ASTNode::Function{cmd: FunCmd::new(&command_str), func_name: name_str, func_bod: fbod_ast});
@@ -1159,7 +1265,7 @@ pub fn make_ast_prime(
 			},
 			//Var command parsing case.
 			Token::Word(ref cmd) if cmd.0 == "var" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]){
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]){
 					Ok((mut var_data, tokens_prime, token_index_prime, _)) => {
 						if var_data.len() >= 2{
 							let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
@@ -1189,7 +1295,7 @@ pub fn make_ast_prime(
 			},
 			//Loc command parsing case.
 			Token::Word(ref cmd) if cmd.0 == "loc" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]){
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]){
 					Ok((mut var_data, tokens_prime, token_index_prime, _)) => {
 						if var_data.len() >= 2{
 							let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
@@ -1220,7 +1326,7 @@ pub fn make_ast_prime(
 			},
 			//Box command case.
 			Token::Word(ref cmd) if cmd.0 == "box" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), 0))]) {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]) {
 					Ok((mut box_data, tokens_prime, token_index_prime, _)) => {
 						if box_data.len() >= 1{
 							let box_cmd = match std::mem::take(&mut box_data[0]){
@@ -1255,7 +1361,7 @@ pub fn make_ast_prime(
 						token_index + 1, 
 						loc_nums,
 						curr_loc_num,
-						vec![Token::Word((";".to_string(), 0))]
+						vec![Token::Word((";".to_string(), Operator::default()))]
 					) {
 					Ok((defer_body, tokens_prime, token_index_prime, _)) => {
 						already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
@@ -1267,7 +1373,7 @@ pub fn make_ast_prime(
 			//castTo case
 			Token::Word(ref cmd) if cmd.0 == "castTo" => {
 				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, 
-						curr_loc_num, vec![Token::Word((";".to_string(), 0))])  {
+						curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))])  {
 					Ok((mut cast_data, tokens_prime, token_index_prime, _)) => {
 						if cast_data.len() >= 1{
 							let data_type = match std::mem::take(&mut cast_data[0]){
@@ -1304,7 +1410,7 @@ pub fn parse_att_err(
 			Vec::new(),
 			tokens, 
 			token_index, loc_nums, curr_loc_num,
-			vec![Token::Word(("onError".to_string(), 0))]
+			vec![Token::Word(("onError".to_string(), Operator::default()))]
 		) {
 		Ok((att_branch, tokens_prime, token_index_prime, terminator_index)) => {
 			match terminator_index{
@@ -1317,7 +1423,7 @@ pub fn parse_att_err(
 									token_index_prime, 
 									loc_nums,
 									curr_loc_num,
-									vec![Token::Word((";".to_string(), 0))]
+									vec![Token::Word((";".to_string(), Operator::default()))]
 								) {
 								Ok((error_branch, tokens_prime_prime, token_index_prime_prime, _)) => {
 									
@@ -1346,7 +1452,7 @@ pub fn parse_if(
 			Vec::new(), 
 			tokens, 
 			token_index, loc_nums, curr_loc_num, 
-			vec![Token::Word(("else".to_string(), 0)), Token::Word((";".to_string(), 0))]
+			vec![Token::Word(("else".to_string(), Operator::default())), Token::Word((";".to_string(), Operator::default()))]
 		){
 		Ok((true_branch, tokens_prime, token_index_prime, terminator_index)) => {
 			match terminator_index{
@@ -1382,7 +1488,7 @@ pub fn parse_else(
 			Vec::new(),
 			tokens, 
 			token_index, loc_nums, curr_loc_num,
-			vec![Token::Word((";".to_string(), 0))]
+			vec![Token::Word((";".to_string(), Operator::default()))]
 		){
 		Ok((if_false, tokens_prime, token_index_prime, _)) => {
 			Ok((ASTNode::Expression(if_false), tokens_prime, token_index_prime))
