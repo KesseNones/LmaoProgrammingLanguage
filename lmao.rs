@@ -50,9 +50,80 @@ fn invalid_mutation_error(op_name: &str, v1: Value, v2: Value) -> String{
 	format!("Operator ({}) error! Unable to mutate {} to {}, as it is an invalid mutation!", op_name, v1, v2)
 }
 
+fn run_operator(op: Operator, s: &mut Stack, h: &mut Heap, args: Option<&str>) -> 
+Result<RetCode, String>
+{
+	macro_rules! op_match{
+		($(($var:ident, $func:ident)),* $(,)?) => {
+			match op{
+				$(Operator::$var => $func(s, h, args),)*			
+				//External check for unknown should cover this!
+				Operator::Unknown => Err(should_never_get_here_for_func("run_operator")),
+			}	
+		};
+	}
+	op_match!{
+		(Add, add), (Sub, sub), (Mul, mult), (Div, div), 
+		(Mod, modulo), (Pow, power),
+
+		(IsizeMax, max_isize), (UsizeMax, max_usize),
+
+		(I8Max, max_i8), (I16Max, max_i16), (I32Max, max_i32), 
+		(I64Max, max_i64), (I128Max, max_i128),
+
+		(U8Max, max_u8), (U16Max, max_u16), (U32Max, max_u32), 
+		(U64Max, max_u64), (U128Max, max_u128),
+
+		(Swap, swap), (Drop, drop), (DropStack, drop_stack), 
+		(Rot, rot), (Dup, dup), (DeepDup, deep_dup), 
+
+		(Equal, is_equal), (NotEqual, is_not_equal), 
+		(GreaterThan, is_greater_than), (LessThan, is_less_than), 
+		(GreaterThanEqualTo, is_greater_than_equal_to), 
+		(LessThanEqualTo, is_less_than_equal_to), 
+		(StringCompare, string_compare), (Concat, concat),
+
+		(And, and), (Or, or), (Xor, xor), (Not, not),
+
+		(Push, list_push), (Pop, list_pop), (Fpush, list_front_push), 
+		(Fpop, list_front_pop), (Index, index), (Length, length),
+
+		(IsEmpty, is_empty), (Clear, list_clear), 
+		(Contains, list_contains), (ChangeItemAt, change_item_at),
+
+		(IsWhitespaceChar, whitespace_detect), 
+		(IsAlphaChar, alpha_char_detect), 
+		(IsNumChar, num_char_detect),
+
+		(ObjAddField, add_field), (ObjGetField, get_field), 
+		(ObjMutField, mut_field), (ObjRemField, remove_field),
+
+		(BitOr, bit_or), (BitAnd, bit_and), 
+		(BitXor, bit_xor), (BitNot, bit_not), 
+		(BitShift, bit_shift), (Cast, cast_stuff),
+
+		(PrintLine, print_line), (ReadLine, read_line_from_in), 
+		(PrintChar, print_char), (ReadChar, read_char), 
+		(Print, print_string), (Read, read_from_in), 
+		(DebugPrintStack, debug_stack_print), 
+		(DebugPrintHeap, debug_heap_print),
+
+		(FileWrite, write_data_to_file), 
+		(FileRead, read_data_from_file), 
+		(FileCreate, create_file_based_on_string), 
+		(FileRemove, delete_file_based_on_string), 
+		(FileExists, file_exists),
+
+		(QueryType, query_type), (LeaveScopeIfTrue, leave_scope_if_true), 
+		(ThrowCustomError, throw_custom_error), (GetArgs, get_args), 
+		(IsValidBox, is_valid_box), (TimeUnixNow, time_unix_now), 
+		(TimeWait, time_wait),
+	}
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
-vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, String>
+vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 {
     let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
 	let mut res: Result<RetCode, String> = Ok(RetCode::Normal); 
@@ -74,16 +145,20 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
 							SuperValue::Reg(val) => s.push(*val),
                         }
                     },
-                    ASTNode::Terminal(Token::Word((op, n))) => {
-						match ops.run_op(*n, s, h, None){
-							Some(Ok(RetCode::Normal)) => (),
-							Some(Ok(RetCode::LeavingScopeEarly)) => {
-								res = Ok(RetCode::LeavingScopeEarly);
-								break;
-							},
-							Some(Err(e)) => {err_break!{e}},
-							None => {err_break!{format!("Unrecognized Operator: {}", op)}}
-						}									
+                    ASTNode::Terminal(Token::Word((op, op_val))) => {
+						if let(Operator::Unknown) = op_val{
+							err_break!{format!("Unrecognized Operator: {}", op)}
+						}else{
+							match run_operator(*op_val, s, h, None){
+								Ok(RetCode::Normal) => (),
+								Ok(RetCode::LeavingScopeEarly) => {
+									res = Ok(RetCode::LeavingScopeEarly);
+									break;
+								},
+								Err(e) => {err_break!{e}},
+							}									
+						}
+
                     },
                     ASTNode::Variable{var_name: name, cmd: c, var_num: num} => {
                         match c{
@@ -226,7 +301,7 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
                             Some(Value::Boolean(b)) => {
 								let branches = [&false_branch, &true_branch];
 								let branch_res = 
-								run_program(branches[b as usize], s, h, vars, fns, ops);
+								run_program(branches[b as usize], s, h, vars, fns);
 
                                 match branch_res{
                                     Ok(_) => (),
@@ -248,7 +323,7 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
                                 Some(Value::Boolean(b)) => {
                                     if b{
 										let body_res = 
-										run_program(&bod, s, h, vars, fns, ops);
+										run_program(&bod, s, h, vars, fns);
 
 										match body_res{
 											Ok(RetCode::Normal) => (),
@@ -290,7 +365,7 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
                                     }, 
                                 };
 								let bod_res = 
-								run_program(&func_body, s, h, vars, fns, ops);
+								run_program(&func_body, s, h, vars, fns);
 
 								if let Err(e) = bod_res{err_break!{e}}
                             },
@@ -348,7 +423,7 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
                     },
                     ASTNode::AttErr{attempt: att, err: error} => {
 						let att_res = 
-						run_program(att, s, h, vars, fns, ops);
+						run_program(att, s, h, vars, fns);
 
 						match att_res{
 							Ok(_) => (),
@@ -356,7 +431,7 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
 								s.push(h.insert_to_heap(HeapValue::String(e1)));
 								
 								let err_res = 
-								run_program(error, s, h, vars, fns, ops);
+								run_program(error, s, h, vars, fns);
 
 								match err_res{
 									Ok(_) => (),
@@ -377,12 +452,10 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
                         }
                     },
                     ASTNode::CastTo(data_type) => {
-						match ops.run_op(
-						ops.cast_op_index(), s, h, Some(data_type))
+						match run_operator(Operator::Cast, s, h, Some(data_type))
 						{
-							Some(Ok(_)) => (),
-							Some(Err(e)) => {err_break!{e}},
-							None => {err_break!{"Should never get here for castTo!!!".to_string()}},
+							Ok(_) => (),
+							Err(e) => {err_break!{e}},
 						}
 					},
                     _ => {},
@@ -395,7 +468,7 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
 	if let (Some(def), Ok(_)) = (deferred, &res){
 		for expr in def.iter().rev(){
 			let expr_res = 
-			run_program(expr, s, h, vars, fns, ops);
+			run_program(expr, s, h, vars, fns);
 			
 			match expr_res{
 				Ok(_) => (),
@@ -412,29 +485,29 @@ vars: &mut Variables, fns: &mut Functions, ops: &Operators) -> Result<RetCode, S
 // parses and runs the entire program!
 // It returns either the state generated by the program or an error string.
 fn run_prog_from_str(argv: &Vec<String>, argc: usize, program_string: String,
-prev_state: Option<(Stack, Heap, Variables, Functions, Operators)>
+prev_state: Option<(Stack, Heap, Variables, Functions)>
 ) -> 
-(Result<RetCode, String>, Stack, Heap, Variables, Functions, Operators)
+(Result<RetCode, String>, Stack, Heap, Variables, Functions)
 {
 	//Clones previous state to be used in run_program, or makes new one.
-	let (mut s, mut h, mut vs, mut fs, os);
-	if let Some((ps, ph, pvs, pfs, pos)) = prev_state{
-		(s, h, vs, fs, os) = 
-		(ps.clone(), ph.clone(), pvs.clone(), pfs.clone(), pos.clone());	
+	let (mut s, mut h, mut vs, mut fs);
+	if let Some((ps, ph, pvs, pfs)) = prev_state{
+		(s, h, vs, fs) = 
+		(ps.clone(), ph.clone(), pvs.clone(), pfs.clone());	
 	}else{
-		(s, h, vs, fs, os) = 
+		(s, h, vs, fs) = 
 		(Stack::new(), Heap::new(), Variables::new(), 
-		Functions::new(), Operators::new());
+		Functions::new());
 	}
 	
 	//Kicks back a parse error with the state 
 	// or runs the program and updates the state.
 	match parse_string_to_ast(&argv, argc, program_string){
 		Ok((ast, num_unique_loc_vars)) => {
-			let res = run_program(&ast, &mut s, &mut h, &mut vs, &mut fs, &os);
-			(res, s, h, vs, fs, os)
+			let res = run_program(&ast, &mut s, &mut h, &mut vs, &mut fs);
+			(res, s, h, vs, fs)
 		},
-		Err(e) => (Err(e), s, h, vs, fs, os)
+		Err(e) => (Err(e), s, h, vs, fs)
 	}
 }
 
@@ -465,7 +538,7 @@ fn main(){
 				Err(reason) => panic!("Unable to read Lmao file {} because {}", file_name, reason),
 			}
 
-			let (res, _, _, _, _, _) = 
+			let (res, _, _, _, _) = 
 			run_prog_from_str(&argv, argc, file_string, None);
 
 			match res{
@@ -507,7 +580,7 @@ fn main(){
 					}
 
 					println!("\n{}\nProgram result:\n", sep_str);
-					let (res, mut s, mut h, _, _, _) = 
+					let (res, mut s, mut h, _, _) = 
 					run_prog_from_str(&argv, argc, source_string, None);
 					match res{
 						Ok(_) => {
@@ -694,7 +767,7 @@ fn main(){
 					code_with_include.push_str(&single_line_prog_str);
 					single_line_prog_str = code_with_include;
 				}
-				let (res, mut s, mut h, _, _, _) = 
+				let (res, mut s, mut h, _, _) = 
 				run_prog_from_str(&argv, argc, single_line_prog_str.clone(), None);
 
 				match res{
@@ -718,7 +791,7 @@ fn main(){
             .expect("Stdin read error! Failed to read from stdin!");
         println!("\n{}\nProgram result:\n", sep_str);
 
-		let (res, _, _, _, _, _) = 
+		let (res, _, _, _, _) = 
 		run_prog_from_str(&argv, argc, program_string, None);
 
 		match res{
