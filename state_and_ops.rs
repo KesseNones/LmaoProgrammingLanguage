@@ -1965,7 +1965,7 @@ pub fn cast_stuff(s: &mut Stack, h: &mut Heap, c_type: Option<&str>) -> Result<R
 				$(Some(Value::$type(v)) => {
 					match SuperValue::try_cast(v, $target){
 						Ok(SuperValue::Heap(hval)) => {
-							s.push(h.insert_to_heap(hval));
+							s.push(h.insert_to_heap(*hval));
 							Ok(RetCode::Normal)
 						},
 						Ok(SuperValue::Reg(val)) => {s.push(val); Ok(RetCode::Normal)},
@@ -1978,7 +1978,7 @@ pub fn cast_stuff(s: &mut Stack, h: &mut Heap, c_type: Option<&str>) -> Result<R
 					if let Some(HeapValue::$h_type(item)) = h.get_heap_ref(bx){
 						match SuperValue::try_cast(item, $target){
 							Ok(SuperValue::Heap(hval)) => {
-								s.push(h.insert_to_heap(hval));
+								s.push(h.insert_to_heap(*hval));
 								Ok(RetCode::Normal)
 							},
 							Ok(SuperValue::Reg(val)) => {s.push(val); Ok(RetCode::Normal)}

@@ -165,7 +165,19 @@ impl Default for HeapValue{
 #[derive(PartialEq, Eq, Clone)]
 pub enum SuperValue{
 	Reg(Value), 
-	Heap(HeapValue),
+	Heap(Box<HeapValue>),
+}
+
+impl From<HeapValue> for SuperValue{
+	fn from(v: HeapValue) -> Self{
+		SuperValue::Heap(Box::new(v))
+	}
+}
+
+impl From<Value> for SuperValue{
+	fn from(v: Value) -> Self{
+		SuperValue::Reg(v)
+	}
 }
 
 impl fmt::Display for SuperValue{
@@ -259,12 +271,12 @@ macro_rules! integer_match {
 				}else{Err(Self::CastError::InvalidCast)} 
 			},
 
-			CastType::StringBox => Ok(SuperValue::Reg(Value::StringBox($v as usize))),
-			CastType::ListBox => Ok(SuperValue::Reg(Value::ListBox($v as usize))),
-			CastType::ObjectBox => Ok(SuperValue::Reg(Value::ObjectBox($v as usize))),
-			CastType::MiscBox => Ok(SuperValue::Reg(Value::MiscBox($v as usize))),
+			CastType::StringBox => Ok(Value::StringBox($v as usize).into()),
+			CastType::ListBox => Ok(Value::ListBox($v as usize).into()),
+			CastType::ObjectBox => Ok(Value::ObjectBox($v as usize).into()),
+			CastType::MiscBox => Ok(Value::MiscBox($v as usize).into()),
 
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			CastType::String => Ok(HeapValue::String($v.to_string()).into()),
 			
 			_ => Err(Self::CastError::InvalidCast)
 		}
@@ -311,8 +323,8 @@ macro_rules! bool_match{
 		match $target {
 			$(CastType::$var => 
 				Ok(SuperValue::Reg(Value::$cast_to((if $v {1} else {0}) as $type))),)*
-			CastType::Bool => Ok(SuperValue::Reg(Value::Boolean($v))),
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			CastType::Bool => Ok(Value::Boolean($v).into()),
+			CastType::String => Ok(HeapValue::String($v.to_string()).into()),
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	};
@@ -344,8 +356,8 @@ impl TryCast<bool> for SuperValue{
 macro_rules! char_match{
 	($v:ident , $target:ident, $($var:ident, $cast_to:ident, $type:ty),* $(,)?) => {
 		match $target {
-			$(CastType::$var => Ok(SuperValue::Reg(Value::$cast_to(($v as u32) as $type))),)*
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			$(CastType::$var => Ok(Value::$cast_to(($v as u32) as $type).into()),)*
+			CastType::String => Ok(HeapValue::String($v.to_string()).into()),
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	};
@@ -389,12 +401,12 @@ macro_rules! string_match{
 					.chars()
 					.map(|c| Value::Char(c))
 					.collect();
-				Ok(SuperValue::Heap(HeapValue::List(char_ls)))
+				Ok(HeapValue::List(char_ls).into())
 			},
 			CastType::Bool => {
 				match $v.as_str(){
-					"True" | "true" => Ok(SuperValue::Reg(Value::Boolean(true))),
-					"False" | "false" => Ok(SuperValue::Reg(Value::Boolean(false))),
+					"True" | "true" => Ok(Value::Boolean(true).into()),
+					"False" | "false" => Ok(Value::Boolean(false).into()),
 					_ => Err(Self::CastError::InvalidCast)
 				}
 			}
@@ -429,7 +441,7 @@ impl TryCast<&Vec<Value>> for SuperValue{
 	type CastError = CastError;
 	fn try_cast(v: &Vec<Value>, target: CastType) -> Result<Self, Self::CastError>{
 		match target{
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String(stringify_val_vec(v)))),
+			CastType::String => Ok(HeapValue::String(stringify_val_vec(v)).into()),
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	}
@@ -439,7 +451,7 @@ impl TryCast<&HashMap<String, Value>> for SuperValue{
 	type CastError = CastError;
 	fn try_cast(v: &HashMap<String, Value>, target: CastType) -> Result<Self, Self::CastError>{
 		match target{
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String(stringify_obj(v)))),
+			CastType::String => Ok(HeapValue::String(stringify_obj(v)).into()),
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	}
@@ -974,218 +986,154 @@ pub fn lex_tokens(
 {
 	let mut lexed: Vec<Token> = Vec::new();
 
-	for tok in tokens.into_iter(){
-		match &tok{
-			//Boolean lexing cases.
-			t if t == "True" || t == "true" => {
-				lexed.push(Token::V(
-					SuperValue::Reg(Value::Boolean(true)))
-				);
-			},
-			t if t == "False" || t == "false" => {
-				lexed.push(Token::V(
-					SuperValue::Reg(Value::Boolean(false)))
-				);
-			},
-			//String case.
-			t if t.starts_with("\"") && t.ends_with("\"") => {
-				lexed.push(Token::V(
-					SuperValue::Heap(
-						HeapValue::String(
-							replace_literals_with_escapes(&tok[1..(tok.len() - 1)]))
-					))
-				);
-			}, 
-			//Char case.
-			t if t.starts_with("\'") && t.ends_with("\'") => {
-				let mut iter = tok[1..].chars();
-				let mut captured: char = iter.nth(0).unwrap();
-				if captured == '\\'{
-					captured = match iter.nth(0).unwrap(){
-						'n' => '\n',
-						't' => '\t',
-						'r' => '\r',
-						'0' => '\0',
-						'\'' => '\'',
-						'\"' => '\"',
-						'b' => '\x08',
-						'f' => '\x0c',
-						_ => captured,
-					};
-				}
-				lexed.push(Token::V(SuperValue::Reg(Value::Char(captured))));
-			},
-			//List case.
-			t if t == "[]" => lexed.push(Token::V(SuperValue::Heap(HeapValue::List(Vec::new())))),
-			//Object case.
-			t if t == "{}" => lexed.push(Token::V(SuperValue::Heap(HeapValue::Object(HashMap::new())))),
-			//Float cases.
-			t if t.ends_with("f32") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<f32>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float32(parsed)))),
-					Err(_) => return Err(throw_parse_error("f32", &tok)),
-				}
-			},
-			t if t.ends_with("f64") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<f64>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float64(parsed)))),
-					Err(_) => return Err(throw_parse_error("f64", &tok)),
-				}
-			},
-			//Explicit integer cases for both signed and unsigned.
-			t if t.ends_with("u8") && t.len() > 2 => {
-				match tok[0..(tok.len() - 2)].parse::<u8>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt8(parsed)))),
-					Err(_) => return Err(throw_parse_error("u8", &tok)),
-				}
-			},
-			t if t.ends_with("i8") && t.len() > 2 => {
-				match tok[0..(tok.len() - 2)].parse::<i8>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int8(parsed)))),
-					Err(_) => return Err(throw_parse_error("i8", &tok)),
-				}
-			},
-			t if t.ends_with("u16") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<u16>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt16(parsed)))),
-					Err(_) => return Err(throw_parse_error("u16", &tok)),
-				}
-			},
-			t if t.ends_with("i16") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<i16>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int16(parsed)))),
-					Err(_) => return Err(throw_parse_error("i16", &tok)),
-				}
-			},
-			t if t.ends_with("u32") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<u32>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt32(parsed)))),
-					Err(_) => return Err(throw_parse_error("u32", &tok)),
-				}
-			},
-			t if t.ends_with("i32") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<i32>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int32(parsed)))),
-					Err(_) => return Err(throw_parse_error("i32", &tok)),
-				}
-			},
-			t if t.ends_with("u64") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<u64>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt64(parsed)))),
-					Err(_) => return Err(throw_parse_error("u64", &tok)),
-				}
-			},
-			t if t.ends_with("i64") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<i64>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int64(parsed)))),
-					Err(_) => return Err(throw_parse_error("u64", &tok)),
-				}
-			},
-			t if t.ends_with("u128") && t.len() > 4 => {
-				match tok[0..(tok.len() - 4)].parse::<u128>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt128(parsed)))),
-					Err(_) => return Err(throw_parse_error("u128", &tok)),
-				}
-			},
-			t if t.ends_with("i128") && t.len() > 4 => {
-				match tok[0..(tok.len() - 4)].parse::<i128>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int128(parsed)))),
-					Err(_) => return Err(throw_parse_error("i128", &tok)),
-				}
-			},
-			t if t.ends_with("usize") && t.len() > 5 => {
-				match tok[0..(tok.len() - 5)].parse::<usize>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UIntSize(parsed)))),
-					Err(_) => return Err(throw_parse_error("usize", &tok)),
-				}
-			},
-			t if t.ends_with("isize") && t.len() > 5 => {
-				match tok[0..(tok.len() - 5)].parse::<isize>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::IntSize(parsed)))),
-					Err(_) => return Err(throw_parse_error("isize", &tok)),
-				}
-			},
-			//Type inference for float.
-			t if t.contains(".") 
-					&& (t.chars().next().unwrap() == '-' 
-					|| (t.chars().next().unwrap() >= '0' 
-						&& t.chars().next().unwrap() <= '9')) 
-					=> {
-				match tok.parse::<f32>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float32(parsed)))),
-					Err(_) => return Err(throw_parse_error("f32", &tok)),
-				}
-			},
-			//Type inference for integer.
-			t if (t.chars().next().unwrap() == '-' && t.len() > 1) 
-					|| (t.chars().next().unwrap() >= '0' 
-						&& t.chars().next().unwrap() <= '9') 
-					=> {
-				match tok.parse::<isize>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::IntSize(parsed)))),
-					Err(_) => return Err(throw_parse_error("isize", &tok)),
-				}
-			},
+	macro_rules! tok_match{
+		($el:ident, $(($tystr:literal, $ty:ty, $var:ident)),* $(,)?) => {
+			match &$el{
+				t if t == "True" || t == "true" => {
+					lexed.push(Token::V(Value::Boolean(true).into()));
+				},
+				t if t == "False" || t == "false" => {
+					lexed.push(Token::V(Value::Boolean(false).into()));
+				},
+				//String case.
+				t if t.starts_with("\"") && t.ends_with("\"") => {
+					lexed.push(Token::V(HeapValue::String(
+					replace_literals_with_escapes(&t[1..(t.len() - 1)])).into()));
+				}, 
+				//Char case.
+				t if t.starts_with("\'") && t.ends_with("\'") => {
+					let mut iter = $el[1..].chars();
+					let mut captured: char = iter.nth(0).unwrap();
+					if captured == '\\'{
+						captured = match iter.nth(0).unwrap(){
+							'n' => '\n',
+							't' => '\t',
+							'r' => '\r',
+							'0' => '\0',
+							'\'' => '\'',
+							'\"' => '\"',
+							'b' => '\x08',
+							'f' => '\x0c',
+							_ => captured,
+						};
+					}
+					lexed.push(Token::V(Value::Char(captured).into()));
+				},
+				//List case.
+				t if t == "[]" => lexed.push(Token::V(HeapValue::List(Vec::new()).into())),
+				//Object case.
+				t if t == "{}" => lexed.push(
+					Token::V(HeapValue::Object(HashMap::new()).into())),
+				//Generalized macro case handling specified floats and integers.
+				$(t if t.ends_with($tystr) && t.len() > $tystr.len() => {
+					match $el[0..($el.len() - $tystr.len())].parse::<$ty>(){
+						Ok(parsed) => lexed.push(Token::V(Value::$var(parsed).into())),	
+						Err(_) => return Err(throw_parse_error($tystr, t)),
+					}
+				},)*
+				//Type inference for float.
+				t if t.contains(".") 
+						&& (t.chars().next().unwrap() == '-' 
+						|| (t.chars().next().unwrap() >= '0' 
+							&& t.chars().next().unwrap() <= '9')) 
+						=> {
+					match $el.parse::<f32>(){
+						Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed).into())),
+						Err(_) => return Err(throw_parse_error("f32", t)),
+					}
+				},
+				//Type inference for integer.
+				t if (t.chars().next().unwrap() == '-' && t.len() > 1) 
+						|| (t.chars().next().unwrap() >= '0' 
+							&& t.chars().next().unwrap() <= '9') 
+						=> {
+					match $el.parse::<isize>(){
+						Ok(parsed) => lexed.push(Token::V(Value::IntSize(parsed).into())),
+						Err(_) => return Err(throw_parse_error("isize", t)),
+					}
+				},
 
-			//Recursive import() statement case.
-			t if t.starts_with("import(") && t.ends_with(")") => {
-				//Grabs file string out of import statement. 
-				let import_str = "import("; 
-				let file_str = &t[(import_str.len())..(t.len() - 1)];
+				//Recursive import() statement case.
+				t if t.starts_with("import(") && t.ends_with(")") => {
+					//Grabs file string out of import statement. 
+					let import_str = "import("; 
+					let file_str = &t[(import_str.len())..(t.len() - 1)];
+					
+					let import_file_path = Path::new(file_str);
+
+					//If file not already imported, inserts into file hashmap.
+					// If it is, then nothing happens.
+					if !imported.contains_key(file_str){
+						imported.insert(file_str.to_string(), ());
+
+						//Opens the input file to read from.
+						let mut import_file = match File::open(&import_file_path){
+							Ok(f) => f,
+							Err(reason) => {
+								let import_file_name = import_file_path.display();
+								return Err(format!("Unable to open import \
+									file {} for parsing because {}", import_file_name, reason));
+							}, 
+						};
+
+						//Reads in the code from the given file after opening it.
+						let mut import_code_str = String::new();
+						match import_file.read_to_string(&mut import_code_str){
+							Ok(_) => {},
+							Err(reason) => {
+								let import_file_name = import_file_path.display();
+								return Err(format!("Unable to read in\
+									import file {} because {}", import_file_name, reason)); 
+							}, 
+						}
+
+						//Pushes all $elens from recursive traversal into current lexed list.
+						match tokenize(import_code_str.chars().collect()){
+							Ok(import_tokens) => {
+								match lex_tokens(import_tokens, ops_map, imported){
+									Ok(toks) => {
+										for tok in toks.into_iter(){
+											lexed.push(tok)
+										}
+									},
+									Err(e) => return Err(e),
+								}
+									
+							},
+							Err(e) => return Err(e),
+						}
+
+					}
+
+				}, 
 				
-				let import_file_path = Path::new(file_str);
+				//General catch-all case mostly meant for operators.
+				_ => {
+					let op_val = Operator::new(&$el);
+					lexed.push(Token::Word(($el, op_val)));
+				}, 
+			}	
+		};
+	}
 
-				//If file not already imported, inserts into file hashmap.
-				// If it is, then nothing happens.
-				if !imported.contains_key(file_str){
-					imported.insert(file_str.to_string(), ());
-
-					//Opens the input file to read from.
-					let mut import_file = match File::open(&import_file_path){
-						Ok(f) => f,
-						Err(reason) => {
-							let import_file_name = import_file_path.display();
-							return Err(format!("Unable to open import \
-								file {} for parsing because {}", import_file_name, reason));
-						}, 
-					};
-
-					//Reads in the code from the given file after opening it.
-					let mut import_code_str = String::new();
-					match import_file.read_to_string(&mut import_code_str){
-						Ok(_) => {},
-						Err(reason) => {
-							let import_file_name = import_file_path.display();
-							return Err(format!("Unable to read in\
-								import file {} because {}", import_file_name, reason)); 
-						}, 
-					}
-
-					//Pushes all tokens from recursive traversal into current lexed list.
-					match tokenize(import_code_str.chars().collect()){
-						Ok(import_tokens) => {
-							match lex_tokens(import_tokens, ops_map, imported){
-								Ok(toks) => {
-									for tok in toks.into_iter(){
-										lexed.push(tok)
-									}
-								},
-								Err(e) => return Err(e),
-							}
-								
-						},
-						Err(e) => return Err(e),
-					}
-
-				}
-
-			}, 
+	for tok in tokens.into_iter(){
+		tok_match!{tok,
+			("f32", f32, Float32),
+			("f64", f64, Float64),
 			
-			//General catch-all case mostly meant for operators.
-			_ => {
-				let op_val = Operator::new(&tok);
-				lexed.push(Token::Word((tok, op_val)));
-			}, 
+			("usize", usize, UIntSize),
+			("u8", u8, UInt8),
+			("u16", u16, UInt16),
+			("u32", u32, UInt32),
+			("u64", u64, UInt64),
+			("u128", u128, UInt128),
+
+			("isize", isize, IntSize),
+			("i8", i8, Int8),
+			("i16", i16, Int16),
+			("i32", i32, Int32),
+			("i64", i64, Int64),
+			("i128", i128, Int128),
 		}
 	}
 

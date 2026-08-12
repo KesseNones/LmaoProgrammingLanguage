@@ -128,7 +128,7 @@ fn translate_ast_to_rust_code(
                                 let new_bn = state.insert_to_heap({});
 
                         ", heapval_format(h));
-                        let code_str = match h{
+                        let code_str = match &**h{
                             HeapValue::String(_) => {
                                 format!("
                                     {}

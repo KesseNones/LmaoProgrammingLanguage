@@ -141,7 +141,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                 match node{
                     ASTNode::Terminal(Token::V(v)) => {
                         match v{
-							SuperValue::Heap(hval) => s.push(h.insert_to_heap(hval.clone())),
+							SuperValue::Heap(hval) => s.push(h.insert_to_heap(*hval.clone())),
 							SuperValue::Reg(val) => s.push(*val),
                         }
                     },
