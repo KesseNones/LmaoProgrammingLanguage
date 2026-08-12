@@ -703,7 +703,7 @@ pub enum ASTNode{
 	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
 	While(Box<ASTNode>),
 	Expression(Vec<ASTNode>),
-	Function{cmd: FunCmd, func_name: String, func_bod: Rc<ASTNode>},
+	Function{cmd: FunCmd, func_name: Box<String>, func_bod: Rc<ASTNode>},
 	Variable{var_name: String, cmd: VarCmd, var_num: usize},
 	LocVar{name: String, cmd: VarCmd, num: usize},
 	BoxOp(BoxCmd),
@@ -1152,7 +1152,7 @@ pub fn make_ast_prime(
 				match make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((Box::new(";".to_string()), Operator::default()))]){
 					Ok((fbod, tokens_prime, token_index_prime, _)) => {
 						let fbod_ast = Rc::new(ASTNode::Expression(fbod));
-						already_parsed.push(ASTNode::Function{cmd: FunCmd::new(&command_str), func_name: *name_str, func_bod: fbod_ast});
+						already_parsed.push(ASTNode::Function{cmd: FunCmd::new(&command_str), func_name: name_str, func_bod: fbod_ast});
 						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 					},
 					Err(e) => return Err(e),
