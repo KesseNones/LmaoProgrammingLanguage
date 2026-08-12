@@ -158,12 +158,12 @@ fn translate_ast_to_rust_code(
                         code_strings.push(code_str);
                     },
                     ASTNode::Terminal(Token::Word(op)) => {
-                        match ops_to_funcs.get(&op.0){
+                        match ops_to_funcs.get(&*op.0){
                             Some(op_func) => {
                                 //Only creates deferred code in translated code if it's very likely to be used, 
                                 // saving on a significant amount of memory.
                                 let deferred_code: String;
-                                if &op.0 == "leaveScopeIfTrue"{
+                                if op_func == "leaveScopeIfTrue"{
                                     deferred_code = make_deferred_code_blocks(&deferred, ops_to_funcs)
                                 }else{
                                     deferred_code = String::from("")
