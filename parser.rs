@@ -496,18 +496,9 @@ pub enum Operator{
 impl Default for Operator{
 	fn default() -> Self{Operator::Unknown}
 }
-
-impl Operator{
-	fn new(op_name: &str) -> Self{
-		macro_rules! op_match{
-			($(($name:literal, $var:ident)),* $(,)?) => {
-				match op_name{
-					$($name => Operator::$var,)*			
-					_ => Operator::Unknown,
-				}	
-			};
-		}
-		op_match!{
+macro_rules! match_call{
+	($mac:ident) => {
+		$mac!{
 			("+", Add), ("-", Sub), ("*", Mul), ("/", Div), 
 			("mod", Mod), ("%", Mod), ("pow", Pow),
 
@@ -559,7 +550,32 @@ impl Operator{
 			("throwCustomError", ThrowCustomError), ("getArgs", GetArgs), 
 			("isValidBox", IsValidBox), ("timeUnixNow", TimeUnixNow), 
 			("timeWait", TimeWait),
+		}
+	};
+}
+
+impl Operator{
+	fn new(op_name: &str) -> Self{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match op_name{
+					$($name => Operator::$var,)*			
+					_ => Operator::Unknown,
+				}	
+			};
 		}	
+		match_call!{op_match}	
+	}
+	pub fn stringify(&self) -> String{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match self{
+					$(Operator::$var => $name.to_string(),)*			
+					_ => "Unknown".to_string(),
+				}	
+			};
+		}
+		match_call!{op_match}
 	}
 }
 
@@ -713,7 +729,7 @@ So yeah, mess with that.
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
-	Op {name: Box<String>, id: Operator},
+	Op(Operator),
 	Val(Value),	
 	HeapVal(Box<HeapValue>),
 	Word(Box<String>),
@@ -738,7 +754,7 @@ impl Default for ASTNode{
 impl fmt::Display for ASTNode{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self{
-			ASTNode::Op {name: n, id: _}=> write!(f, "Operator {}", n),
+			ASTNode::Op(id) => write!(f, "Operator {}", id.stringify()),
 			ASTNode::Val(v) => write!(f, "{}", v),
 			ASTNode::HeapVal(hv) => write!(f, "{}", hv),
 			ASTNode::If{if_true, if_false} => write!(f, "If [true_branch: {}, false_branch: {}]", if_true, if_false),
@@ -1286,7 +1302,7 @@ pub fn make_ast_prime(
 			},
 			Token::Word((cmd, op)) => {
 				if *op != Operator::Unknown{
-					already_parsed.push(ASTNode::Op{name: Box::new(*cmd.clone()), id: *op});
+					already_parsed.push(ASTNode::Op(*op));
 				}else{
 					already_parsed.push(ASTNode::Word(Box::new(*cmd.clone())));
 				}
@@ -1397,11 +1413,50 @@ pub fn parse_else(
 	}
 }
 
+//Runs through AST expression.
+// If it finds a Word, it's an error, as all words should've been consumed 
+// in forming the AST.
+fn pre_run_ast_check(nodes: &ASTNode) -> Result<(), String>{
+	match nodes{
+		ASTNode::Expression(nds) => {
+			for node in nds.iter(){
+				match node{
+					ASTNode::Word(text) => return Err(format!("Unknown operator error! Word \"{}\" is not a valid operator and isn't part of any fancy operators.", text)),
+					ASTNode::If{if_true: t, if_false: f} => {
+						if let Err(e1) = pre_run_ast_check(t){
+							return Err(e1);	
+						}
+						if let Err(e2) = pre_run_ast_check(f){
+							return Err(e2);	
+						}
+					},
+					ASTNode::While(bod) => {
+						if let Err(e) = pre_run_ast_check(bod) {return Err(e);}	
+					},
+					ASTNode::Function{cmd: FunCmd::Define, func_name: _, func_bod: b} => 
+					{
+						if let Err(e) = pre_run_ast_check(b) {return Err(e);}
+					},
+					_ => (),
+				}
+			}
+		},
+		_ => (),
+	}
+	Ok(())
+}
+
 //Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
 // returning it for the program to then run. 
 pub fn make_ast(tokens: Vec<Token>) -> Result<ASTNode, String>{
 	match make_ast_prime(Vec::new(), tokens, 0, Vec::new()){
-		Ok(res) => return Ok(ASTNode::Expression(res.0)),	
+		Ok(res) => {
+			let ast = ASTNode::Expression(res.0);
+			match pre_run_ast_check(&ast){
+				Ok(_) => Ok(ast),
+				Err(er) => Err(er),
+			}
+		}, 
 		Err(e) => return Err(e),
 	}
 }

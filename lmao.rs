@@ -57,7 +57,7 @@ Result<RetCode, String>
 		($(($var:ident, $func:ident)),* $(,)?) => {
 			match op{
 				$(Operator::$var => $func(s, h, args),)*			
-				//External check for unknown should cover this!
+				//Should never reach this!
 				Operator::Unknown => Err(should_never_get_here_for_func("run_operator")),
 			}	
 		};
@@ -141,19 +141,15 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                 match node{
 					ASTNode::Val(v) => s.push(*v),
 					ASTNode::HeapVal(hv) => s.push(h.insert_to_heap(*hv.clone())),
-					ASTNode::Op{name: nm, id: op} => {
-						if *op != Operator::Unknown{
-							match run_operator(*op, s, h, None){
-								Ok(RetCode::Normal) => (),
-								Ok(RetCode::LeavingScopeEarly) => {
-									res = Ok(RetCode::LeavingScopeEarly);
-									break;
-								},
-								Err(e) => {err_break!{e}},
-							}									
-						}else{
-							err_break!{format!("Unrecognized Operator: {}", nm)}
-						}
+					ASTNode::Op(id) => {
+						match run_operator(*id, s, h, None){
+							Ok(RetCode::Normal) => (),
+							Ok(RetCode::LeavingScopeEarly) => {
+								res = Ok(RetCode::LeavingScopeEarly);
+								break;
+							},
+							Err(e) => {err_break!{e}},
+						}									
 					},
                     ASTNode::Variable{var_name: name, cmd: c} => {
                         match c{
