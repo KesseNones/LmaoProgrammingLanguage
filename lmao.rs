@@ -498,7 +498,7 @@ prev_state: Option<(Stack, Heap, Variables, Functions)>
 	//Kicks back a parse error with the state 
 	// or runs the program and updates the state.
 	match parse_string_to_ast(&argv, argc, program_string){
-		Ok((ast, num_unique_loc_vars)) => {
+		Ok(ast) => {
 			let res = run_program(&ast, &mut s, &mut h, &mut vs, &mut fs);
 			(res, s, h, vs, fs)
 		},

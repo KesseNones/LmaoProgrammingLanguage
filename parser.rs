@@ -696,6 +696,20 @@ impl fmt::Display for FunCmd{
 	}	
 }
 
+//IDEA:
+/*
+Get rid of name in Op and Function by doing pre-runtime checks.
+You can just throw the unknown op errors outside, which means you
+don't need the name.
+You can ommit the function name to save 8 bytes as well.
+
+The big thing is boxing up stuff, including Expression to save
+stuff. If you get rid of 128 bit data types you can achieve 
+16 byte ASTNode enum values which is much more friendly to cache.
+So yeah, mess with that.
+
+*/
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
@@ -764,7 +778,7 @@ pub fn type_to_string(v: Value) -> String{
 
 //Takes in a file string and calls the necessary functions 
 // to build an AST from it.
-pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> Result<(ASTNode, usize), String>{
+pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> Result<ASTNode, String>{
 	match tokenize(program_string.chars().collect()){
 		Ok(tokens) => {
 			//Constructs means of checking for duplicate imports.
@@ -1385,12 +1399,9 @@ pub fn parse_else(
 
 //Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
 // returning it for the program to then run. 
-// It also returns the number of unique local variable names for later use in running the program. 
-pub fn make_ast(tokens: Vec<Token>) -> Result<(ASTNode, usize), String>{
-	let mut loc_nums: HashMap<String, usize> = HashMap::new();
-	let mut curr_loc_num: usize = 0;
+pub fn make_ast(tokens: Vec<Token>) -> Result<ASTNode, String>{
 	match make_ast_prime(Vec::new(), tokens, 0, Vec::new()){
-		Ok(res) => return Ok((ASTNode::Expression(res.0), curr_loc_num)),	
+		Ok(res) => return Ok(ASTNode::Expression(res.0)),	
 		Err(e) => return Err(e),
 	}
 }
