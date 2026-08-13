@@ -704,8 +704,8 @@ pub enum ASTNode{
 	While(Box<ASTNode>),
 	Expression(Vec<ASTNode>),
 	Function{cmd: FunCmd, func_name: Box<String>, func_bod: Rc<ASTNode>},
-	Variable{var_name: String, cmd: VarCmd, var_num: usize},
-	LocVar{name: String, cmd: VarCmd, num: usize},
+	Variable{var_name: Box<String>, cmd: VarCmd, var_num: usize},
+	LocVar{name: Box<String>, cmd: VarCmd, num: usize},
 	BoxOp(BoxCmd),
 	AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
 	Defer(Rc<ASTNode>),
@@ -1178,7 +1178,7 @@ pub fn make_ast_prime(
 									ret
 								},
 							};
-							already_parsed.push(ASTNode::Variable{var_name: *name, cmd: VarCmd::new(&cmd), var_num: vn});
+							already_parsed.push(ASTNode::Variable{var_name: name, cmd: VarCmd::new(&cmd), var_num: vn});
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
 						}else{
@@ -1208,7 +1208,7 @@ pub fn make_ast_prime(
 									ret
 								},
 							};
-							already_parsed.push(ASTNode::LocVar{name: *name, cmd: VarCmd::new(&cmd), num: var_num});
+							already_parsed.push(ASTNode::LocVar{name: name, cmd: VarCmd::new(&cmd), num: var_num});
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 
 						}else{
