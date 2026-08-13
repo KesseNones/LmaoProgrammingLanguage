@@ -139,17 +139,11 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
                 match node{
-                    ASTNode::Terminal(Token::V(v)) => {
-                        match v{
-							SuperValue::Heap(hval) => s.push(h.insert_to_heap(*hval.clone())),
-							SuperValue::Reg(val) => s.push(*val),
-                        }
-                    },
-                    ASTNode::Terminal(Token::Word((op, op_val))) => {
-						if let(Operator::Unknown) = op_val{
-							err_break!{format!("Unrecognized Operator: {}", op)}
-						}else{
-							match run_operator(*op_val, s, h, None){
+					ASTNode::Val(v) => s.push(*v),
+					ASTNode::HeapVal(hv) => s.push(h.insert_to_heap(*hv.clone())),
+					ASTNode::Op{name: nm, id: op} => {
+						if *op != Operator::Unknown{
+							match run_operator(*op, s, h, None){
 								Ok(RetCode::Normal) => (),
 								Ok(RetCode::LeavingScopeEarly) => {
 									res = Ok(RetCode::LeavingScopeEarly);
@@ -157,10 +151,11 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 								},
 								Err(e) => {err_break!{e}},
 							}									
+						}else{
+							err_break!{format!("Unrecognized Operator: {}", nm)}
 						}
-
-                    },
-                    ASTNode::Variable{var_name: name, cmd: c, var_num: num} => {
+					},
+                    ASTNode::Variable{var_name: name, cmd: c} => {
                         match c{
                             VarCmd::Make => {
 								match s.pop(){
@@ -375,7 +370,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                             },
                         }
                     },
-                    ASTNode::LocVar{name: nam, cmd: c, num: n} => {
+                    ASTNode::LocVar{name: nam, cmd: c} => {
                         match c{
                             VarCmd::Make => {
                                 match s.pop(){

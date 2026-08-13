@@ -699,13 +699,16 @@ impl fmt::Display for FunCmd{
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
-	Terminal(Token),
+	Op {name: Box<String>, id: Operator},
+	Val(Value),	
+	HeapVal(Box<HeapValue>),
+	Word(Box<String>),
 	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
 	While(Box<ASTNode>),
 	Expression(Vec<ASTNode>),
 	Function{cmd: FunCmd, func_name: Box<String>, func_bod: Rc<ASTNode>},
-	Variable{var_name: Box<String>, cmd: VarCmd, var_num: usize},
-	LocVar{name: Box<String>, cmd: VarCmd, num: usize},
+	Variable{var_name: Box<String>, cmd: VarCmd},
+	LocVar{name: Box<String>, cmd: VarCmd},
 	BoxOp(BoxCmd),
 	AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
 	Defer(Rc<ASTNode>),
@@ -713,15 +716,17 @@ pub enum ASTNode{
 }
 
 impl Default for ASTNode{
-	fn default() -> Self{
-		ASTNode::Terminal(Token::default())
+	fn default()->Self{
+		ASTNode::Val(Value::NULLBox)
 	}
 }
 
 impl fmt::Display for ASTNode{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self{
-			ASTNode::Terminal(t) => write!(f, "{}", t),
+			ASTNode::Op {name: n, id: _}=> write!(f, "Operator {}", n),
+			ASTNode::Val(v) => write!(f, "{}", v),
+			ASTNode::HeapVal(hv) => write!(f, "{}", hv),
 			ASTNode::If{if_true, if_false} => write!(f, "If [true_branch: {}, false_branch: {}]", if_true, if_false),
 			ASTNode::While(body) => write!(f, "While [{}]", body),
 			ASTNode::Expression(vec) => {
@@ -731,12 +736,13 @@ impl fmt::Display for ASTNode{
 			ASTNode::Function{cmd: c, func_name: name, func_bod: body} => {
 				write!(f, "Function [cmd: {}, name: {}, body: {}]", c, name, body)
 			},
-			ASTNode::Variable{var_name: name, cmd: c, var_num: n} => write!(f, "Variable [name: {}, cmd: {}, num: {}]", name, c, n),
-			ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
+			ASTNode::Variable{var_name: name, cmd: c} => write!(f, "Variable [name: {}, cmd: {}]", name, c),
+			ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
 			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
 			ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
 			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
+			ASTNode::Word(wd) => write!(f, "Word {}", wd)
 		}
 	}
 }
@@ -1058,6 +1064,7 @@ pub fn lex_tokens(
 				//General catch-all case mostly meant for operators.
 				_ => {
 					let op_val = Operator::new(&$el);
+					
 					lexed.push(Token::Word((Box::new($el), op_val)));
 				}, 
 			}	
@@ -1093,8 +1100,6 @@ pub fn make_ast_prime(
 	mut already_parsed: Vec<ASTNode>, 
 	tokens: Vec<Token>, 
 	token_index: usize,
-	loc_nums: &mut HashMap<String, usize>,
-	curr_loc_num: &mut usize, 
 	terminators: Vec<Token>
 ) -> Result<(Vec<ASTNode>, Vec<Token>, usize, Option<usize>), String>{
 	//If out of tokens to parse, end or throw error if there were terminators to look for.
@@ -1110,32 +1115,32 @@ pub fn make_ast_prime(
 		}
 	//If still tokens to parse, converts the tokens into an ASTNode.
 	}else{
-		match tokens[token_index]{
+		match &tokens[token_index]{
 			//Stop on terminator case. 
-			ref tok if terminators.contains(tok) => Ok((already_parsed, tokens, token_index + 1, Some(token_index))),
+			tok if terminators.contains(tok) => Ok((already_parsed, tokens, token_index + 1, Some(token_index))),
 			//Parse if statement case.
-			Token::Word(ref cmd) if *cmd.0 == "if" => {
-				match parse_if(tokens, token_index + 1, loc_nums, curr_loc_num){
+			Token::Word((cmd, _)) if cmd.as_str() == "if" => {
+				match parse_if(tokens, token_index + 1){
 					Ok((true_branch, false_branch, tokens_prime, token_index_prime)) => {
 						already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
-						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators);
+						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
 					},	
 					Err(e) => return Err(e),
 				}
 			},
 			//While loop parsing case.
-			Token::Word(ref cmd) if *cmd.0 == "while" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![(";", None).into()]){
+			Token::Word((cmd, _)) if cmd.as_str() == "while" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
 					Ok((loop_body, tokens_prime, token_index_prime, _)) => {
 						already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 					},
 					Err(e) => return Err(e),
 				}                 
 
 			},
 			//Function case.
-			Token::Word(ref cmd) if *cmd.0 == "func" => {
+			Token::Word((cmd, _)) if cmd.as_str() == "func" => {
 				//Makes sure there's enough stuff to look to parse the function.
 				if token_index + 2 > tokens.len(){
 					return Err("Insufficient tokens left for function to be parsed!".to_string());
@@ -1149,37 +1154,29 @@ pub fn make_ast_prime(
 					(_, _) => return Err("SHOULD NEVER GET HERE!!!".to_string()),
 				};
 
-				match make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((Box::new(";".to_string()), Operator::default()))]){
+				match make_ast_prime(Vec::new(), toks, token_index + 3, vec![(";", None).into()]){
 					Ok((fbod, tokens_prime, token_index_prime, _)) => {
 						let fbod_ast = Rc::new(ASTNode::Expression(fbod));
 						already_parsed.push(ASTNode::Function{cmd: FunCmd::new(&command_str), func_name: name_str, func_bod: fbod_ast});
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 					},
 					Err(e) => return Err(e),
 				}	
 
 			},
 			//Var command parsing case.
-			Token::Word(ref cmd) if *cmd.0 == "var" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![(";", None).into()]){
-					Ok((mut var_data, tokens_prime, token_index_prime, _)) => {
+			Token::Word((cmd, _)) if cmd.as_str() == "var" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
+					Ok((var_data, tokens_prime, token_index_prime, _)) => {
 						if var_data.len() >= 2{
-							let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
-								(ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
+							let (cmd, name) = match (&var_data[0], &var_data[1]){
+								(ASTNode::Word(c), ASTNode::Word(n)) => (c, n),
 								(_, _) => {return Err("Malformed variable command Error! \
 									Insufficient parameters given for variable command!".to_string())},
 							};
-							let vn: usize = match loc_nums.get(&*name){
-								Some(n) => *n,
-								None => {
-									loc_nums.insert(*name.clone(), *curr_loc_num);
-									let ret = *curr_loc_num;
-									*curr_loc_num += 1;
-									ret
-								},
-							};
-							already_parsed.push(ASTNode::Variable{var_name: name, cmd: VarCmd::new(&cmd), var_num: vn});
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+							already_parsed.push(ASTNode::Variable{var_name: Box::new(*name.clone()), cmd: VarCmd::new(cmd)});
+							make_ast_prime(already_parsed, tokens_prime, 
+							token_index_prime, terminators)
 
 						}else{
 							return Err("Malformed variable command Error! \
@@ -1190,26 +1187,16 @@ pub fn make_ast_prime(
 				}
 			},
 			//Loc command parsing case.
-			Token::Word(ref cmd) if *cmd.0 == "loc" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![(";", None).into()]){
+			Token::Word((cmd, _)) if cmd.as_str() == "loc" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
 					Ok((mut var_data, tokens_prime, token_index_prime, _)) => {
 						if var_data.len() >= 2{
-							let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
-								(ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
-								(_, _) => return Err("Malformed local variable command Error! \
-									Insufficient parameters given for local variable command!".to_string()),
+							let (cmd, name) = match (&var_data[0], &var_data[1]){
+								(ASTNode::Word(c), ASTNode::Word(n)) => (c, n),
+								(_, _) => return Err("Malformed local variable command Error!".to_string())
 							};
-							let var_num: usize = match loc_nums.get(&*name){
-								Some(n) => *n,
-								None => {
-									loc_nums.insert(*name.clone(), *curr_loc_num);
-									let ret = *curr_loc_num;
-									*curr_loc_num += 1;
-									ret
-								},
-							};
-							already_parsed.push(ASTNode::LocVar{name: name, cmd: VarCmd::new(&cmd), num: var_num});
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+							already_parsed.push(ASTNode::LocVar{name: Box::new(*name.clone()), cmd: VarCmd::new(&cmd)});
+							make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 
 						}else{
 							Err("Malformed local variable command Error! \
@@ -1221,17 +1208,17 @@ pub fn make_ast_prime(
 	
 			},
 			//Box command case.
-			Token::Word(ref cmd) if *cmd.0 == "box" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![(";", None).into()]) {
+			Token::Word((cmd, _)) if cmd.as_str() == "box" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]) {
 					Ok((mut box_data, tokens_prime, token_index_prime, _)) => {
 						if box_data.len() >= 1{
-							let box_cmd = match std::mem::take(&mut box_data[0]){
-								ASTNode::Terminal(Token::Word(c)) => c.0,
+							let box_cmd = match &box_data[0]{
+								ASTNode::Word(c) => c,
 								_ => return Err("Malformed box command!".to_string()),
 							};
 
 							already_parsed.push(ASTNode::BoxOp(BoxCmd::new(&box_cmd)));
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+							make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 						}else{
 							return Err("Malformed box command! No box command token given!".to_string());
 						}
@@ -1240,45 +1227,42 @@ pub fn make_ast_prime(
 				}
 			},
 			//Attempt onError case.
-			Token::Word(ref cmd) if *cmd.0 == "attempt" => {
-				match parse_att_err(tokens, token_index + 1, loc_nums, curr_loc_num){
+			Token::Word((cmd, _)) if cmd.as_str() == "attempt" => {
+				match parse_att_err(tokens, token_index + 1){
 					Ok((att_branch, err_branch, tokens_prime, token_index_prime)) => {
 						already_parsed.push(ASTNode::AttErr{attempt: Box::new(att_branch), err: Box::new(err_branch)});
-						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators);
+						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
 					},
 					Err(e) => return Err(e),
 				} 
 			},
 			//Defer case.
-			Token::Word(ref cmd) if *cmd.0 == "defer" => {
+			Token::Word((cmd, _)) if cmd.as_str() == "defer" => {
 				match make_ast_prime(
 						Vec::new(),
 						tokens, 
 						token_index + 1, 
-						loc_nums,
-						curr_loc_num,
 						vec![(";", None).into()]
 					) {
 					Ok((defer_body, tokens_prime, token_index_prime, _)) => {
 						already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 					},
 					Err(e) => return Err(e),
 				} 
 			},
 			//castTo case
-			Token::Word(ref cmd) if *cmd.0 == "castTo" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, 
-						curr_loc_num, vec![(";", None).into()])  {
+			Token::Word((cmd, _)) if cmd.as_str() == "castTo" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()])  {
 					Ok((mut cast_data, tokens_prime, token_index_prime, _)) => {
 						if cast_data.len() >= 1{
-							let data_type = match std::mem::take(&mut cast_data[0]){
-								ASTNode::Terminal(Token::Word(d)) => d.0,
+							let data_type = match &cast_data[0]{
+								ASTNode::Word(d) => d,
 								_ => return Err("Malformed castTo!".to_string())
 							};
 
-							already_parsed.push(ASTNode::CastTo(data_type));
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+							already_parsed.push(ASTNode::CastTo(Box::new(*data_type.clone())));
+							make_ast_prime(already_parsed, tokens_prime, token_index_prime,  terminators)
 						}else{
 							return Err("Malformed castTo command! No data type given!".to_string())
 						}
@@ -1286,10 +1270,24 @@ pub fn make_ast_prime(
 					Err(e) => return Err(e),
 				}
 			},
-			_ => {
-				let mut toks = tokens;
-				already_parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
-				make_ast_prime(already_parsed, toks, token_index + 1, loc_nums, curr_loc_num, terminators)
+			Token::Word((cmd, op)) => {
+				if *op != Operator::Unknown{
+					already_parsed.push(ASTNode::Op{name: Box::new(*cmd.clone()), id: *op});
+				}else{
+					already_parsed.push(ASTNode::Word(Box::new(*cmd.clone())));
+				}
+				make_ast_prime(already_parsed, tokens, token_index + 1, terminators)	
+			},
+			Token::V(val) =>{
+				match val{
+					SuperValue::Heap(h)	=> {
+						already_parsed.push(ASTNode::HeapVal(Box::new(*h.clone())));
+					},
+					SuperValue::Reg(v) => {
+						already_parsed.push(ASTNode::Val(*v));
+					},
+				}
+				make_ast_prime(already_parsed, tokens, token_index + 1, terminators)	
 			},
 		}
 	}
@@ -1299,13 +1297,11 @@ pub fn make_ast_prime(
 //Used to recursively parse an attempt branch for AttErr
 pub fn parse_att_err(
 	tokens: Vec<Token>,
-	token_index: usize, 
-	loc_nums: &mut HashMap<String, usize>,
-	curr_loc_num: &mut usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
+	token_index: usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
 	match make_ast_prime(
 			Vec::new(),
 			tokens, 
-			token_index, loc_nums, curr_loc_num,
+			token_index, 
 			vec![("onError", None).into()]
 		) {
 		Ok((att_branch, tokens_prime, token_index_prime, terminator_index)) => {
@@ -1317,8 +1313,6 @@ pub fn parse_att_err(
 									Vec::new(),
 									tokens_prime,
 									token_index_prime, 
-									loc_nums,
-									curr_loc_num,
 									vec![(";", None).into()]
 								) {
 								Ok((error_branch, tokens_prime_prime, token_index_prime_prime, _)) => {
@@ -1341,13 +1335,11 @@ pub fn parse_att_err(
 
 pub fn parse_if(
 	tokens: Vec<Token>, 
-	token_index: usize, 
-	loc_nums: &mut HashMap<String, usize>, 
-	curr_loc_num: &mut usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
+	token_index: usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
 	match make_ast_prime(
 			Vec::new(), 
 			tokens, 
-			token_index, loc_nums, curr_loc_num, 
+			token_index,  
 			vec![("else", None).into(), (";", None).into()]
 		){
 		Ok((true_branch, tokens_prime, token_index_prime, terminator_index)) => {
@@ -1355,7 +1347,7 @@ pub fn parse_if(
 				Some(i) => {
 					match tokens_prime[i]{
 						Token::Word(ref cmd) if *cmd.0 == "else" => {
-							match parse_else(tokens_prime, token_index_prime, loc_nums, curr_loc_num) {
+							match parse_else(tokens_prime, token_index_prime) {
 								Ok((false_branch, tokens_prime_prime, token_index_prime_prime)) => {
 				
 								Ok((ASTNode::Expression(true_branch), false_branch, 
@@ -1376,14 +1368,12 @@ pub fn parse_if(
 
 pub fn parse_else(
 	tokens: Vec<Token>, 
-	token_index: usize, 
-	loc_nums: &mut HashMap<String, usize>,
-	curr_loc_num: &mut usize) -> Result<(ASTNode, Vec<Token>, usize), String>{
+	token_index: usize) -> Result<(ASTNode, Vec<Token>, usize), String>{
 	match  
 		make_ast_prime(
 			Vec::new(),
 			tokens, 
-			token_index, loc_nums, curr_loc_num,
+			token_index,
 			vec![(";", None).into()]
 		){
 		Ok((if_false, tokens_prime, token_index_prime, _)) => {
@@ -1399,7 +1389,7 @@ pub fn parse_else(
 pub fn make_ast(tokens: Vec<Token>) -> Result<(ASTNode, usize), String>{
 	let mut loc_nums: HashMap<String, usize> = HashMap::new();
 	let mut curr_loc_num: usize = 0;
-	match make_ast_prime(Vec::new(), tokens, 0, &mut loc_nums, &mut curr_loc_num, Vec::new()){
+	match make_ast_prime(Vec::new(), tokens, 0, Vec::new()){
 		Ok(res) => return Ok((ASTNode::Expression(res.0), curr_loc_num)),	
 		Err(e) => return Err(e),
 	}
