@@ -709,7 +709,7 @@ pub enum ASTNode{
 	BoxOp(BoxCmd),
 	AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
 	Defer(Rc<ASTNode>),
-	CastTo(String),
+	CastTo(Box<String>),
 }
 
 impl Default for ASTNode{
@@ -1277,7 +1277,7 @@ pub fn make_ast_prime(
 								_ => return Err("Malformed castTo!".to_string())
 							};
 
-							already_parsed.push(ASTNode::CastTo(*data_type));
+							already_parsed.push(ASTNode::CastTo(data_type));
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
 						}else{
 							return Err("Malformed castTo command! No data type given!".to_string())
