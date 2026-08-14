@@ -26,7 +26,7 @@ pub struct Stack{
 }
 impl Stack{
 	pub fn new() -> Self{
-		Stack{data: Vec::new()}
+		Stack{data: Vec::with_capacity(16)}
 	}
 
 	pub fn pop(&mut self) -> Option<Value>{
