@@ -419,9 +419,9 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                             },
                         }
                     },
-                    ASTNode::AttErr{attempt: att, err: error} => {
+                    ASTNode::AttErr(data) => {
 						let att_res = 
-						run_program(att, s, h, vars, fns);
+						run_program(&data.att, s, h, vars, fns);
 
 						match att_res{
 							Ok(_) => (),
@@ -429,7 +429,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 								s.push(h.insert_to_heap(HeapValue::String(e1)));
 								
 								let err_res = 
-								run_program(error, s, h, vars, fns);
+								run_program(&data.err, s, h, vars, fns);
 
 								match err_res{
 									Ok(_) => (),

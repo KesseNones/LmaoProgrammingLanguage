@@ -746,6 +746,17 @@ impl VarData{
 	}
 }
 
+#[derive(Clone)]
+pub struct AttErrData{
+	pub att: ASTNode,
+	pub err: ASTNode 
+}
+impl AttErrData{
+	fn new(attempt: ASTNode, error: ASTNode) -> Self{
+		AttErrData{att: attempt, err: error}
+	}
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
@@ -760,7 +771,7 @@ pub enum ASTNode{
 	Variable(Box<VarData>),
 	LocVar(Box<VarData>),
 	BoxOp(BoxCmd),
-	AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
+	AttErr(Box<AttErrData>),
 	Defer(Rc<ASTNode>),
 	CastTo(Box<String>),
 }
@@ -796,7 +807,7 @@ impl fmt::Display for ASTNode{
 			ASTNode::Variable(data) => write!(f, "Variable [name: {}, cmd: {}]", data.name, data.cmd),
 			ASTNode::LocVar(data) => write!(f, "Local Variable [name: {}, cmd: {}]", data.name, data.cmd),
 			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
-			ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
+			ASTNode::AttErr(data) => write!(f, "AttErr [attempt: {}, err: {}]", data.att, data.err),
 			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
 			ASTNode::Word(wd) => write!(f, "Word {}", wd)
@@ -1292,10 +1303,8 @@ pub fn make_ast_prime(
 			Token::Word((cmd, _)) if cmd.as_str() == "attempt" => {
 				match parse_att_err(tokens, token_index + 1){
 					Ok((att_branch, err_branch, tokens_prime, token_index_prime)) => {
-						let att = Box::new(att_branch);
-						let err = Box::new(err_branch);
-						let new_node = ASTNode::AttErr{attempt: att, err: err};
-						already_parsed.push(new_node);
+						let new_data = Box::new(AttErrData::new(att_branch, err_branch));
+						already_parsed.push(ASTNode::AttErr(new_data));
 						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
 					},
 					Err(e) => return Err(e),
