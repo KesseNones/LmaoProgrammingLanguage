@@ -702,20 +702,6 @@ impl fmt::Display for FunCmd{
 	}	
 }
 
-//IDEA:
-/*
-Get rid of name in Op and Function by doing pre-runtime checks.
-You can just throw the unknown op errors outside, which means you
-don't need the name.
-You can ommit the function name to save 8 bytes as well.
-
-The big thing is boxing up stuff, including Expression to save
-stuff. If you get rid of 128 bit data types you can achieve 
-16 byte ASTNode enum values which is much more friendly to cache.
-So yeah, mess with that.
-
-*/
-
 #[derive(Clone)]
 pub struct FuncData{
 	pub cmd: FunCmd,
@@ -745,6 +731,21 @@ impl IfData{
 	}
 }
 
+#[derive(Clone)]
+pub struct VarData{
+	pub name: String,
+	pub cmd: VarCmd,
+}
+
+impl VarData{
+	fn new(n: &str, c: VarCmd) -> Self{
+		VarData{
+			name: n.to_string(),
+			cmd: c
+		}
+	}
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
@@ -756,8 +757,8 @@ pub enum ASTNode{
 	While(Box<ASTNode>),
 	Expression(Box<Vec<ASTNode>>),
 	Function(Box<FuncData>),
-	Variable{var_name: Box<String>, cmd: VarCmd},
-	LocVar{name: Box<String>, cmd: VarCmd},
+	Variable(Box<VarData>),
+	LocVar(Box<VarData>),
 	BoxOp(BoxCmd),
 	AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
 	Defer(Rc<ASTNode>),
@@ -792,8 +793,8 @@ impl fmt::Display for ASTNode{
 			ASTNode::Function(data) => {
 				write!(f, "Function [cmd: {}, name: {}, body: {}]", data.cmd, data.name, data.bod)
 			},
-			ASTNode::Variable{var_name: name, cmd: c} => write!(f, "Variable [name: {}, cmd: {}]", name, c),
-			ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
+			ASTNode::Variable(data) => write!(f, "Variable [name: {}, cmd: {}]", data.name, data.cmd),
+			ASTNode::LocVar(data) => write!(f, "Local Variable [name: {}, cmd: {}]", data.name, data.cmd),
 			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
 			ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
 			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
@@ -1231,7 +1232,9 @@ pub fn make_ast_prime(
 								(_, _) => {return Err("Malformed variable command Error! \
 									Insufficient parameters given for variable command!".to_string())},
 							};
-							already_parsed.push(ASTNode::Variable{var_name: Box::new(*name.clone()), cmd: VarCmd::new(cmd)});
+							let new_cmd = VarCmd::new(&cmd);
+							let new_data = Box::new(VarData::new(&name, new_cmd));
+							already_parsed.push(ASTNode::Variable(new_data));
 							make_ast_prime(already_parsed, tokens_prime, 
 							token_index_prime, terminators)
 
@@ -1252,7 +1255,9 @@ pub fn make_ast_prime(
 								(ASTNode::Word(c), ASTNode::Word(n)) => (c, n),
 								(_, _) => return Err("Malformed local variable command Error!".to_string())
 							};
-							already_parsed.push(ASTNode::LocVar{name: Box::new(*name.clone()), cmd: VarCmd::new(&cmd)});
+							let new_cmd = VarCmd::new(&cmd);
+							let new_data = Box::new(VarData::new(&name, new_cmd));
+							already_parsed.push(ASTNode::LocVar(new_data));
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 
 						}else{

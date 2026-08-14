@@ -151,8 +151,9 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 							Err(e) => {err_break!{e}},
 						}									
 					},
-                    ASTNode::Variable{var_name: name, cmd: c} => {
-                        match c{
+                    ASTNode::Variable(data) => {
+						let name = &data.name;
+                        match data.cmd{
                             VarCmd::Make => {
 								match s.pop(){
 									Some(v) => {
@@ -369,13 +370,14 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                             },
                         }
                     },
-                    ASTNode::LocVar{name: nam, cmd: c} => {
-                        match c{
+                    ASTNode::LocVar(data) => {
+                        match data.cmd{
                             VarCmd::Make => {
                                 match s.pop(){
                                     Some(v) => {
-										if !vars.mak_loc(nam, v){
-											err_break!{variable_already_exists_error("loc mak", nam)}
+										let name = &data.name;
+										if !vars.mak_loc(name, v){
+											err_break!{variable_already_exists_error("loc mak", name)}
 										}
                                     },
                                     None => {
@@ -384,22 +386,24 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                 }
                             },
                             VarCmd::Get => {
-								if let Some(v) = vars.get_loc(nam){
+								let name = &data.name;
+								if let Some(v) = vars.get_loc(name){
 									s.push(v);
 								}else{
-									err_break!{variable_nonexist_error("loc get", nam)}	
+									err_break!{variable_nonexist_error("loc get", name)}	
 								}
                             },
                             VarCmd::Mutate => {
                                 match s.pop(){
                                     Some(new_v) => {
-										match vars.mut_loc(nam, new_v){
+										let name = &data.name;
+										match vars.mut_loc(name, new_v){
 											0 => (),
 											1 => {
-												err_break!{variable_nonexist_error("loc mut", nam)}
+												err_break!{variable_nonexist_error("loc mut", name)}
 											},
 											2 => {
-												let old_v = vars.get_loc(nam).unwrap();	
+												let old_v = vars.get_loc(name).unwrap();	
 												err_break!{invalid_mutation_error("loc mut", old_v, new_v)}
 											},
 											_ => {err_break!{should_never_get_here_for_func("var mut")}}
