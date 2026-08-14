@@ -509,7 +509,7 @@ fn main(){
     //Creates argv and argc for finding file paths and stuff.
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
-    
+   	//println!("DEBUG!!!: {}", std::mem::size_of::<ASTNode>());
 
     //Reads in data from file or from stdin, 
     // depending on inputs or lack thereof.

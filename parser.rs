@@ -575,6 +575,7 @@ pub enum Token{
 	Word((Box<String>, Operator))
 }
 
+//Useful impl for AST construction.
 impl From<(&str, Option<Operator>)> for Token{
 	fn from(params: (&str, Option<Operator>)) -> Self{
 		let string_box = Box::new(params.0.to_string());
@@ -582,6 +583,7 @@ impl From<(&str, Option<Operator>)> for Token{
 		Token::Word((string_box, op_val))	
 	}
 }
+
 
 impl Default for Token{
 	fn default() -> Self{
@@ -740,7 +742,7 @@ pub enum ASTNode{
 	Word(Box<String>),
 	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
 	While(Box<ASTNode>),
-	Expression(Vec<ASTNode>),
+	Expression(Box<Vec<ASTNode>>),
 	Function(Box<FuncData>),
 	Variable{var_name: Box<String>, cmd: VarCmd},
 	LocVar{name: Box<String>, cmd: VarCmd},
@@ -748,6 +750,13 @@ pub enum ASTNode{
 	AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
 	Defer(Rc<ASTNode>),
 	CastTo(Box<String>),
+}
+
+//Useful for shorthand conversion of ASTNode vec to Expression.
+impl From<Vec<ASTNode>> for ASTNode{
+	fn from(v: Vec<ASTNode>) -> Self{
+		ASTNode::Expression(Box::new(v))	
+	}
 }
 
 impl Default for ASTNode{
@@ -1165,7 +1174,7 @@ pub fn make_ast_prime(
 			Token::Word((cmd, _)) if cmd.as_str() == "while" => {
 				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
 					Ok((loop_body, tokens_prime, token_index_prime, _)) => {
-						already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
+						already_parsed.push(ASTNode::While(Box::new(loop_body.into())));
 						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 					},
 					Err(e) => return Err(e),
@@ -1189,7 +1198,7 @@ pub fn make_ast_prime(
 
 				match make_ast_prime(Vec::new(), toks, token_index + 3, vec![(";", None).into()]){
 					Ok((fbod, tokens_prime, token_index_prime, _)) => {
-						let fbod_ast = Rc::new(ASTNode::Expression(fbod));
+						let fbod_ast = Rc::new(fbod.into());
 						let new_cmd = FunCmd::new(&command_str);
 						let new_data = FuncData::new(new_cmd, &*name_str, fbod_ast);
 						already_parsed.push(ASTNode::Function(Box::new(new_data)));
@@ -1265,7 +1274,10 @@ pub fn make_ast_prime(
 			Token::Word((cmd, _)) if cmd.as_str() == "attempt" => {
 				match parse_att_err(tokens, token_index + 1){
 					Ok((att_branch, err_branch, tokens_prime, token_index_prime)) => {
-						already_parsed.push(ASTNode::AttErr{attempt: Box::new(att_branch), err: Box::new(err_branch)});
+						let att = Box::new(att_branch);
+						let err = Box::new(err_branch);
+						let new_node = ASTNode::AttErr{attempt: att, err: err};
+						already_parsed.push(new_node);
 						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
 					},
 					Err(e) => return Err(e),
@@ -1280,7 +1292,9 @@ pub fn make_ast_prime(
 						vec![(";", None).into()]
 					) {
 					Ok((defer_body, tokens_prime, token_index_prime, _)) => {
-						already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
+						let new_body = Rc::new(defer_body.into());
+						
+						already_parsed.push(ASTNode::Defer(new_body));
 						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 					},
 					Err(e) => return Err(e),
@@ -1351,8 +1365,7 @@ pub fn parse_att_err(
 									vec![(";", None).into()]
 								) {
 								Ok((error_branch, tokens_prime_prime, token_index_prime_prime, _)) => {
-									
-									Ok((ASTNode::Expression(att_branch), ASTNode::Expression(error_branch), 
+									Ok((att_branch.into(), error_branch.into(), 
 										tokens_prime_prime, token_index_prime_prime))
 								},
 								Err(e) => return Err(e),
@@ -1385,13 +1398,14 @@ pub fn parse_if(
 							match parse_else(tokens_prime, token_index_prime) {
 								Ok((false_branch, tokens_prime_prime, token_index_prime_prime)) => {
 				
-								Ok((ASTNode::Expression(true_branch), false_branch, 
-									tokens_prime_prime, token_index_prime_prime))
+								Ok((ASTNode::Expression(Box::new(true_branch)), 
+									false_branch, tokens_prime_prime, 
+									token_index_prime_prime))
 								},
 								Err(e) => return Err(e),
 							}
 						},
-						_ => Ok((ASTNode::Expression(true_branch), ASTNode::Expression(vec![]), tokens_prime, token_index_prime)),  
+						_ => Ok((true_branch.into(), vec![].into(), tokens_prime, token_index_prime)),  
 					}
 				},
 				_ => return Err("SHOULD NEVER GET HERE!!!".to_string()),
@@ -1412,7 +1426,7 @@ pub fn parse_else(
 			vec![(";", None).into()]
 		){
 		Ok((if_false, tokens_prime, token_index_prime, _)) => {
-			Ok((ASTNode::Expression(if_false), tokens_prime, token_index_prime))
+			Ok((if_false.into(), tokens_prime, token_index_prime))
 		},
 		Err(e) => return Err(e),
 	}
@@ -1456,7 +1470,7 @@ fn pre_run_ast_check(nodes: &ASTNode) -> Result<(), String>{
 pub fn make_ast(tokens: Vec<Token>) -> Result<ASTNode, String>{
 	match make_ast_prime(Vec::new(), tokens, 0, Vec::new()){
 		Ok(res) => {
-			let ast = ASTNode::Expression(res.0);
+			let ast = res.0.into();
 			match pre_run_ast_check(&ast){
 				Ok(_) => Ok(ast),
 				Err(er) => Err(er),
