@@ -338,15 +338,18 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 						//If the loop had an error, break out of the main loop.
 						if let Err(_) = res {break;}
                     },
-                    ASTNode::Function{cmd: c, func_name: name, func_bod: bod} => {
-                        match c{
+                    ASTNode::Function(data) => {
+                        match data.cmd{
                             FunCmd::Define => {
-								if !fns.func_def(name, Rc::clone(&bod)){
+								let name = data.name.as_str();
+								let body = Rc::clone(&data.bod);
+								if !fns.func_def(name, body){
 									err_break!{format!("Function definition (func def) error!\
 									 Function \"{}\" is already defined!", name)}
 								}
                             },
                             FunCmd::Call => {
+								let name = data.name.as_str();
                                 let func_body = match fns.get_body(name){
                                     Some(b) => b,
                                     None => {

@@ -714,6 +714,23 @@ So yeah, mess with that.
 
 */
 
+#[derive(Clone)]
+pub struct FuncData{
+	pub cmd: FunCmd,
+	pub name: String,
+	pub bod: Rc<ASTNode>,
+}
+
+impl FuncData{
+	pub fn new(c: FunCmd, n: &str, b: Rc<ASTNode>) -> Self{
+		FuncData{
+			cmd: c,
+			name: n.to_string(),
+			bod: Rc::clone(&b)	
+		}
+	}
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
@@ -724,7 +741,7 @@ pub enum ASTNode{
 	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
 	While(Box<ASTNode>),
 	Expression(Vec<ASTNode>),
-	Function{cmd: FunCmd, func_name: Box<String>, func_bod: Rc<ASTNode>},
+	Function(Box<FuncData>),
 	Variable{var_name: Box<String>, cmd: VarCmd},
 	LocVar{name: Box<String>, cmd: VarCmd},
 	BoxOp(BoxCmd),
@@ -751,8 +768,8 @@ impl fmt::Display for ASTNode{
 				let strs: Vec<String> = vec.iter().map(|n| format!("{}", n)).collect();
 				write!(f, "Expression [{}]", strs.join(", "))
 			},
-			ASTNode::Function{cmd: c, func_name: name, func_bod: body} => {
-				write!(f, "Function [cmd: {}, name: {}, body: {}]", c, name, body)
+			ASTNode::Function(data) => {
+				write!(f, "Function [cmd: {}, name: {}, body: {}]", data.cmd, data.name, data.bod)
 			},
 			ASTNode::Variable{var_name: name, cmd: c} => write!(f, "Variable [name: {}, cmd: {}]", name, c),
 			ASTNode::LocVar{name: nm, cmd: c} => write!(f, "Local Variable [name: {}, cmd: {}]", nm, c),
@@ -1173,7 +1190,9 @@ pub fn make_ast_prime(
 				match make_ast_prime(Vec::new(), toks, token_index + 3, vec![(";", None).into()]){
 					Ok((fbod, tokens_prime, token_index_prime, _)) => {
 						let fbod_ast = Rc::new(ASTNode::Expression(fbod));
-						already_parsed.push(ASTNode::Function{cmd: FunCmd::new(&command_str), func_name: name_str, func_bod: fbod_ast});
+						let new_cmd = FunCmd::new(&command_str);
+						let new_data = FuncData::new(new_cmd, &*name_str, fbod_ast);
+						already_parsed.push(ASTNode::Function(Box::new(new_data)));
 						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 					},
 					Err(e) => return Err(e),
@@ -1419,9 +1438,9 @@ fn pre_run_ast_check(nodes: &ASTNode) -> Result<(), String>{
 					ASTNode::While(bod) => {
 						if let Err(e) = pre_run_ast_check(bod) {return Err(e);}	
 					},
-					ASTNode::Function{cmd: FunCmd::Define, func_name: _, func_bod: b} => 
+					ASTNode::Function(data) => 
 					{
-						if let Err(e) = pre_run_ast_check(b) {return Err(e);}
+						if let Err(e) = pre_run_ast_check(&*data.bod) {return Err(e);}
 					},
 					_ => (),
 				}
