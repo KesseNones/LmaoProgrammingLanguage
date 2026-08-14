@@ -287,10 +287,10 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                             },
                         }
                     },
-                    ASTNode::If{if_true: true_branch, if_false: false_branch} => {
+                    ASTNode::If(data) => {
                         match s.pop(){
                             Some(Value::Boolean(b)) => {
-								let branches = [&false_branch, &true_branch];
+								let branches = [&data.if_false, &data.if_true];
 								let branch_res = 
 								run_program(branches[b as usize], s, h, vars, fns);
 

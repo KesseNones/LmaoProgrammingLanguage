@@ -733,6 +733,18 @@ impl FuncData{
 	}
 }
 
+#[derive(Clone)]
+pub struct IfData{
+	pub if_true: ASTNode,
+	pub if_false: ASTNode
+}
+
+impl IfData{
+	pub fn new(t: ASTNode, f: ASTNode) -> Self{
+		IfData{if_true: t, if_false: f}
+	}
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
@@ -740,7 +752,7 @@ pub enum ASTNode{
 	Val(Value),	
 	HeapVal(Box<HeapValue>),
 	Word(Box<String>),
-	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
+	If(Box<IfData>),
 	While(Box<ASTNode>),
 	Expression(Box<Vec<ASTNode>>),
 	Function(Box<FuncData>),
@@ -771,7 +783,7 @@ impl fmt::Display for ASTNode{
 			ASTNode::Op(id) => write!(f, "Operator {}", id.stringify()),
 			ASTNode::Val(v) => write!(f, "{}", v),
 			ASTNode::HeapVal(hv) => write!(f, "{}", hv),
-			ASTNode::If{if_true, if_false} => write!(f, "If [true_branch: {}, false_branch: {}]", if_true, if_false),
+			ASTNode::If(data) => write!(f, "If [true_branch: {}, false_branch: {}]", data.if_true, data.if_false),
 			ASTNode::While(body) => write!(f, "While [{}]", body),
 			ASTNode::Expression(vec) => {
 				let strs: Vec<String> = vec.iter().map(|n| format!("{}", n)).collect();
@@ -1164,7 +1176,8 @@ pub fn make_ast_prime(
 			Token::Word((cmd, _)) if cmd.as_str() == "if" => {
 				match parse_if(tokens, token_index + 1){
 					Ok((true_branch, false_branch, tokens_prime, token_index_prime)) => {
-						already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
+						let new_data = Box::new(IfData::new(true_branch, false_branch));
+						already_parsed.push(ASTNode::If(new_data));
 						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
 					},	
 					Err(e) => return Err(e),
@@ -1441,11 +1454,11 @@ fn pre_run_ast_check(nodes: &ASTNode) -> Result<(), String>{
 			for node in nds.iter(){
 				match node{
 					ASTNode::Word(text) => return Err(format!("Unknown operator error! Word \"{}\" is not a valid operator and isn't part of any fancy operators.", text)),
-					ASTNode::If{if_true: t, if_false: f} => {
-						if let Err(e1) = pre_run_ast_check(t){
+					ASTNode::If(data) => {
+						if let Err(e1) = pre_run_ast_check(&data.if_true){
 							return Err(e1);	
 						}
-						if let Err(e2) = pre_run_ast_check(f){
+						if let Err(e2) = pre_run_ast_check(&data.if_false){
 							return Err(e2);	
 						}
 					},
