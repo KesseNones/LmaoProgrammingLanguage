@@ -477,8 +477,8 @@ pub fn add(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 		};
 	}
 	add_match!{IntSize, UIntSize, 
-		Int8, Int16, Int32, Int64, Int128,
-		UInt8, UInt16, UInt32, UInt64, UInt128,
+		Int8, Int16, Int32, Int64, 
+		UInt8, UInt16, UInt32, UInt64,
 	}
 	
 }
@@ -517,8 +517,8 @@ pub fn sub(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 		};
 	}
 	sub_match!{IntSize, UIntSize, 
-		Int8, Int16, Int32, Int64, Int128,
-		UInt8, UInt16, UInt32, UInt64, UInt128,
+		Int8, Int16, Int32, Int64,
+		UInt8, UInt16, UInt32, UInt64, 
 	}
 }
 
@@ -557,8 +557,8 @@ pub fn mult(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, St
 		};
 	}
 	sub_match!{IntSize, UIntSize, 
-		Int8, Int16, Int32, Int64, Int128,
-		UInt8, UInt16, UInt32, UInt64, UInt128,
+		Int8, Int16, Int32, Int64, 
+		UInt8, UInt16, UInt32, UInt64, 
 	}
 }
 
@@ -601,8 +601,8 @@ pub fn div(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 		};
 	}
 	div_match!{IntSize, isize, UIntSize, usize,
-		Int8, i8, Int16, i16, Int32, i32, Int64, i64, Int128, i128,
-		UInt8, u8, UInt16, u16, UInt32, u32, UInt64, u64,  UInt128, u128,
+		Int8, i8, Int16, i16, Int32, i32, Int64, i64, 
+		UInt8, u8, UInt16, u16, UInt32, u32, UInt64, u64,  
 		Float32, f32, Float64, f64
 	}
 }
@@ -647,8 +647,8 @@ pub fn modulo(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, 
 		};
 	}
 	mod_match!{IntSize, UIntSize, 
-		Int8, Int16, Int32, Int64, Int128,
-		UInt8, UInt16, UInt32, UInt64, UInt128,
+		Int8, Int16, Int32, Int64, 
+		UInt8, UInt16, UInt32, UInt64, 
 	}
 }
 
@@ -1711,8 +1711,8 @@ pub fn bit_or(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, 
 			binary_bitwise_op!(
 				a, b, |, op_name, 
 				IntSize, UIntSize, 
-				Int8, Int16, Int32, Int64, Int128,
-				UInt8, UInt16, UInt32, UInt64, UInt128 
+				Int8, Int16, Int32, Int64,
+				UInt8, UInt16, UInt32, UInt64
 			) 	
 		},
 		(None, Some(_)) => {
@@ -1737,8 +1737,8 @@ pub fn bit_and(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode,
 			binary_bitwise_op!(
 				a, b, &, op_name, 
 				IntSize, UIntSize, 
-				Int8, Int16, Int32, Int64, Int128,
-				UInt8, UInt16, UInt32, UInt64, UInt128 
+				Int8, Int16, Int32, Int64,
+				UInt8, UInt16, UInt32, UInt64,
 			) 	
 		},
 		(None, Some(_)) => {
@@ -1763,8 +1763,8 @@ pub fn bit_xor(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode,
 			binary_bitwise_op!(
 				a, b, ^, op_name, 
 				IntSize, UIntSize, 
-				Int8, Int16, Int32, Int64, Int128,
-				UInt8, UInt16, UInt32, UInt64, UInt128 
+				Int8, Int16, Int32, Int64, 
+				UInt8, UInt16, UInt32, UInt64, 
 			) 	
 		},
 		(None, Some(_)) => {
@@ -1791,13 +1791,11 @@ pub fn bit_not(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode,
 		Some(Value::Int16(n)) => Ok(Value::Int16(!n)),
 		Some(Value::Int32(n)) => Ok(Value::Int32(!n)),
 		Some(Value::Int64(n)) => Ok(Value::Int64(!n)),
-		Some(Value::Int128(n)) => Ok(Value::Int128(!n)),
 
 		Some(Value::UInt8(n)) => Ok(Value::UInt8(!n)),
 		Some(Value::UInt16(n)) => Ok(Value::UInt16(!n)),
 		Some(Value::UInt32(n)) => Ok(Value::UInt32(!n)),
 		Some(Value::UInt64(n)) => Ok(Value::UInt64(!n)),
-		Some(Value::UInt128(n)) => Ok(Value::UInt128(!n)),
 
 		Some(v) => {
 			Err(format!("Operator (bitNot) error! Bitwise not requires \
@@ -1842,19 +1840,20 @@ macro_rules! shift_macro{
 
 //Performs a left or right bitshift by n bits on an integer.
 pub fn bit_shift(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+	let op_name = "bitShift";
 	let res = match s.pop2(){
 		(Some(a), Some(b)) => {
 			shift_macro!(
 				a, b,  
 				IntSize, UIntSize, 
-				Int8, Int16, Int32, Int64, Int128,
-				UInt8, UInt16, UInt32, UInt64, UInt128 
+				Int8, Int16, Int32, Int64, 
+				UInt8, UInt16, UInt32, UInt64, 
 			) 	
 		},
 
-		(None, Some(_)) => Err(needs_n_args_only_n_provided("bitShift", "Two", "only one")),
+		(None, Some(_)) => Err(needs_n_args_only_n_provided(op_name, "Two", "only one")),
 
-		(None, None) => Err(needs_n_args_only_n_provided("bitShift", "Two", "none")),
+		(None, None) => Err(needs_n_args_only_n_provided(op_name, "Two", "none")),
 
 		_ => Err(should_never_get_here_for_func("bit_shift")),
 	};
@@ -1899,12 +1898,6 @@ pub fn max_i64(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode,
 	Ok(RetCode::Normal)
 }
 
-//Pushes maximum value for i128 datatype to stack.
-pub fn max_i128(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
-	s.push(Value::Int128(i128::MAX));
-	Ok(RetCode::Normal)
-}
-
 //Pushes maximum value for u8 datatype to stack.
 pub fn max_u8(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
 	s.push(Value::UInt8(u8::MAX));
@@ -1926,12 +1919,6 @@ pub fn max_u32(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode,
 //Pushes maximum value for u64 datatype to stack.
 pub fn max_u64(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
 	s.push(Value::UInt64(u64::MAX));
-	Ok(RetCode::Normal)
-}
-
-//Pushes maximum value for u128 datatype to stack.
-pub fn max_u128(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
-	s.push(Value::UInt128(u128::MAX));
 	Ok(RetCode::Normal)
 }
 
@@ -2003,12 +1990,10 @@ pub fn cast_stuff(s: &mut Stack, h: &mut Heap, c_type: Option<&str>) -> Result<R
 				cast_target, op_name, cast_type, needed, provided,
 				[
 					UIntSize, UInt8,	
-					UInt16,	UInt32,	
-					UInt64,	UInt128,	
+					UInt16,	UInt32,	UInt64,		
 
 					IntSize, Int8,	
-					Int16,	Int32,	
-					Int64,	Int128,	
+					Int16,	Int32, Int64,		
 
 					Float32, Float64,
 
@@ -2041,12 +2026,10 @@ pub fn cast_stuff(s: &mut Stack, h: &mut Heap, c_type: Option<&str>) -> Result<R
 								cast_target, op_name, cast_type, needed, provided,
 								[
 									UIntSize, UInt8,	
-									UInt16,	UInt32,	
-									UInt64,	UInt128,	
+									UInt16,	UInt32,	UInt64,	
 
 									IntSize, Int8,	
-									Int16,	Int32,	
-									Int64,	Int128,	
+									Int16,	Int32, Int64,	
 
 									Float32, Float64,
 

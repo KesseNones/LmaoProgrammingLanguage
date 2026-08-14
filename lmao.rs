@@ -69,10 +69,10 @@ Result<RetCode, String>
 		(IsizeMax, max_isize), (UsizeMax, max_usize),
 
 		(I8Max, max_i8), (I16Max, max_i16), (I32Max, max_i32), 
-		(I64Max, max_i64), (I128Max, max_i128),
+		(I64Max, max_i64), 
 
 		(U8Max, max_u8), (U16Max, max_u16), (U32Max, max_u32), 
-		(U64Max, max_u64), (U128Max, max_u128),
+		(U64Max, max_u64), 
 
 		(Swap, swap), (Drop, drop), (DropStack, drop_stack), 
 		(Rot, rot), (Dup, dup), (DeepDup, deep_dup), 

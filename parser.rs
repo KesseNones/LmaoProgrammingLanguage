@@ -15,7 +15,6 @@ pub enum Value{
 	Int16(i16),
 	Int32(i32),
 	Int64(i64),
-	Int128(i128),
 	IntSize(isize),
 
 	//Unsigned integers.
@@ -23,7 +22,6 @@ pub enum Value{
 	UInt16(u16),
 	UInt32(u32),
 	UInt64(u64),
-	UInt128(u128),
 	UIntSize(usize),
 
 	//Specified float types
@@ -71,14 +69,12 @@ impl fmt::Display for Value{
 			Value::Int16(n) => write!(f, "i16 {}", n),
 			Value::Int32(n) => write!(f, "i32 {}", n),
 			Value::Int64(n) => write!(f, "i64 {}", n),
-			Value::Int128(n) => write!(f, "i128 {}", n),
 			Value::IntSize(n) => write!(f, "isize {}", n),
 
 			Value::UInt8(n) => write!(f, "u8 {}", n),
 			Value::UInt16(n) => write!(f, "u16 {}", n),
 			Value::UInt32(n) => write!(f, "u32 {}", n),
 			Value::UInt64(n) => write!(f, "u64 {}", n),
-			Value::UInt128(n) => write!(f, "u128 {}", n),
 			Value::UIntSize(n) => write!(f, "usize {}", n),
 
 			Value::Float32(flt32) => {
@@ -297,14 +293,12 @@ macro_rules! impl_integer_casts {
 						Uint16, UInt16, u16,	
 						Uint32, UInt32, u32,	
 						Uint64, UInt64, u64,	
-						Uint128, UInt128, u128,	
 
 						Size, IntSize, isize,
 						Int8, Int8, i8,	
 						Int16, Int16, i16,	
 						Int32, Int32, i32,	
 						Int64, Int64, i64,	
-						Int128, Int128, i128,	
 			
 						F32, Float32, f32,
 						F64, Float64, f64,
@@ -315,7 +309,7 @@ macro_rules! impl_integer_casts {
 	}
 }
 
-impl_integer_casts!{usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64}
+impl_integer_casts!{usize, u8, u16, u32, u64, isize, i8, i16, i32, i64, f32, f64}
 
 //Macro that compacts the match statement for bool casting.
 macro_rules! bool_match{
@@ -338,13 +332,11 @@ impl TryCast<bool> for SuperValue{
 			Uint16, UInt16, u16,	
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
-			Uint128, UInt128, u128,	
 
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
 			Int64, Int64, i64,	
-			Int128, Int128, i128,	
 
 			F32, Float32, f32,
 			F64, Float64, f64
@@ -371,13 +363,11 @@ impl TryCast<char> for SuperValue{
 			Uint16, UInt16, u16,	
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
-			Uint128, UInt128, u128,	
 
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
 			Int64, Int64, i64,	
-			Int128, Int128, i128,	
 
 			F32, Float32, f32,
 			F64, Float64, f64
@@ -423,13 +413,11 @@ impl TryCast<&String> for SuperValue{
 			Uint16, UInt16, u16,	
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
-			Uint128, UInt128, u128,	
 
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
 			Int64, Int64, i64,	
-			Int128, Int128, i128,	
 
 			F32, Float32, f32,
 			F64, Float64, f64
@@ -462,8 +450,8 @@ pub enum Operator{
 	Add, Sub, Mul, Div, 
 	Mod, Pow, 
 
-	UsizeMax, U8Max, U16Max, U32Max, U64Max, U128Max, 
-	IsizeMax, I8Max, I16Max, I32Max, I64Max, I128Max, 
+	UsizeMax, U8Max, U16Max, U32Max, U64Max,  
+	IsizeMax, I8Max, I16Max, I32Max, I64Max, 
 
 	Swap, Drop, DropStack, Rot, Dup, DeepDup, 
 
@@ -505,10 +493,10 @@ macro_rules! match_call{
 			("isizeMax", IsizeMax), ("usizeMax", UsizeMax),
 
 			("i8Max", I8Max), ("i16Max", I16Max), ("i32Max", I32Max), 
-			("i64Max", I64Max), ("i128Max", I128Max),
+			("i64Max", I64Max),
 
 			("u8Max", U8Max), ("u16Max", U16Max), ("u32Max", U32Max),
-			("u64Max", U64Max), ("u128Max", U128Max),
+			("u64Max", U64Max),
 
 			("swap", Swap),	("drop", Drop),	("dropStack", DropStack),	
 			("rot", Rot), ("dup", Dup),	("deepDup", DeepDup),	
@@ -1111,14 +1099,12 @@ pub fn lex_tokens(
 			("u16", u16, UInt16),
 			("u32", u32, UInt32),
 			("u64", u64, UInt64),
-			("u128", u128, UInt128),
 
 			("isize", isize, IntSize),
 			("i8", i8, Int8),
 			("i16", i16, Int16),
 			("i32", i32, Int32),
 			("i64", i64, Int64),
-			("i128", i128, Int128),
 		}
 	}
 
