@@ -282,10 +282,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                     _ => {err_break!{should_never_get_here_for_func("box altr")}},
                                 }
                             },
-                            BoxCmd::Unknown => {
-                                err_break!{"Box error! Unrecognized box operation! \
-                                    Valid: free, null, make, open, altr".to_string()}
-                            },
+							_ => {err_break!{should_never_get_here_for_func("box altr")}},
                         }
                     },
                     ASTNode::If(data) => {

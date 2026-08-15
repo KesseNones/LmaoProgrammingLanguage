@@ -1285,12 +1285,17 @@ pub fn make_ast_prime(
 				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]) {
 					Ok((mut box_data, tokens_prime, token_index_prime, _)) => {
 						if box_data.len() >= 1{
-							let box_cmd = match &box_data[0]{
+							let box_cmd_str = match &box_data[0]{
 								ASTNode::Word(c) => c,
-								_ => return Err("Malformed box command!".to_string()),
+								_ => return Err(format!("Malformed box command! Invalid AST Node given! Attempted: {}", &box_data[0])),
 							};
+						
+							let box_cmd = BoxCmd::new(&box_cmd_str);
+							if box_cmd == BoxCmd::Unknown{
+								return Err(format!("Malformed box command! Invalid Box operator given! Valid: make, open, altr, null. Attempted: {}", box_cmd_str));
+							}
 
-							already_parsed.push(ASTNode::BoxOp(BoxCmd::new(&box_cmd)));
+							already_parsed.push(ASTNode::BoxOp(box_cmd));
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 						}else{
 							return Err("Malformed box command! No box command token given!".to_string());
