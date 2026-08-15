@@ -57,7 +57,7 @@ Result<RetCode, String>
 		($(($var:ident, $func:ident)),* $(,)?) => {
 			match op{
 				$(Operator::$var => $func(s, h, args),)*			
-				//External check for unknown should cover this!
+				//Should never reach this!
 				Operator::Unknown => Err(should_never_get_here_for_func("run_operator")),
 			}	
 		};
@@ -69,10 +69,10 @@ Result<RetCode, String>
 		(IsizeMax, max_isize), (UsizeMax, max_usize),
 
 		(I8Max, max_i8), (I16Max, max_i16), (I32Max, max_i32), 
-		(I64Max, max_i64), (I128Max, max_i128),
+		(I64Max, max_i64), 
 
 		(U8Max, max_u8), (U16Max, max_u16), (U32Max, max_u32), 
-		(U64Max, max_u64), (U128Max, max_u128),
+		(U64Max, max_u64), 
 
 		(Swap, swap), (Drop, drop), (DropStack, drop_stack), 
 		(Rot, rot), (Dup, dup), (DeepDup, deep_dup), 
@@ -139,29 +139,21 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
                 match node{
-                    ASTNode::Terminal(Token::V(v)) => {
-                        match v{
-							SuperValue::Heap(hval) => s.push(h.insert_to_heap(hval.clone())),
-							SuperValue::Reg(val) => s.push(*val),
-                        }
-                    },
-                    ASTNode::Terminal(Token::Word((op, op_val))) => {
-						if let(Operator::Unknown) = op_val{
-							err_break!{format!("Unrecognized Operator: {}", op)}
-						}else{
-							match run_operator(*op_val, s, h, None){
-								Ok(RetCode::Normal) => (),
-								Ok(RetCode::LeavingScopeEarly) => {
-									res = Ok(RetCode::LeavingScopeEarly);
-									break;
-								},
-								Err(e) => {err_break!{e}},
-							}									
-						}
-
-                    },
-                    ASTNode::Variable{var_name: name, cmd: c, var_num: num} => {
-                        match c{
+					ASTNode::Val(v) => s.push(*v),
+					ASTNode::HeapVal(hv) => s.push(h.insert_to_heap(*hv.clone())),
+					ASTNode::Op(id) => {
+						match run_operator(*id, s, h, None){
+							Ok(RetCode::Normal) => (),
+							Ok(RetCode::LeavingScopeEarly) => {
+								res = Ok(RetCode::LeavingScopeEarly);
+								break;
+							},
+							Err(e) => {err_break!{e}},
+						}									
+					},
+                    ASTNode::Variable(data) => {
+						let name = &data.name;
+                        match data.cmd{
                             VarCmd::Make => {
 								match s.pop(){
 									Some(v) => {
@@ -290,16 +282,13 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                     _ => {err_break!{should_never_get_here_for_func("box altr")}},
                                 }
                             },
-                            BoxCmd::Unknown => {
-                                err_break!{"Box error! Unrecognized box operation! \
-                                    Valid: free, null, make, open, altr".to_string()}
-                            },
+							_ => {err_break!{should_never_get_here_for_func("box altr")}},
                         }
                     },
-                    ASTNode::If{if_true: true_branch, if_false: false_branch} => {
+                    ASTNode::If(data) => {
                         match s.pop(){
                             Some(Value::Boolean(b)) => {
-								let branches = [&false_branch, &true_branch];
+								let branches = [&data.if_false, &data.if_true];
 								let branch_res = 
 								run_program(branches[b as usize], s, h, vars, fns);
 
@@ -347,15 +336,18 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 						//If the loop had an error, break out of the main loop.
 						if let Err(_) = res {break;}
                     },
-                    ASTNode::Function{cmd: c, func_name: name, func_bod: bod} => {
-                        match c{
+                    ASTNode::Function(data) => {
+                        match data.cmd{
                             FunCmd::Define => {
-								if !fns.func_def(name, Rc::clone(&bod)){
+								let name = data.name.as_str();
+								let body = Rc::clone(&data.bod);
+								if !fns.func_def(name, body){
 									err_break!{format!("Function definition (func def) error!\
 									 Function \"{}\" is already defined!", name)}
 								}
                             },
                             FunCmd::Call => {
+								let name = data.name.as_str();
                                 let func_body = match fns.get_body(name){
                                     Some(b) => b,
                                     None => {
@@ -369,19 +361,17 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 
 								if let Err(e) = bod_res{err_break!{e}}
                             },
-                            FunCmd::Unknown => {
-                                err_break!{format!("Function error! Invalid function \
-                                    command given! Valid: def, call .")}
-                            },
+							_ => {err_break!{should_never_get_here_for_func("function")}}
                         }
                     },
-                    ASTNode::LocVar{name: nam, cmd: c, num: n} => {
-                        match c{
+                    ASTNode::LocVar(data) => {
+                        match data.cmd{
                             VarCmd::Make => {
                                 match s.pop(){
                                     Some(v) => {
-										if !vars.mak_loc(nam, v){
-											err_break!{variable_already_exists_error("loc mak", nam)}
+										let name = &data.name;
+										if !vars.mak_loc(name, v){
+											err_break!{variable_already_exists_error("loc mak", name)}
 										}
                                     },
                                     None => {
@@ -390,22 +380,24 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                 }
                             },
                             VarCmd::Get => {
-								if let Some(v) = vars.get_loc(nam){
+								let name = &data.name;
+								if let Some(v) = vars.get_loc(name){
 									s.push(v);
 								}else{
-									err_break!{variable_nonexist_error("loc get", nam)}	
+									err_break!{variable_nonexist_error("loc get", name)}	
 								}
                             },
                             VarCmd::Mutate => {
                                 match s.pop(){
                                     Some(new_v) => {
-										match vars.mut_loc(nam, new_v){
+										let name = &data.name;
+										match vars.mut_loc(name, new_v){
 											0 => (),
 											1 => {
-												err_break!{variable_nonexist_error("loc mut", nam)}
+												err_break!{variable_nonexist_error("loc mut", name)}
 											},
 											2 => {
-												let old_v = vars.get_loc(nam).unwrap();	
+												let old_v = vars.get_loc(name).unwrap();	
 												err_break!{invalid_mutation_error("loc mut", old_v, new_v)}
 											},
 											_ => {err_break!{should_never_get_here_for_func("var mut")}}
@@ -421,9 +413,9 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                             },
                         }
                     },
-                    ASTNode::AttErr{attempt: att, err: error} => {
+                    ASTNode::AttErr(data) => {
 						let att_res = 
-						run_program(att, s, h, vars, fns);
+						run_program(&data.att, s, h, vars, fns);
 
 						match att_res{
 							Ok(_) => (),
@@ -431,7 +423,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 								s.push(h.insert_to_heap(HeapValue::String(e1)));
 								
 								let err_res = 
-								run_program(error, s, h, vars, fns);
+								run_program(&data.err, s, h, vars, fns);
 
 								match err_res{
 									Ok(_) => (),
@@ -503,7 +495,7 @@ prev_state: Option<(Stack, Heap, Variables, Functions)>
 	//Kicks back a parse error with the state 
 	// or runs the program and updates the state.
 	match parse_string_to_ast(&argv, argc, program_string){
-		Ok((ast, num_unique_loc_vars)) => {
+		Ok(ast) => {
 			let res = run_program(&ast, &mut s, &mut h, &mut vs, &mut fs);
 			(res, s, h, vs, fs)
 		},
@@ -515,7 +507,6 @@ fn main(){
     //Creates argv and argc for finding file paths and stuff.
     let argv: Vec<String> = env::args().collect();
     let argc = argv.len();
-    
 
     //Reads in data from file or from stdin, 
     // depending on inputs or lack thereof.

@@ -15,7 +15,6 @@ pub enum Value{
 	Int16(i16),
 	Int32(i32),
 	Int64(i64),
-	Int128(i128),
 	IntSize(isize),
 
 	//Unsigned integers.
@@ -23,7 +22,6 @@ pub enum Value{
 	UInt16(u16),
 	UInt32(u32),
 	UInt64(u64),
-	UInt128(u128),
 	UIntSize(usize),
 
 	//Specified float types
@@ -71,14 +69,12 @@ impl fmt::Display for Value{
 			Value::Int16(n) => write!(f, "i16 {}", n),
 			Value::Int32(n) => write!(f, "i32 {}", n),
 			Value::Int64(n) => write!(f, "i64 {}", n),
-			Value::Int128(n) => write!(f, "i128 {}", n),
 			Value::IntSize(n) => write!(f, "isize {}", n),
 
 			Value::UInt8(n) => write!(f, "u8 {}", n),
 			Value::UInt16(n) => write!(f, "u16 {}", n),
 			Value::UInt32(n) => write!(f, "u32 {}", n),
 			Value::UInt64(n) => write!(f, "u64 {}", n),
-			Value::UInt128(n) => write!(f, "u128 {}", n),
 			Value::UIntSize(n) => write!(f, "usize {}", n),
 
 			Value::Float32(flt32) => {
@@ -165,7 +161,19 @@ impl Default for HeapValue{
 #[derive(PartialEq, Eq, Clone)]
 pub enum SuperValue{
 	Reg(Value), 
-	Heap(HeapValue),
+	Heap(Box<HeapValue>),
+}
+
+impl From<HeapValue> for SuperValue{
+	fn from(v: HeapValue) -> Self{
+		SuperValue::Heap(Box::new(v))
+	}
+}
+
+impl From<Value> for SuperValue{
+	fn from(v: Value) -> Self{
+		SuperValue::Reg(v)
+	}
 }
 
 impl fmt::Display for SuperValue{
@@ -259,12 +267,12 @@ macro_rules! integer_match {
 				}else{Err(Self::CastError::InvalidCast)} 
 			},
 
-			CastType::StringBox => Ok(SuperValue::Reg(Value::StringBox($v as usize))),
-			CastType::ListBox => Ok(SuperValue::Reg(Value::ListBox($v as usize))),
-			CastType::ObjectBox => Ok(SuperValue::Reg(Value::ObjectBox($v as usize))),
-			CastType::MiscBox => Ok(SuperValue::Reg(Value::MiscBox($v as usize))),
+			CastType::StringBox => Ok(Value::StringBox($v as usize).into()),
+			CastType::ListBox => Ok(Value::ListBox($v as usize).into()),
+			CastType::ObjectBox => Ok(Value::ObjectBox($v as usize).into()),
+			CastType::MiscBox => Ok(Value::MiscBox($v as usize).into()),
 
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			CastType::String => Ok(HeapValue::String($v.to_string()).into()),
 			
 			_ => Err(Self::CastError::InvalidCast)
 		}
@@ -285,14 +293,12 @@ macro_rules! impl_integer_casts {
 						Uint16, UInt16, u16,	
 						Uint32, UInt32, u32,	
 						Uint64, UInt64, u64,	
-						Uint128, UInt128, u128,	
 
 						Size, IntSize, isize,
 						Int8, Int8, i8,	
 						Int16, Int16, i16,	
 						Int32, Int32, i32,	
 						Int64, Int64, i64,	
-						Int128, Int128, i128,	
 			
 						F32, Float32, f32,
 						F64, Float64, f64,
@@ -303,7 +309,7 @@ macro_rules! impl_integer_casts {
 	}
 }
 
-impl_integer_casts!{usize, u8, u16, u32, u64, u128, isize, i8, i16, i32, i64, i128, f32, f64}
+impl_integer_casts!{usize, u8, u16, u32, u64, isize, i8, i16, i32, i64, f32, f64}
 
 //Macro that compacts the match statement for bool casting.
 macro_rules! bool_match{
@@ -311,8 +317,8 @@ macro_rules! bool_match{
 		match $target {
 			$(CastType::$var => 
 				Ok(SuperValue::Reg(Value::$cast_to((if $v {1} else {0}) as $type))),)*
-			CastType::Bool => Ok(SuperValue::Reg(Value::Boolean($v))),
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			CastType::Bool => Ok(Value::Boolean($v).into()),
+			CastType::String => Ok(HeapValue::String($v.to_string()).into()),
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	};
@@ -326,13 +332,11 @@ impl TryCast<bool> for SuperValue{
 			Uint16, UInt16, u16,	
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
-			Uint128, UInt128, u128,	
 
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
 			Int64, Int64, i64,	
-			Int128, Int128, i128,	
 
 			F32, Float32, f32,
 			F64, Float64, f64
@@ -344,8 +348,8 @@ impl TryCast<bool> for SuperValue{
 macro_rules! char_match{
 	($v:ident , $target:ident, $($var:ident, $cast_to:ident, $type:ty),* $(,)?) => {
 		match $target {
-			$(CastType::$var => Ok(SuperValue::Reg(Value::$cast_to(($v as u32) as $type))),)*
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String($v.to_string()))),
+			$(CastType::$var => Ok(Value::$cast_to(($v as u32) as $type).into()),)*
+			CastType::String => Ok(HeapValue::String($v.to_string()).into()),
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	};
@@ -359,13 +363,11 @@ impl TryCast<char> for SuperValue{
 			Uint16, UInt16, u16,	
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
-			Uint128, UInt128, u128,	
 
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
 			Int64, Int64, i64,	
-			Int128, Int128, i128,	
 
 			F32, Float32, f32,
 			F64, Float64, f64
@@ -389,12 +391,12 @@ macro_rules! string_match{
 					.chars()
 					.map(|c| Value::Char(c))
 					.collect();
-				Ok(SuperValue::Heap(HeapValue::List(char_ls)))
+				Ok(HeapValue::List(char_ls).into())
 			},
 			CastType::Bool => {
 				match $v.as_str(){
-					"True" | "true" => Ok(SuperValue::Reg(Value::Boolean(true))),
-					"False" | "false" => Ok(SuperValue::Reg(Value::Boolean(false))),
+					"True" | "true" => Ok(Value::Boolean(true).into()),
+					"False" | "false" => Ok(Value::Boolean(false).into()),
 					_ => Err(Self::CastError::InvalidCast)
 				}
 			}
@@ -411,13 +413,11 @@ impl TryCast<&String> for SuperValue{
 			Uint16, UInt16, u16,	
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
-			Uint128, UInt128, u128,	
 
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
 			Int64, Int64, i64,	
-			Int128, Int128, i128,	
 
 			F32, Float32, f32,
 			F64, Float64, f64
@@ -429,7 +429,7 @@ impl TryCast<&Vec<Value>> for SuperValue{
 	type CastError = CastError;
 	fn try_cast(v: &Vec<Value>, target: CastType) -> Result<Self, Self::CastError>{
 		match target{
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String(stringify_val_vec(v)))),
+			CastType::String => Ok(HeapValue::String(stringify_val_vec(v)).into()),
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	}
@@ -439,7 +439,7 @@ impl TryCast<&HashMap<String, Value>> for SuperValue{
 	type CastError = CastError;
 	fn try_cast(v: &HashMap<String, Value>, target: CastType) -> Result<Self, Self::CastError>{
 		match target{
-			CastType::String => Ok(SuperValue::Heap(HeapValue::String(stringify_obj(v)))),
+			CastType::String => Ok(HeapValue::String(stringify_obj(v)).into()),
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	}
@@ -450,8 +450,8 @@ pub enum Operator{
 	Add, Sub, Mul, Div, 
 	Mod, Pow, 
 
-	UsizeMax, U8Max, U16Max, U32Max, U64Max, U128Max, 
-	IsizeMax, I8Max, I16Max, I32Max, I64Max, I128Max, 
+	UsizeMax, U8Max, U16Max, U32Max, U64Max,  
+	IsizeMax, I8Max, I16Max, I32Max, I64Max, 
 
 	Swap, Drop, DropStack, Rot, Dup, DeepDup, 
 
@@ -484,28 +484,19 @@ pub enum Operator{
 impl Default for Operator{
 	fn default() -> Self{Operator::Unknown}
 }
-
-impl Operator{
-	fn new(op_name: &str) -> Self{
-		macro_rules! op_match{
-			($(($name:literal, $var:ident)),* $(,)?) => {
-				match op_name{
-					$($name => Operator::$var,)*			
-					_ => Operator::Unknown,
-				}	
-			};
-		}
-		op_match!{
+macro_rules! match_call{
+	($mac:ident) => {
+		$mac!{
 			("+", Add), ("-", Sub), ("*", Mul), ("/", Div), 
 			("mod", Mod), ("%", Mod), ("pow", Pow),
 
 			("isizeMax", IsizeMax), ("usizeMax", UsizeMax),
 
 			("i8Max", I8Max), ("i16Max", I16Max), ("i32Max", I32Max), 
-			("i64Max", I64Max), ("i128Max", I128Max),
+			("i64Max", I64Max),
 
 			("u8Max", U8Max), ("u16Max", U16Max), ("u32Max", U32Max),
-			("u64Max", U64Max), ("u128Max", U128Max),
+			("u64Max", U64Max),
 
 			("swap", Swap),	("drop", Drop),	("dropStack", DropStack),	
 			("rot", Rot), ("dup", Dup),	("deepDup", DeepDup),	
@@ -547,7 +538,32 @@ impl Operator{
 			("throwCustomError", ThrowCustomError), ("getArgs", GetArgs), 
 			("isValidBox", IsValidBox), ("timeUnixNow", TimeUnixNow), 
 			("timeWait", TimeWait),
+		}
+	};
+}
+
+impl Operator{
+	fn new(op_name: &str) -> Self{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match op_name{
+					$($name => Operator::$var,)*			
+					_ => Operator::Unknown,
+				}	
+			};
 		}	
+		match_call!{op_match}	
+	}
+	pub fn stringify(&self) -> String{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match self{
+					$(Operator::$var => $name.to_string(),)*			
+					_ => "Unknown".to_string(),
+				}	
+			};
+		}
+		match_call!{op_match}
 	}
 }
 
@@ -556,8 +572,18 @@ impl Operator{
 #[derive(PartialEq, Eq, Clone)]
 pub enum Token{
 	V(SuperValue),
-	Word((String, Operator))
+	Word((Box<String>, Operator))
 }
+
+//Useful impl for AST construction.
+impl From<(&str, Option<Operator>)> for Token{
+	fn from(params: (&str, Option<Operator>)) -> Self{
+		let string_box = Box::new(params.0.to_string());
+		let op_val = if let Some(o) = params.1{o}else{Operator::Unknown};
+		Token::Word((string_box, op_val))	
+	}
+}
+
 
 impl Default for Token{
 	fn default() -> Self{
@@ -676,47 +702,115 @@ impl fmt::Display for FunCmd{
 	}	
 }
 
+#[derive(Clone)]
+pub struct FuncData{
+	pub cmd: FunCmd,
+	pub name: String,
+	pub bod: Rc<ASTNode>,
+}
+
+impl FuncData{
+	pub fn new(c: FunCmd, n: &str, b: Rc<ASTNode>) -> Self{
+		FuncData{
+			cmd: c,
+			name: n.to_string(),
+			bod: Rc::clone(&b)	
+		}
+	}
+}
+
+#[derive(Clone)]
+pub struct IfData{
+	pub if_true: ASTNode,
+	pub if_false: ASTNode
+}
+
+impl IfData{
+	pub fn new(t: ASTNode, f: ASTNode) -> Self{
+		IfData{if_true: t, if_false: f}
+	}
+}
+
+#[derive(Clone)]
+pub struct VarData{
+	pub name: String,
+	pub cmd: VarCmd,
+}
+
+impl VarData{
+	fn new(n: &str, c: VarCmd) -> Self{
+		VarData{
+			name: n.to_string(),
+			cmd: c
+		}
+	}
+}
+
+#[derive(Clone)]
+pub struct AttErrData{
+	pub att: ASTNode,
+	pub err: ASTNode 
+}
+impl AttErrData{
+	fn new(attempt: ASTNode, error: ASTNode) -> Self{
+		AttErrData{att: attempt, err: error}
+	}
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
-	Terminal(Token),
-	If {if_true: Box<ASTNode>, if_false: Box<ASTNode>},
+	Op(Operator),
+	Val(Value),	
+	HeapVal(Box<HeapValue>),
+	Word(Box<String>),
+	If(Box<IfData>),
 	While(Box<ASTNode>),
-	Expression(Vec<ASTNode>),
-	Function{cmd: FunCmd, func_name: String, func_bod: Rc<ASTNode>},
-	Variable{var_name: String, cmd: VarCmd, var_num: usize},
-	LocVar{name: String, cmd: VarCmd, num: usize},
+	Expression(Box<Vec<ASTNode>>),
+	Function(Box<FuncData>),
+	Variable(Box<VarData>),
+	LocVar(Box<VarData>),
 	BoxOp(BoxCmd),
-	AttErr{attempt: Box<ASTNode>, err: Box<ASTNode>},
+	AttErr(Box<AttErrData>),
 	Defer(Rc<ASTNode>),
-	CastTo(String),
+	CastTo(Box<String>),
+}
+
+//Useful for shorthand conversion of ASTNode vec to Expression.
+impl From<Vec<ASTNode>> for ASTNode{
+	fn from(v: Vec<ASTNode>) -> Self{
+		ASTNode::Expression(Box::new(v))	
+	}
 }
 
 impl Default for ASTNode{
-	fn default() -> Self{
-		ASTNode::Terminal(Token::default())
+	fn default()->Self{
+		ASTNode::Val(Value::NULLBox)
 	}
 }
 
 impl fmt::Display for ASTNode{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self{
-			ASTNode::Terminal(t) => write!(f, "{}", t),
-			ASTNode::If{if_true, if_false} => write!(f, "If [true_branch: {}, false_branch: {}]", if_true, if_false),
+			ASTNode::Op(id) => write!(f, "Operator {}", id.stringify()),
+			ASTNode::Val(v) => write!(f, "{}", v),
+			ASTNode::HeapVal(hv) => write!(f, "{}", hv),
+			ASTNode::If(data) => write!(f, "If [true_branch: {}, false_branch: {}]", data.if_true, data.if_false),
 			ASTNode::While(body) => write!(f, "While [{}]", body),
 			ASTNode::Expression(vec) => {
 				let strs: Vec<String> = vec.iter().map(|n| format!("{}", n)).collect();
 				write!(f, "Expression [{}]", strs.join(", "))
 			},
-			ASTNode::Function{cmd: c, func_name: name, func_bod: body} => {
-				write!(f, "Function [cmd: {}, name: {}, body: {}]", c, name, body)
+			ASTNode::Function(data) => {
+				write!(f, "Function [cmd: {}, name: {}, body: {}]", data.cmd, data.name, data.bod)
 			},
-			ASTNode::Variable{var_name: name, cmd: c, var_num: n} => write!(f, "Variable [name: {}, cmd: {}, num: {}]", name, c, n),
-			ASTNode::LocVar{name: nm, cmd: c, num: n} => write!(f, "Local Variable [name: {}, cmd: {}, num: {}]", nm, c, n),
+			ASTNode::Variable(data) => write!(f, "Variable [name: {}, cmd: {}]", data.name, data.cmd),
+			ASTNode::LocVar(data) => write!(f, "Local Variable [name: {}, cmd: {}]", data.name, data.cmd),
 			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
-			ASTNode::AttErr{attempt: att, err: e} => write!(f, "AttErr [attempt: {}, err: {}]", att, e),
+			ASTNode::AttErr(data) => write!(f, "AttErr [attempt: {}, err: {}]", data.att, data.err),
 			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
+			ASTNode::Word(wd) => write!(f, "Word {}", wd)
 		}
 	}
 }
@@ -736,77 +830,18 @@ pub fn type_to_string(v: Value) -> String{
 	chrs
 }
 
-//Builds hashmap to translate operator strings to their respective indices.
-pub fn make_ops_hashmap() -> HashMap<String, usize>{
-	//Creates and fills out the ops map with the operators, 
-	// ignoring the existing aliases for some of the operators.
-	let mut ops_map: HashMap<String, usize> = HashMap::new();
-	let mut i: usize = 1;
-	let unique_strs = [
-		"+", "-", "*", "/", "mod", "pow",
-		"isizeMax", "usizeMax", 
-		"i8Max", "i16Max", "i32Max", "i64Max", "i128Max",
-		"u8Max", "u16Max", "u32Max", "u64Max", "u128Max", 
-		"swap", "drop", "dropStack", "rot", "dup", "deepDup",
-		"==", "!=", ">", "<", ">=", "<=", "stringCompare", "++",
-		"and", "or", "xor", "not",
-		"push", "pop", "fpush", "fpop", "index", "length", 
-		"isEmpty", "clear", "contains", "changeItemAt",
-		"isWhitespaceChar", "isAlphaChar", "isNumChar",
-		"objAddField", "objGetField", "objMutField", "objRemField",
-		"bitOr", "bitAnd", "bitXor", "bitNot", "bitShift", "cast",
-		"printLine", "readLine", "printChar", "readChar", "print", 
-		"read", "debugPrintStack", "debugPrintHeap",
-		"fileWrite", "fileRead", "fileCreate", "fileRemove", "fileExists",
-		"queryType", "leaveScopeIfTrue", "throwCustomError",
-		"getArgs", "isValidBox", "timeUnixNow", "timeWait"
-	];
-	for s in unique_strs.iter(){
-		ops_map.insert(s.to_string(), i);
-		i += 1;
-	}
-
-	//The following inserts add all the aliases that exist for some of the operators. 
-	// The numbers given match the operation number 
-	// of the appropriate previously inserted operation.
-
-	//Alias for mod
-	ops_map.insert("%".to_string(), *(ops_map.get("mod").unwrap()));
-
-	//Alises for logical AND, OR, and NOT
-	ops_map.insert("&&".to_string(), *(ops_map.get("and").unwrap()));
-	ops_map.insert("||".to_string(), *(ops_map.get("or").unwrap()));
-	ops_map.insert("!".to_string(), *(ops_map.get("not").unwrap()));
-
-	//Aliases for push, pop, fpush, fpop, and length
-	ops_map.insert("p".to_string(), *(ops_map.get("push").unwrap()));
-	ops_map.insert("po".to_string(), *(ops_map.get("pop").unwrap()));
-	ops_map.insert("fp".to_string(), *(ops_map.get("fpush").unwrap()));
-	ops_map.insert("fpo".to_string(), *(ops_map.get("fpop").unwrap()));
-	ops_map.insert("len".to_string(), *(ops_map.get("length").unwrap()));
-
-	//Aliases for bitOr, bitAnd, and bitXor
-	ops_map.insert("|".to_string(), *(ops_map.get("bitOr").unwrap()));
-	ops_map.insert("&".to_string(), *(ops_map.get("bitAnd").unwrap()));
-	ops_map.insert("^".to_string(), *(ops_map.get("bitXor").unwrap()));
-	
-	ops_map
-}
-
 //Takes in a file string and calls the necessary functions 
 // to build an AST from it.
-pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> Result<(ASTNode, usize), String>{
+pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> Result<ASTNode, String>{
 	match tokenize(program_string.chars().collect()){
 		Ok(tokens) => {
-			let ops_map = make_ops_hashmap();
-		  
 			//Constructs means of checking for duplicate imports.
 			let mut imported_files: HashMap<String, ()> = HashMap::new();
 			if argc > 1{
 				imported_files.insert(argv[1].clone(), ());
 			}
 	
-			match lex_tokens(tokens, &ops_map, &mut imported_files){
+			match lex_tokens(tokens, &mut imported_files){
 				Ok(lexed) => {
 					match make_ast(lexed){
 						Ok(res) => return Ok(res),
@@ -969,223 +1004,157 @@ pub fn replace_literals_with_escapes(s: &str) -> String{
 //WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
 pub fn lex_tokens(
 	tokens: Vec<String>, 
-	ops_map: &HashMap<String, usize>, 
 	imported: &mut HashMap<String, ()>) -> Result<Vec<Token>, String>
 {
 	let mut lexed: Vec<Token> = Vec::new();
 
-	for tok in tokens.into_iter(){
-		match &tok{
-			//Boolean lexing cases.
-			t if t == "True" || t == "true" => {
-				lexed.push(Token::V(
-					SuperValue::Reg(Value::Boolean(true)))
-				);
-			},
-			t if t == "False" || t == "false" => {
-				lexed.push(Token::V(
-					SuperValue::Reg(Value::Boolean(false)))
-				);
-			},
-			//String case.
-			t if t.starts_with("\"") && t.ends_with("\"") => {
-				lexed.push(Token::V(
-					SuperValue::Heap(
-						HeapValue::String(
-							replace_literals_with_escapes(&tok[1..(tok.len() - 1)]))
-					))
-				);
-			}, 
-			//Char case.
-			t if t.starts_with("\'") && t.ends_with("\'") => {
-				let mut iter = tok[1..].chars();
-				let mut captured: char = iter.nth(0).unwrap();
-				if captured == '\\'{
-					captured = match iter.nth(0).unwrap(){
-						'n' => '\n',
-						't' => '\t',
-						'r' => '\r',
-						'0' => '\0',
-						'\'' => '\'',
-						'\"' => '\"',
-						'b' => '\x08',
-						'f' => '\x0c',
-						_ => captured,
-					};
-				}
-				lexed.push(Token::V(SuperValue::Reg(Value::Char(captured))));
-			},
-			//List case.
-			t if t == "[]" => lexed.push(Token::V(SuperValue::Heap(HeapValue::List(Vec::new())))),
-			//Object case.
-			t if t == "{}" => lexed.push(Token::V(SuperValue::Heap(HeapValue::Object(HashMap::new())))),
-			//Float cases.
-			t if t.ends_with("f32") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<f32>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float32(parsed)))),
-					Err(_) => return Err(throw_parse_error("f32", &tok)),
-				}
-			},
-			t if t.ends_with("f64") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<f64>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float64(parsed)))),
-					Err(_) => return Err(throw_parse_error("f64", &tok)),
-				}
-			},
-			//Explicit integer cases for both signed and unsigned.
-			t if t.ends_with("u8") && t.len() > 2 => {
-				match tok[0..(tok.len() - 2)].parse::<u8>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt8(parsed)))),
-					Err(_) => return Err(throw_parse_error("u8", &tok)),
-				}
-			},
-			t if t.ends_with("i8") && t.len() > 2 => {
-				match tok[0..(tok.len() - 2)].parse::<i8>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int8(parsed)))),
-					Err(_) => return Err(throw_parse_error("i8", &tok)),
-				}
-			},
-			t if t.ends_with("u16") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<u16>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt16(parsed)))),
-					Err(_) => return Err(throw_parse_error("u16", &tok)),
-				}
-			},
-			t if t.ends_with("i16") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<i16>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int16(parsed)))),
-					Err(_) => return Err(throw_parse_error("i16", &tok)),
-				}
-			},
-			t if t.ends_with("u32") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<u32>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt32(parsed)))),
-					Err(_) => return Err(throw_parse_error("u32", &tok)),
-				}
-			},
-			t if t.ends_with("i32") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<i32>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int32(parsed)))),
-					Err(_) => return Err(throw_parse_error("i32", &tok)),
-				}
-			},
-			t if t.ends_with("u64") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<u64>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt64(parsed)))),
-					Err(_) => return Err(throw_parse_error("u64", &tok)),
-				}
-			},
-			t if t.ends_with("i64") && t.len() > 3 => {
-				match tok[0..(tok.len() - 3)].parse::<i64>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int64(parsed)))),
-					Err(_) => return Err(throw_parse_error("u64", &tok)),
-				}
-			},
-			t if t.ends_with("u128") && t.len() > 4 => {
-				match tok[0..(tok.len() - 4)].parse::<u128>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UInt128(parsed)))),
-					Err(_) => return Err(throw_parse_error("u128", &tok)),
-				}
-			},
-			t if t.ends_with("i128") && t.len() > 4 => {
-				match tok[0..(tok.len() - 4)].parse::<i128>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Int128(parsed)))),
-					Err(_) => return Err(throw_parse_error("i128", &tok)),
-				}
-			},
-			t if t.ends_with("usize") && t.len() > 5 => {
-				match tok[0..(tok.len() - 5)].parse::<usize>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::UIntSize(parsed)))),
-					Err(_) => return Err(throw_parse_error("usize", &tok)),
-				}
-			},
-			t if t.ends_with("isize") && t.len() > 5 => {
-				match tok[0..(tok.len() - 5)].parse::<isize>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::IntSize(parsed)))),
-					Err(_) => return Err(throw_parse_error("isize", &tok)),
-				}
-			},
-			//Type inference for float.
-			t if t.contains(".") 
-					&& (t.chars().next().unwrap() == '-' 
-					|| (t.chars().next().unwrap() >= '0' 
-						&& t.chars().next().unwrap() <= '9')) 
-					=> {
-				match tok.parse::<f32>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::Float32(parsed)))),
-					Err(_) => return Err(throw_parse_error("f32", &tok)),
-				}
-			},
-			//Type inference for integer.
-			t if (t.chars().next().unwrap() == '-' && t.len() > 1) 
-					|| (t.chars().next().unwrap() >= '0' 
-						&& t.chars().next().unwrap() <= '9') 
-					=> {
-				match tok.parse::<isize>(){
-					Ok(parsed) => lexed.push(Token::V(SuperValue::Reg(Value::IntSize(parsed)))),
-					Err(_) => return Err(throw_parse_error("isize", &tok)),
-				}
-			},
+	macro_rules! tok_match{
+		($el:ident, $(($tystr:literal, $ty:ty, $var:ident)),* $(,)?) => {
+			match &$el{
+				t if t == "True" || t == "true" => {
+					lexed.push(Token::V(Value::Boolean(true).into()));
+				},
+				t if t == "False" || t == "false" => {
+					lexed.push(Token::V(Value::Boolean(false).into()));
+				},
+				//String case.
+				t if t.starts_with("\"") && t.ends_with("\"") => {
+					lexed.push(Token::V(HeapValue::String(
+					replace_literals_with_escapes(&t[1..(t.len() - 1)])).into()));
+				}, 
+				//Char case.
+				t if t.starts_with("\'") && t.ends_with("\'") => {
+					let mut iter = $el[1..].chars();
+					let mut captured: char = iter.nth(0).unwrap();
+					if captured == '\\'{
+						captured = match iter.nth(0).unwrap(){
+							'n' => '\n',
+							't' => '\t',
+							'r' => '\r',
+							'0' => '\0',
+							'\'' => '\'',
+							'\"' => '\"',
+							'b' => '\x08',
+							'f' => '\x0c',
+							_ => captured,
+						};
+					}
+					lexed.push(Token::V(Value::Char(captured).into()));
+				},
+				//List case.
+				t if t == "[]" => lexed.push(Token::V(HeapValue::List(Vec::new()).into())),
+				//Object case.
+				t if t == "{}" => lexed.push(
+					Token::V(HeapValue::Object(HashMap::new()).into())),
+				//Generalized macro case handling specified floats and integers.
+				$(t if t.ends_with($tystr) && t.len() > $tystr.len() => {
+					match $el[0..($el.len() - $tystr.len())].parse::<$ty>(){
+						Ok(parsed) => lexed.push(Token::V(Value::$var(parsed).into())),	
+						Err(_) => return Err(throw_parse_error($tystr, t)),
+					}
+				},)*
+				//Type inference for float.
+				t if t.contains(".") 
+						&& (t.chars().next().unwrap() == '-' 
+						|| (t.chars().next().unwrap() >= '0' 
+							&& t.chars().next().unwrap() <= '9')) 
+						=> {
+					match $el.parse::<f32>(){
+						Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed).into())),
+						Err(_) => return Err(throw_parse_error("f32", t)),
+					}
+				},
+				//Type inference for integer.
+				t if (t.chars().next().unwrap() == '-' && t.len() > 1) 
+						|| (t.chars().next().unwrap() >= '0' 
+							&& t.chars().next().unwrap() <= '9') 
+						=> {
+					match $el.parse::<isize>(){
+						Ok(parsed) => lexed.push(Token::V(Value::IntSize(parsed).into())),
+						Err(_) => return Err(throw_parse_error("isize", t)),
+					}
+				},
 
-			//Recursive import() statement case.
-			t if t.starts_with("import(") && t.ends_with(")") => {
-				//Grabs file string out of import statement. 
-				let import_str = "import("; 
-				let file_str = &t[(import_str.len())..(t.len() - 1)];
+				//Recursive import() statement case.
+				t if t.starts_with("import(") && t.ends_with(")") => {
+					//Grabs file string out of import statement. 
+					let import_str = "import("; 
+					let file_str = &t[(import_str.len())..(t.len() - 1)];
+					
+					let import_file_path = Path::new(file_str);
+
+					//If file not already imported, inserts into file hashmap.
+					// If it is, then nothing happens.
+					if !imported.contains_key(file_str){
+						imported.insert(file_str.to_string(), ());
+
+						//Opens the input file to read from.
+						let mut import_file = match File::open(&import_file_path){
+							Ok(f) => f,
+							Err(reason) => {
+								let import_file_name = import_file_path.display();
+								return Err(format!("Unable to open import \
+									file {} for parsing because {}", import_file_name, reason));
+							}, 
+						};
+
+						//Reads in the code from the given file after opening it.
+						let mut import_code_str = String::new();
+						match import_file.read_to_string(&mut import_code_str){
+							Ok(_) => {},
+							Err(reason) => {
+								let import_file_name = import_file_path.display();
+								return Err(format!("Unable to read in\
+									import file {} because {}", import_file_name, reason)); 
+							}, 
+						}
+
+						//Pushes all $elens from recursive traversal into current lexed list.
+						match tokenize(import_code_str.chars().collect()){
+							Ok(import_tokens) => {
+								match lex_tokens(import_tokens, imported){
+									Ok(toks) => {
+										for tok in toks.into_iter(){
+											lexed.push(tok)
+										}
+									},
+									Err(e) => return Err(e),
+								}
+									
+							},
+							Err(e) => return Err(e),
+						}
+
+					}
+
+				}, 
 				
-				let import_file_path = Path::new(file_str);
+				//General catch-all case mostly meant for operators.
+				_ => {
+					let op_val = Operator::new(&$el);
+					
+					lexed.push(Token::Word((Box::new($el), op_val)));
+				}, 
+			}	
+		};
+	}
 
-				//If file not already imported, inserts into file hashmap.
-				// If it is, then nothing happens.
-				if !imported.contains_key(file_str){
-					imported.insert(file_str.to_string(), ());
-
-					//Opens the input file to read from.
-					let mut import_file = match File::open(&import_file_path){
-						Ok(f) => f,
-						Err(reason) => {
-							let import_file_name = import_file_path.display();
-							return Err(format!("Unable to open import \
-								file {} for parsing because {}", import_file_name, reason));
-						}, 
-					};
-
-					//Reads in the code from the given file after opening it.
-					let mut import_code_str = String::new();
-					match import_file.read_to_string(&mut import_code_str){
-						Ok(_) => {},
-						Err(reason) => {
-							let import_file_name = import_file_path.display();
-							return Err(format!("Unable to read in\
-								import file {} because {}", import_file_name, reason)); 
-						}, 
-					}
-
-					//Pushes all tokens from recursive traversal into current lexed list.
-					match tokenize(import_code_str.chars().collect()){
-						Ok(import_tokens) => {
-							match lex_tokens(import_tokens, ops_map, imported){
-								Ok(toks) => {
-									for tok in toks.into_iter(){
-										lexed.push(tok)
-									}
-								},
-								Err(e) => return Err(e),
-							}
-								
-						},
-						Err(e) => return Err(e),
-					}
-
-				}
-
-			}, 
+	for tok in tokens.into_iter(){
+		tok_match!{tok,
+			("f32", f32, Float32),
+			("f64", f64, Float64),
 			
-			//General catch-all case mostly meant for operators.
-			_ => {
-				let op_val = Operator::new(&tok);
-				lexed.push(Token::Word((tok, op_val)));
-			}, 
+			("usize", usize, UIntSize),
+			("u8", u8, UInt8),
+			("u16", u16, UInt16),
+			("u32", u32, UInt32),
+			("u64", u64, UInt64),
+
+			("isize", isize, IntSize),
+			("i8", i8, Int8),
+			("i16", i16, Int16),
+			("i32", i32, Int32),
+			("i64", i64, Int64),
 		}
 	}
 
@@ -1197,8 +1166,6 @@ pub fn make_ast_prime(
 	mut already_parsed: Vec<ASTNode>, 
 	tokens: Vec<Token>, 
 	token_index: usize,
-	loc_nums: &mut HashMap<String, usize>,
-	curr_loc_num: &mut usize, 
 	terminators: Vec<Token>
 ) -> Result<(Vec<ASTNode>, Vec<Token>, usize, Option<usize>), String>{
 	//If out of tokens to parse, end or throw error if there were terminators to look for.
@@ -1214,34 +1181,35 @@ pub fn make_ast_prime(
 		}
 	//If still tokens to parse, converts the tokens into an ASTNode.
 	}else{
-		match tokens[token_index]{
+		match &tokens[token_index]{
 			//Stop on terminator case. 
-			ref tok if terminators.contains(tok) => Ok((already_parsed, tokens, token_index + 1, Some(token_index))),
+			tok if terminators.contains(tok) => Ok((already_parsed, tokens, token_index + 1, Some(token_index))),
 			//Parse if statement case.
-			Token::Word(ref cmd) if cmd.0 == "if" => {
-				match parse_if(tokens, token_index + 1, loc_nums, curr_loc_num){
+			Token::Word((cmd, _)) if cmd.as_str() == "if" => {
+				match parse_if(tokens, token_index + 1){
 					Ok((true_branch, false_branch, tokens_prime, token_index_prime)) => {
-						already_parsed.push(ASTNode::If{if_true : Box::new(true_branch), if_false : Box::new(false_branch)});
-						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators);
+						let new_data = Box::new(IfData::new(true_branch, false_branch));
+						already_parsed.push(ASTNode::If(new_data));
+						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
 					},	
 					Err(e) => return Err(e),
 				}
 			},
 			//While loop parsing case.
-			Token::Word(ref cmd) if cmd.0 == "while" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]){
+			Token::Word((cmd, _)) if cmd.as_str() == "while" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
 					Ok((loop_body, tokens_prime, token_index_prime, _)) => {
-						already_parsed.push(ASTNode::While(Box::new(ASTNode::Expression(loop_body))));
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+						already_parsed.push(ASTNode::While(Box::new(loop_body.into())));
+						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 					},
 					Err(e) => return Err(e),
 				}                 
 
 			},
 			//Function case.
-			Token::Word(ref cmd) if cmd.0 == "func" => {
+			Token::Word((cmd, _)) if cmd.as_str() == "func" => {
 				//Makes sure there's enough stuff to look to parse the function.
-				if token_index + 2 > tokens.len(){
+				if token_index + 2 > (tokens.len() - 1){
 					return Err("Insufficient tokens left for function to be parsed!".to_string());
 				}
 
@@ -1253,37 +1221,39 @@ pub fn make_ast_prime(
 					(_, _) => return Err("SHOULD NEVER GET HERE!!!".to_string()),
 				};
 
-				match make_ast_prime(Vec::new(), toks, token_index + 3, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]){
+				match make_ast_prime(Vec::new(), toks, token_index + 3, vec![(";", None).into()]){
 					Ok((fbod, tokens_prime, token_index_prime, _)) => {
-						let fbod_ast = Rc::new(ASTNode::Expression(fbod));
-						already_parsed.push(ASTNode::Function{cmd: FunCmd::new(&command_str), func_name: name_str, func_bod: fbod_ast});
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+						let fbod_ast = Rc::new(fbod.into());
+						let new_cmd = FunCmd::new(&command_str);
+
+						if new_cmd == FunCmd::Unknown{
+							return Err(format!("Function error! Invalid command given! Valid: def, call. Given: {}", command_str));
+						}
+
+						let new_data = FuncData::new(new_cmd, &*name_str, fbod_ast);
+						already_parsed.push(ASTNode::Function(Box::new(new_data)));
+						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+
 					},
 					Err(e) => return Err(e),
 				}	
 
 			},
 			//Var command parsing case.
-			Token::Word(ref cmd) if cmd.0 == "var" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]){
-					Ok((mut var_data, tokens_prime, token_index_prime, _)) => {
+			Token::Word((cmd, _)) if cmd.as_str() == "var" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
+					Ok((var_data, tokens_prime, token_index_prime, _)) => {
 						if var_data.len() >= 2{
-							let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
-								(ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
+							let (cmd, name) = match (&var_data[0], &var_data[1]){
+								(ASTNode::Word(c), ASTNode::Word(n)) => (c, n),
 								(_, _) => {return Err("Malformed variable command Error! \
 									Insufficient parameters given for variable command!".to_string())},
 							};
-							let vn: usize = match loc_nums.get(&name){
-								Some(n) => *n,
-								None => {
-									loc_nums.insert(name.clone(), *curr_loc_num);
-									let ret = *curr_loc_num;
-									*curr_loc_num += 1;
-									ret
-								},
-							};
-							already_parsed.push(ASTNode::Variable{var_name: name, cmd: VarCmd::new(&cmd), var_num: vn});
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+							let new_cmd = VarCmd::new(&cmd);
+							let new_data = Box::new(VarData::new(&name, new_cmd));
+							already_parsed.push(ASTNode::Variable(new_data));
+							make_ast_prime(already_parsed, tokens_prime, 
+							token_index_prime, terminators)
 
 						}else{
 							return Err("Malformed variable command Error! \
@@ -1294,26 +1264,18 @@ pub fn make_ast_prime(
 				}
 			},
 			//Loc command parsing case.
-			Token::Word(ref cmd) if cmd.0 == "loc" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]){
+			Token::Word((cmd, _)) if cmd.as_str() == "loc" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
 					Ok((mut var_data, tokens_prime, token_index_prime, _)) => {
 						if var_data.len() >= 2{
-							let (cmd, name) = match (std::mem::take(&mut var_data[0]), std::mem::take(&mut var_data[1])){
-								(ASTNode::Terminal(Token::Word(c)), ASTNode::Terminal(Token::Word(n))) => (c.0, n.0),
-								(_, _) => return Err("Malformed local variable command Error! \
-									Insufficient parameters given for local variable command!".to_string()),
+							let (cmd, name) = match (&var_data[0], &var_data[1]){
+								(ASTNode::Word(c), ASTNode::Word(n)) => (c, n),
+								(_, _) => return Err("Malformed local variable command Error!".to_string())
 							};
-							let var_num: usize = match loc_nums.get(&name){
-								Some(n) => *n,
-								None => {
-									loc_nums.insert(name.clone(), *curr_loc_num);
-									let ret = *curr_loc_num;
-									*curr_loc_num += 1;
-									ret
-								},
-							};
-							already_parsed.push(ASTNode::LocVar{name: name, cmd: VarCmd::new(&cmd), num: var_num});
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+							let new_cmd = VarCmd::new(&cmd);
+							let new_data = Box::new(VarData::new(&name, new_cmd));
+							already_parsed.push(ASTNode::LocVar(new_data));
+							make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 
 						}else{
 							Err("Malformed local variable command Error! \
@@ -1325,17 +1287,22 @@ pub fn make_ast_prime(
 	
 			},
 			//Box command case.
-			Token::Word(ref cmd) if cmd.0 == "box" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))]) {
+			Token::Word((cmd, _)) if cmd.as_str() == "box" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]) {
 					Ok((mut box_data, tokens_prime, token_index_prime, _)) => {
 						if box_data.len() >= 1{
-							let box_cmd = match std::mem::take(&mut box_data[0]){
-								ASTNode::Terminal(Token::Word(c)) => c.0,
-								_ => return Err("Malformed box command!".to_string()),
+							let box_cmd_str = match &box_data[0]{
+								ASTNode::Word(c) => c,
+								_ => return Err(format!("Malformed box command! Invalid AST Node given! Attempted: {}", &box_data[0])),
 							};
+						
+							let box_cmd = BoxCmd::new(&box_cmd_str);
+							if box_cmd == BoxCmd::Unknown{
+								return Err(format!("Malformed box command! Invalid Box operator given! Valid: make, open, altr, null. Attempted: {}", box_cmd_str));
+							}
 
-							already_parsed.push(ASTNode::BoxOp(BoxCmd::new(&box_cmd)));
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+							already_parsed.push(ASTNode::BoxOp(box_cmd));
+							make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 						}else{
 							return Err("Malformed box command! No box command token given!".to_string());
 						}
@@ -1344,45 +1311,45 @@ pub fn make_ast_prime(
 				}
 			},
 			//Attempt onError case.
-			Token::Word(ref cmd) if cmd.0 == "attempt" => {
-				match parse_att_err(tokens, token_index + 1, loc_nums, curr_loc_num){
+			Token::Word((cmd, _)) if cmd.as_str() == "attempt" => {
+				match parse_att_err(tokens, token_index + 1){
 					Ok((att_branch, err_branch, tokens_prime, token_index_prime)) => {
-						already_parsed.push(ASTNode::AttErr{attempt: Box::new(att_branch), err: Box::new(err_branch)});
-						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators);
+						let new_data = Box::new(AttErrData::new(att_branch, err_branch));
+						already_parsed.push(ASTNode::AttErr(new_data));
+						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
 					},
 					Err(e) => return Err(e),
 				} 
 			},
 			//Defer case.
-			Token::Word(ref cmd) if cmd.0 == "defer" => {
+			Token::Word((cmd, _)) if cmd.as_str() == "defer" => {
 				match make_ast_prime(
 						Vec::new(),
 						tokens, 
 						token_index + 1, 
-						loc_nums,
-						curr_loc_num,
-						vec![Token::Word((";".to_string(), Operator::default()))]
+						vec![(";", None).into()]
 					) {
 					Ok((defer_body, tokens_prime, token_index_prime, _)) => {
-						already_parsed.push(ASTNode::Defer(Rc::new(ASTNode::Expression(defer_body))));
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+						let new_body = Rc::new(defer_body.into());
+						
+						already_parsed.push(ASTNode::Defer(new_body));
+						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
 					},
 					Err(e) => return Err(e),
 				} 
 			},
 			//castTo case
-			Token::Word(ref cmd) if cmd.0 == "castTo" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, loc_nums, 
-						curr_loc_num, vec![Token::Word((";".to_string(), Operator::default()))])  {
+			Token::Word((cmd, _)) if cmd.as_str() == "castTo" => {
+				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()])  {
 					Ok((mut cast_data, tokens_prime, token_index_prime, _)) => {
 						if cast_data.len() >= 1{
-							let data_type = match std::mem::take(&mut cast_data[0]){
-								ASTNode::Terminal(Token::Word(d)) => d.0,
+							let data_type = match &cast_data[0]{
+								ASTNode::Word(d) => d,
 								_ => return Err("Malformed castTo!".to_string())
 							};
 
-							already_parsed.push(ASTNode::CastTo(data_type));
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, loc_nums, curr_loc_num, terminators)
+							already_parsed.push(ASTNode::CastTo(Box::new(*data_type.clone())));
+							make_ast_prime(already_parsed, tokens_prime, token_index_prime,  terminators)
 						}else{
 							return Err("Malformed castTo command! No data type given!".to_string())
 						}
@@ -1390,10 +1357,24 @@ pub fn make_ast_prime(
 					Err(e) => return Err(e),
 				}
 			},
-			_ => {
-				let mut toks = tokens;
-				already_parsed.push(ASTNode::Terminal(std::mem::take(&mut toks[token_index])));
-				make_ast_prime(already_parsed, toks, token_index + 1, loc_nums, curr_loc_num, terminators)
+			Token::Word((cmd, op)) => {
+				if *op != Operator::Unknown{
+					already_parsed.push(ASTNode::Op(*op));
+				}else{
+					already_parsed.push(ASTNode::Word(Box::new(*cmd.clone())));
+				}
+				make_ast_prime(already_parsed, tokens, token_index + 1, terminators)	
+			},
+			Token::V(val) =>{
+				match val{
+					SuperValue::Heap(h)	=> {
+						already_parsed.push(ASTNode::HeapVal(Box::new(*h.clone())));
+					},
+					SuperValue::Reg(v) => {
+						already_parsed.push(ASTNode::Val(*v));
+					},
+				}
+				make_ast_prime(already_parsed, tokens, token_index + 1, terminators)	
 			},
 		}
 	}
@@ -1403,31 +1384,26 @@ pub fn make_ast_prime(
 //Used to recursively parse an attempt branch for AttErr
 pub fn parse_att_err(
 	tokens: Vec<Token>,
-	token_index: usize, 
-	loc_nums: &mut HashMap<String, usize>,
-	curr_loc_num: &mut usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
+	token_index: usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
 	match make_ast_prime(
 			Vec::new(),
 			tokens, 
-			token_index, loc_nums, curr_loc_num,
-			vec![Token::Word(("onError".to_string(), Operator::default()))]
+			token_index, 
+			vec![("onError", None).into()]
 		) {
 		Ok((att_branch, tokens_prime, token_index_prime, terminator_index)) => {
 			match terminator_index{
 				Some(i) => {
 					match tokens_prime[i]{
-						Token::Word(ref cmd) if cmd.0 == "onError" => {
+						Token::Word(ref cmd) if *cmd.0 == "onError" => {
 							match make_ast_prime(
 									Vec::new(),
 									tokens_prime,
 									token_index_prime, 
-									loc_nums,
-									curr_loc_num,
-									vec![Token::Word((";".to_string(), Operator::default()))]
+									vec![(";", None).into()]
 								) {
 								Ok((error_branch, tokens_prime_prime, token_index_prime_prime, _)) => {
-									
-									Ok((ASTNode::Expression(att_branch), ASTNode::Expression(error_branch), 
+									Ok((att_branch.into(), error_branch.into(), 
 										tokens_prime_prime, token_index_prime_prime))
 								},
 								Err(e) => return Err(e),
@@ -1445,30 +1421,29 @@ pub fn parse_att_err(
 
 pub fn parse_if(
 	tokens: Vec<Token>, 
-	token_index: usize, 
-	loc_nums: &mut HashMap<String, usize>, 
-	curr_loc_num: &mut usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
+	token_index: usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
 	match make_ast_prime(
 			Vec::new(), 
 			tokens, 
-			token_index, loc_nums, curr_loc_num, 
-			vec![Token::Word(("else".to_string(), Operator::default())), Token::Word((";".to_string(), Operator::default()))]
+			token_index,  
+			vec![("else", None).into(), (";", None).into()]
 		){
 		Ok((true_branch, tokens_prime, token_index_prime, terminator_index)) => {
 			match terminator_index{
 				Some(i) => {
 					match tokens_prime[i]{
-						Token::Word(ref cmd) if cmd.0 == "else" => {
-							match parse_else(tokens_prime, token_index_prime, loc_nums, curr_loc_num) {
+						Token::Word(ref cmd) if *cmd.0 == "else" => {
+							match parse_else(tokens_prime, token_index_prime) {
 								Ok((false_branch, tokens_prime_prime, token_index_prime_prime)) => {
 				
-								Ok((ASTNode::Expression(true_branch), false_branch, 
-									tokens_prime_prime, token_index_prime_prime))
+								Ok((ASTNode::Expression(Box::new(true_branch)), 
+									false_branch, tokens_prime_prime, 
+									token_index_prime_prime))
 								},
 								Err(e) => return Err(e),
 							}
 						},
-						_ => Ok((ASTNode::Expression(true_branch), ASTNode::Expression(vec![]), tokens_prime, token_index_prime)),  
+						_ => Ok((true_branch.into(), vec![].into(), tokens_prime, token_index_prime)),  
 					}
 				},
 				_ => return Err("SHOULD NEVER GET HERE!!!".to_string()),
@@ -1480,31 +1455,65 @@ pub fn parse_if(
 
 pub fn parse_else(
 	tokens: Vec<Token>, 
-	token_index: usize, 
-	loc_nums: &mut HashMap<String, usize>,
-	curr_loc_num: &mut usize) -> Result<(ASTNode, Vec<Token>, usize), String>{
+	token_index: usize) -> Result<(ASTNode, Vec<Token>, usize), String>{
 	match  
 		make_ast_prime(
 			Vec::new(),
 			tokens, 
-			token_index, loc_nums, curr_loc_num,
-			vec![Token::Word((";".to_string(), Operator::default()))]
+			token_index,
+			vec![(";", None).into()]
 		){
 		Ok((if_false, tokens_prime, token_index_prime, _)) => {
-			Ok((ASTNode::Expression(if_false), tokens_prime, token_index_prime))
+			Ok((if_false.into(), tokens_prime, token_index_prime))
 		},
 		Err(e) => return Err(e),
 	}
 }
 
+//Runs through AST expression.
+// If it finds a Word, it's an error, as all words should've been consumed 
+// in forming the AST.
+fn pre_run_ast_check(nodes: &ASTNode) -> Result<(), String>{
+	match nodes{
+		ASTNode::Expression(nds) => {
+			for node in nds.iter(){
+				match node{
+					ASTNode::Word(text) => return Err(format!("Unknown operator error! Word \"{}\" is not a valid operator and isn't part of any fancy operators.", text)),
+					ASTNode::If(data) => {
+						if let Err(e1) = pre_run_ast_check(&data.if_true){
+							return Err(e1);	
+						}
+						if let Err(e2) = pre_run_ast_check(&data.if_false){
+							return Err(e2);	
+						}
+					},
+					ASTNode::While(bod) => {
+						if let Err(e) = pre_run_ast_check(bod) {return Err(e);}	
+					},
+					ASTNode::Function(data) => 
+					{
+						if let Err(e) = pre_run_ast_check(&*data.bod) {return Err(e);}
+					},
+					_ => (),
+				}
+			}
+		},
+		_ => (),
+	}
+	Ok(())
+}
+
 //Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
 // returning it for the program to then run. 
-// It also returns the number of unique local variable names for later use in running the program. 
-pub fn make_ast(tokens: Vec<Token>) -> Result<(ASTNode, usize), String>{
-	let mut loc_nums: HashMap<String, usize> = HashMap::new();
-	let mut curr_loc_num: usize = 0;
-	match make_ast_prime(Vec::new(), tokens, 0, &mut loc_nums, &mut curr_loc_num, Vec::new()){
-		Ok(res) => return Ok((ASTNode::Expression(res.0), curr_loc_num)),	
+pub fn make_ast(tokens: Vec<Token>) -> Result<ASTNode, String>{
+	match make_ast_prime(Vec::new(), tokens, 0, Vec::new()){
+		Ok(res) => {
+			let ast = res.0.into();
+			match pre_run_ast_check(&ast){
+				Ok(_) => Ok(ast),
+				Err(er) => Err(er),
+			}
+		}, 
 		Err(e) => return Err(e),
 	}
 }
