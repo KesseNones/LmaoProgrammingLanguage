@@ -2,8 +2,6 @@ use crate::parser::*;
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::cmp::Ordering;
-use std::fmt;
-use fmt::Display;
 use std::io;
 use std::path::Path;
 use std::fs::File;
@@ -77,7 +75,7 @@ impl Heap{
 	//Inserts item into Heap and returns a Box pointing to it.
 	pub fn insert_to_heap(&mut self, ins_val: HeapValue) -> Value{
 		//Inserts to heap or reuses cell if one exists.
-		let mut box_num: usize = 0;
+		let box_num: usize;
 		match self.free_list.pop(){
 			Some(index) => {
 				self.heap[index] = (ins_val, true);
@@ -111,22 +109,12 @@ impl Heap{
 		}	
 	}
 
-	pub fn box_type_to_string(&self, v: Value) -> Option<String>{
-		match v {
-			Value::StringBox(n) => Some("StringBox".to_string()),
-			Value::ListBox(n) => Some("ListBox".to_string()),
-			Value::ObjectBox(n) => Some("ObjectBox".to_string()),
-			Value::MiscBox(n) => Some("MiscBox".to_string()),
-			_ => None,
-		}	
-	}
-
 	pub fn is_box(&self, v: Value) -> bool{
 		match v {
-			Value::StringBox(n) => true,
-			Value::ListBox(n) => true,
-			Value::ObjectBox(n) => true,
-			Value::MiscBox(n) => true,
+			Value::StringBox(_) => true,
+			Value::ListBox(_) => true,
+			Value::ObjectBox(_) => true,
+			Value::MiscBox(_) => true,
 			_ => false,
 		}	
 	}
@@ -146,23 +134,6 @@ impl Heap{
 			false
 		}
 	}
-
-	pub fn is_object_box(&self, v: Value) -> bool{
-		if let Value::ObjectBox(_) = v {
-			true
-		}else{
-			false
-		}
-	}
-
-	pub fn is_misc_box(&self, v: Value) -> bool{
-		if let Value::MiscBox(_) = v {
-			true
-		}else{
-			false
-		}
-	}
-	
 		
 	fn is_valid_index(&self, idx: usize) -> bool{
 		idx < self.heap.len() && self.heap[idx].1
@@ -400,18 +371,12 @@ impl Functions{
 		self.fns.get(name).cloned()
 	}
 
-	pub fn function_exists(&self, name:&str) -> bool{
-		self.fns.contains_key(name)
-	}
-
 }
 
 pub enum RetCode{
 	Normal,
 	LeavingScopeEarly,
 }
-type OpFunction = 
-fn(&mut Stack, &mut Heap, Option<&str>) -> Result<RetCode, String>;
 
 //Used for numerical operators like +, -, *, etc.
 pub fn numerical_type_error_string(op_name: &str, v1: Value, v2: Value) -> String{
@@ -526,7 +491,7 @@ pub fn sub(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 // Throws errors for non-matching types and insufficient operands.
 pub fn mult(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
 	let op_name = "*";
-	macro_rules! sub_match{
+	macro_rules! mult_match{
 		($($var:ident),* $(,)?) => {
 			let res = match s.pop2(){
 				$((Some(Value::$var(a)), Some(Value::$var(b))) => {
@@ -550,13 +515,12 @@ pub fn mult(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, St
 				(None, None) => {
 					Err(needs_n_args_only_n_provided(op_name, "Two", "none"))
 				},
-
-				_ => Err(should_never_get_here_for_func("mult")),
+				_ => Err(should_never_get_here_for_func("mult"))
 			};	
 			push_val_or_err(res, s)
 		};
 	}
-	sub_match!{IntSize, UIntSize, 
+	mult_match!{IntSize, UIntSize, 
 		Int8, Int16, Int32, Int64, 
 		UInt8, UInt16, UInt32, UInt64, 
 	}
@@ -1514,7 +1478,7 @@ pub fn add_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCod
 		(Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
 			let objbx = Value::ObjectBox(a);
 			let sbx = Value::StringBox(b);
-			match (h.get_heap_ref_mut_and_ref(objbx, sbx)){
+			match h.get_heap_ref_mut_and_ref(objbx, sbx){
 				(Some(HeapValue::Object(obj)), Some(HeapValue::String(st))) => {
 					if !obj.contains_key(st){
 						obj.insert(st.clone(), v);
@@ -1596,7 +1560,7 @@ pub fn mut_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCod
 		(Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
 			let obx = Value::ObjectBox(a);
 			let sbx = Value::StringBox(b);
-			match (h.get_heap_ref_mut_and_ref(obx, sbx)){
+			match h.get_heap_ref_mut_and_ref(obx, sbx){
 				(Some(HeapValue::Object(obj)), Some(HeapValue::String(st))) => {
 					if let Some(old_val) = obj.get_mut(st){
 						if is_valid_mutation(*old_val, v){
@@ -1633,7 +1597,7 @@ pub fn remove_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<Ret
 		(Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
 			let obx = Value::ObjectBox(a); 
 			let sbx = Value::StringBox(b);
-			match (h.get_heap_ref_mut_and_ref(obx, sbx)){
+			match h.get_heap_ref_mut_and_ref(obx, sbx){
 				(Some(HeapValue::Object(obj)), Some(HeapValue::String(st))) => {
 					match obj.remove(st){
 						Some(_) => {s.push(obx); Ok(RetCode::Normal)},
@@ -1956,7 +1920,7 @@ pub fn cast_stuff(s: &mut Stack, h: &mut Heap, c_type: Option<&str>) -> Result<R
 							Ok(RetCode::Normal)
 						},
 						Ok(SuperValue::Reg(val)) => {s.push(val); Ok(RetCode::Normal)},
-						Err(e) => Err(casting_failed_error(
+						Err(_) => Err(casting_failed_error(
 							$op_name, Value::$type(v), $cast_type))
 					}
 				},)*
@@ -2233,7 +2197,7 @@ pub fn debug_stack_print(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result
 
 //Prints the whole heap to stdout for debugging purposes.
 //This is something like O(n^2) at least so definitely only use it for debugging!
-pub fn debug_heap_print(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn debug_heap_print(_: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
 	let filler_str = "////////////////////////////////";
 	let heap_size = h.read_heap().len();
 	let free_list_size = h.read_free_list().len();	
@@ -2552,7 +2516,6 @@ pub fn is_valid_box(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetC
 				(true, true) => Ok(Value::Boolean(true)),
 				(true, false) => Ok(Value::Boolean(false)),
 				(false, _) => Err(invalid_type_for_valid_box_check(v)),
-				_ => Err(should_never_get_here_for_func("is_valid_box"))
 			}
 			
 		},

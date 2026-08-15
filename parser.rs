@@ -557,6 +557,7 @@ impl Operator{
 	pub fn stringify(&self) -> String{
 		macro_rules! op_match{
 			($(($name:literal, $var:ident)),* $(,)?) => {
+				#[allow(unreachable_patterns)]
 				match self{
 					$(Operator::$var => $name.to_string(),)*			
 					_ => "Unknown".to_string(),
@@ -1266,7 +1267,7 @@ pub fn make_ast_prime(
 			//Loc command parsing case.
 			Token::Word((cmd, _)) if cmd.as_str() == "loc" => {
 				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
-					Ok((mut var_data, tokens_prime, token_index_prime, _)) => {
+					Ok((var_data, tokens_prime, token_index_prime, _)) => {
 						if var_data.len() >= 2{
 							let (cmd, name) = match (&var_data[0], &var_data[1]){
 								(ASTNode::Word(c), ASTNode::Word(n)) => (c, n),
@@ -1289,7 +1290,7 @@ pub fn make_ast_prime(
 			//Box command case.
 			Token::Word((cmd, _)) if cmd.as_str() == "box" => {
 				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]) {
-					Ok((mut box_data, tokens_prime, token_index_prime, _)) => {
+					Ok((box_data, tokens_prime, token_index_prime, _)) => {
 						if box_data.len() >= 1{
 							let box_cmd_str = match &box_data[0]{
 								ASTNode::Word(c) => c,
@@ -1341,7 +1342,7 @@ pub fn make_ast_prime(
 			//castTo case
 			Token::Word((cmd, _)) if cmd.as_str() == "castTo" => {
 				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()])  {
-					Ok((mut cast_data, tokens_prime, token_index_prime, _)) => {
+					Ok((cast_data, tokens_prime, token_index_prime, _)) => {
 						if cast_data.len() >= 1{
 							let data_type = match &cast_data[0]{
 								ASTNode::Word(d) => d,
