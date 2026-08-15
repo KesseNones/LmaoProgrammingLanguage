@@ -1209,7 +1209,7 @@ pub fn make_ast_prime(
 			//Function case.
 			Token::Word((cmd, _)) if cmd.as_str() == "func" => {
 				//Makes sure there's enough stuff to look to parse the function.
-				if token_index + 2 > tokens.len(){
+				if token_index + 2 > (tokens.len() - 1){
 					return Err("Insufficient tokens left for function to be parsed!".to_string());
 				}
 
@@ -1225,9 +1225,15 @@ pub fn make_ast_prime(
 					Ok((fbod, tokens_prime, token_index_prime, _)) => {
 						let fbod_ast = Rc::new(fbod.into());
 						let new_cmd = FunCmd::new(&command_str);
+
+						if new_cmd == FunCmd::Unknown{
+							return Err(format!("Function error! Invalid command given! Valid: def, call. Given: {}", command_str));
+						}
+
 						let new_data = FuncData::new(new_cmd, &*name_str, fbod_ast);
 						already_parsed.push(ASTNode::Function(Box::new(new_data)));
 						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
+
 					},
 					Err(e) => return Err(e),
 				}	

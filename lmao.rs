@@ -361,10 +361,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 
 								if let Err(e) = bod_res{err_break!{e}}
                             },
-                            FunCmd::Unknown => {
-                                err_break!{format!("Function error! Invalid function \
-                                    command given! Valid: def, call .")}
-                            },
+							_ => {err_break!{should_never_get_here_for_func("function")}}
                         }
                     },
                     ASTNode::LocVar(data) => {
