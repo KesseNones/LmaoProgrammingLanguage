@@ -191,12 +191,51 @@ impl Default for SuperValue {
 	}
 }
 
+#[derive(Clone, Copy)]
 pub enum CastType{
 	Usize, Uint8, Uint16, Uint32, Uint64,
-	Uint128, Size, Int8, Int16, Int32,
-	Int64, Int128, F32, F64, Char,
-	Bool, StringBox, String, ListBox,
+	Size, Int8, Int16, Int32, Int64, 
+	F32, F64, Char, Bool, StringBox, String, ListBox,
 	List, ObjectBox, MiscBox
+}
+macro_rules! disp_match{
+	($target:ident, $form:ident, $($var:ident, $res:literal),* $(,)?) => {
+		match $target{
+			$(CastType::$var => write!($form, $res),)*
+		}	
+	};
+}
+
+impl fmt::Display for CastType{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+		disp_match!{self, f,
+			Usize, "usize",
+			Uint8, "u8",	
+			Uint16, "u16",	
+			Uint32, "u32",	
+			Uint64, "u64",	
+
+			Size, "isize",
+			Int8, "i8",	
+			Int16, "i16",	
+			Int32, "i32",	
+			Int64, "i64",	
+
+			F32, "f32",
+			F64, "f64",
+	
+			Char, "Char",
+			Bool, "Boolean",
+		
+			StringBox, "StringBox",
+			ListBox, "ListBox",
+			ObjectBox, "ObjectBox",
+			MiscBox, "MiscBox",
+
+			List, "List",
+			String, "String",
+		}
+	}
 }
 
 pub enum CastError{
@@ -228,14 +267,12 @@ impl TryCast<&str> for CastType{
 			"u16", Uint16,
 			"u32", Uint32,
 			"u64", Uint64,
-			"u128", Uint128,
 
 			"isize", Size,
 			"i8", Int8,
 			"i16", Int16,
 			"i32", Int32,
 			"i64", Int64,
-			"i128", Int128,
 			
 			"f32", F32,
 			"f64", F64,
@@ -774,7 +811,7 @@ pub enum ASTNode{
 	BoxOp(BoxCmd),
 	AttErr(Box<AttErrData>),
 	Defer(Rc<ASTNode>),
-	CastTo(Box<String>),
+	CastTo(CastType),
 }
 
 //Useful for shorthand conversion of ASTNode vec to Expression.
@@ -1345,11 +1382,17 @@ pub fn make_ast_prime(
 					Ok((cast_data, tokens_prime, token_index_prime, _)) => {
 						if cast_data.len() >= 1{
 							let data_type = match &cast_data[0]{
-								ASTNode::Word(d) => d,
+								ASTNode::Word(d) => {
+									if let Ok(ty) = CastType::try_cast(&**d, CastType::MiscBox){
+										ty
+									}else{
+										return Err(format!("Operator castTo error! \"{}\" is not a valid data type for casting!", d));
+									}
+								},
 								_ => return Err("Malformed castTo!".to_string())
 							};
 
-							already_parsed.push(ASTNode::CastTo(Box::new(*data_type.clone())));
+							already_parsed.push(ASTNode::CastTo(data_type));
 							make_ast_prime(already_parsed, tokens_prime, token_index_prime,  terminators)
 						}else{
 							return Err("Malformed castTo command! No data type given!".to_string())

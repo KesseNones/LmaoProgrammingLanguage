@@ -1891,133 +1891,124 @@ fn invalid_cast_type_error(name: &str, attempt: &str) -> String{
 		name, attempt)
 }
 
-fn invalid_cast_operation_error(name: &str, v: Value, att: &str) -> String{
-	format!("Operator ({}) error! Casting {} to type {} is not a valid cast!", 
-		name, v, att)
-}
-
-fn casting_failed_error(name: &str, v: Value, att: &str) -> String{
+fn casting_failed_error(name: &str, v: Value, att: CastType) -> String{
 	format!("Operator ({}) error! Failed to cast {} to type {}!", 
 		name, v, att)
 }
 
-fn invalid_box_for_casting_error(name: &str, v: Value, att: &str) -> String{
+fn invalid_box_for_casting_error(name: &str, v: Value, att: CastType) -> String{
 	format!("Operator ({}) error! Failed to cast {} to type {}! It is an invalid Box!",
 		name, v, att)
 }
 
-//Performs all valid casts in existence wherein the top 
-// of the stack tries to be casted to another data type.
-pub fn cast_stuff(s: &mut Stack, h: &mut Heap, c_type: Option<&str>) -> Result<RetCode, String>{
-	//Used to make match statements less bloated for conversions.
-	macro_rules! cast_match{
-		($target:ident, $op_name:ident, $cast_type:ident, $needed:ident, $provided:ident, [$($type:ident),* $(,)?], [$($h_type:ident, $b_type:ident),* $(,)?]) => {
-			match s.pop(){
-				$(Some(Value::$type(v)) => {
-					match SuperValue::try_cast(v, $target){
+//Used to make match statements less bloated for conversions.
+macro_rules! cast_match{
+	($s:ident, $h:ident, $target:ident, $op_name:ident, $needed:ident, $provided:ident, [$($type:ident),* $(,)?], [$($h_type:ident, $b_type:ident),* $(,)?]) => {
+		match $s.pop(){
+			$(Some(Value::$type(v)) => {
+				match SuperValue::try_cast(v, $target){
+					Ok(SuperValue::Heap(hval)) => {
+						$s.push($h.insert_to_heap(*hval));
+						Ok(RetCode::Normal)
+					},
+					Ok(SuperValue::Reg(val)) => {$s.push(val); Ok(RetCode::Normal)},
+					Err(_) => Err(casting_failed_error(
+						$op_name, Value::$type(v), $target))
+				}
+			},)*
+			$(Some(Value::$b_type(bn)) => {
+				let bx = Value::$b_type(bn);
+				if let Some(HeapValue::$h_type(item)) = $h.get_heap_ref(bx){
+					match SuperValue::try_cast(item, $target){
 						Ok(SuperValue::Heap(hval)) => {
-							s.push(h.insert_to_heap(*hval));
+							$s.push($h.insert_to_heap(*hval));
 							Ok(RetCode::Normal)
 						},
-						Ok(SuperValue::Reg(val)) => {s.push(val); Ok(RetCode::Normal)},
+						Ok(SuperValue::Reg(val)) => {$s.push(val); Ok(RetCode::Normal)}
 						Err(_) => Err(casting_failed_error(
-							$op_name, Value::$type(v), $cast_type))
+							$op_name, bx, $target)),
 					}
-				},)*
-				$(Some(Value::$b_type(bn)) => {
-					let bx = Value::$b_type(bn);
-					if let Some(HeapValue::$h_type(item)) = h.get_heap_ref(bx){
-						match SuperValue::try_cast(item, $target){
-							Ok(SuperValue::Heap(hval)) => {
-								s.push(h.insert_to_heap(*hval));
-								Ok(RetCode::Normal)
-							},
-							Ok(SuperValue::Reg(val)) => {s.push(val); Ok(RetCode::Normal)}
-							Err(_) => Err(casting_failed_error(
-								$op_name, bx, $cast_type)),
+				}else{
+					Err(invalid_box_for_casting_error($op_name, bx, $target)) 
+				}
+			},)*
+			Some(v) => Err(casting_failed_error($op_name, v, $target)),
+			None => Err(needs_n_args_only_n_provided($op_name, $needed, $provided))
+		}	
+	};
+}
+
+//Performs all valid casts in existence wherein the top 
+// of the stack tries to be casted to another data type.
+pub fn cast_op(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+	let op_name = "cast";
+	let needed = "Two";	
+	let provided = "only one/none";
+	match s.pop(){
+		Some(Value::StringBox(n)) => {
+			let sbx = Value::StringBox(n);
+			match h.get_heap_ref(sbx){
+				Some(HeapValue::String(cast_type)) => {
+					if let Ok(cast_target) = 
+					CastType::try_cast(cast_type, CastType::MiscBox)
+					{
+						cast_match!{s, h,
+							cast_target, op_name, needed, provided,
+							[
+								UIntSize, UInt8,	
+								UInt16,	UInt32,	UInt64,	
+
+								IntSize, Int8,	
+								Int16,	Int32, Int64,	
+
+								Float32, Float64,
+
+								Char, Boolean
+							],
+						
+							[
+								String,	StringBox,
+								List, ListBox,
+								Object, ObjectBox
+							]
 						}
 					}else{
-						Err(invalid_box_for_casting_error($op_name, bx, $cast_type)) 
+						Err(invalid_cast_type_error(op_name, cast_type))
 					}
-				},)*
-				Some(v) => Err(invalid_cast_operation_error($op_name, v, $cast_type)),
-				None => Err(needs_n_args_only_n_provided($op_name, $needed, $provided))
-			}	
-		};
-	}
-	if let Some(cast_type) = c_type{
-		let op_name = "castTo";
-		let needed = "One";	
-		let provided = "none";
-		if let Ok(cast_target) = CastType::try_cast(cast_type, CastType::MiscBox){
-			cast_match!{
-				cast_target, op_name, cast_type, needed, provided,
-				[
-					UIntSize, UInt8,	
-					UInt16,	UInt32,	UInt64,		
-
-					IntSize, Int8,	
-					Int16,	Int32, Int64,		
-
-					Float32, Float64,
-
-					Char, Boolean
-				],
-			
-				[
-					String,	StringBox,
-					List, ListBox,
-					Object, ObjectBox
-				]
+				},
+				Some(_) => Err(should_never_get_here_for_func("cast_stuff")),
+				None => Err(bad_box_error(op_name, sbx, NULL, false)) 
 			}
 
-		}else{
-			Err(invalid_cast_type_error(op_name, cast_type))
-		}
-	}else{
-		let op_name = "cast";
-		let needed = "Two";	
-		let provided = "only one/none";
-		match s.pop(){
-			Some(Value::StringBox(n)) => {
-				let sbx = Value::StringBox(n);
-				match h.get_heap_ref(sbx){
-					Some(HeapValue::String(cast_type)) => {
-						if let Ok(cast_target) = 
-						CastType::try_cast(cast_type, CastType::MiscBox)
-						{
-							cast_match!{
-								cast_target, op_name, cast_type, needed, provided,
-								[
-									UIntSize, UInt8,	
-									UInt16,	UInt32,	UInt64,	
+		},
+		Some(v) => Err(format!("Operator (cast) error! Top of stack must be a StringBox! Attempted: {}", v)),
+		None => Err(needs_n_args_only_n_provided(op_name, needed, provided)),
+	}	
+}
 
-									IntSize, Int8,	
-									Int16,	Int32, Int64,	
+pub fn cast_fan_op(s: &mut Stack, h: &mut Heap, c_type: CastType) -> Result<RetCode, String>{
+	let op_name = "castTo";
+	let needed = "One";	
+	let provided = "none";
+	cast_match!{s, h,
+		c_type, op_name, needed, provided,
+		[
+			UIntSize, UInt8,	
+			UInt16,	UInt32,	UInt64,		
 
-									Float32, Float64,
+			IntSize, Int8,	
+			Int16,	Int32, Int64,		
 
-									Char, Boolean
-								],
-							
-								[
-									String,	StringBox,
-									List, ListBox,
-									Object, ObjectBox
-								]
-							}
-						}else{
-							Err(invalid_cast_type_error(op_name, cast_type))
-						}
-					},
-					Some(_) => Err(should_never_get_here_for_func("cast_stuff")),
-					None => Err(bad_box_error(op_name, sbx, NULL, false)) 
-				}
+			Float32, Float64,
 
-			},
-			Some(v) => Err(format!("Operator (cast) error! Top of stack must be a StringBox! Attempted: {}", v)),
-			None => Err(needs_n_args_only_n_provided(op_name, needed, provided)),
-		}	
+			Char, Boolean
+		],
+	
+		[
+			String,	StringBox,
+			List, ListBox,
+			Object, ObjectBox
+		]
 	}
 }
 

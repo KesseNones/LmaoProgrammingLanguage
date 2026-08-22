@@ -100,7 +100,7 @@ Result<RetCode, String>
 
 		(BitOr, bit_or), (BitAnd, bit_and), 
 		(BitXor, bit_xor), (BitNot, bit_not), 
-		(BitShift, bit_shift), (Cast, cast_stuff),
+		(BitShift, bit_shift), (Cast, cast_op),
 
 		(PrintLine, print_line), (ReadLine, read_line_from_in), 
 		(PrintChar, print_char), (ReadChar, read_char), 
@@ -444,7 +444,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                         }
                     },
                     ASTNode::CastTo(data_type) => {
-						match run_operator(Operator::Cast, s, h, Some(data_type))
+						match cast_fan_op(s, h, *data_type)
 						{
 							Ok(_) => (),
 							Err(e) => {err_break!{e}},
