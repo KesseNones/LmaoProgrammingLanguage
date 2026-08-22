@@ -50,13 +50,13 @@ fn invalid_mutation_error(op_name: &str, v1: Value, v2: Value) -> String{
 	format!("Operator ({}) error! Unable to mutate {} to {}, as it is an invalid mutation!", op_name, v1, v2)
 }
 
-fn run_operator(op: Operator, s: &mut Stack, h: &mut Heap, args: Option<&str>) -> 
+fn run_operator(op: Operator, s: &mut Stack, h: &mut Heap) -> 
 Result<RetCode, String>
 {
 	macro_rules! op_match{
 		($(($var:ident, $func:ident)),* $(,)?) => {
 			match op{
-				$(Operator::$var => $func(s, h, args),)*			
+				$(Operator::$var => $func(s, h),)*			
 				//Should never reach this!
 				Operator::Unknown => Err(should_never_get_here_for_func("run_operator")),
 			}	
@@ -142,7 +142,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 					ASTNode::Val(v) => s.push(*v),
 					ASTNode::HeapVal(hv) => s.push(h.insert_to_heap(*hv.clone())),
 					ASTNode::Op(id) => {
-						match run_operator(*id, s, h, None){
+						match run_operator(*id, s, h){
 							Ok(RetCode::Normal) => (),
 							Ok(RetCode::LeavingScopeEarly) => {
 								res = Ok(RetCode::LeavingScopeEarly);
@@ -576,7 +576,7 @@ fn main(){
 					match res{
 						Ok(_) => {
 							if print_stack{
-								debug_stack_print(&mut s, &mut h, None)
+								debug_stack_print(&mut s, &mut h)
 								.expect("FAILED TO PRINT STACK!");	
 							}
 						},
@@ -764,7 +764,7 @@ fn main(){
 				match res{
 					Ok(_) => {
 						if print_stack{
-							debug_stack_print(&mut s, &mut h, None)
+							debug_stack_print(&mut s, &mut h)
 							.expect("FAILED TO PRINT STACK!");		
 						}
 					},

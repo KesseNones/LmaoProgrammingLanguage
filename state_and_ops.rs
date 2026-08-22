@@ -409,7 +409,7 @@ pub fn push_val_or_err(r: Result<Value, String>, s: &mut Stack) -> Result<RetCod
 
 
 //Adds two values of matching numerical types together, pusing the result to the stack.
-pub fn add(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn add(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "+";
 	macro_rules! add_match{
 		($($var:ident),* $(,)?) => {
@@ -449,7 +449,7 @@ pub fn add(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 }
 
 //Subtracts two values of matching numerical types, pusing the result to the stack.
-pub fn sub(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn sub(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "-";
 	macro_rules! sub_match{
 		($($var:ident),* $(,)?) => {
@@ -489,7 +489,7 @@ pub fn sub(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 
 //Pops two items from top of stack and multiplies them, pushing result to stack.
 // Throws errors for non-matching types and insufficient operands.
-pub fn mult(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn mult(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "*";
 	macro_rules! mult_match{
 		($($var:ident),* $(,)?) => {
@@ -532,7 +532,7 @@ pub fn division_by_zero_error(v1: Value, v2: Value) -> String{
 
 //Pops two items from top of stack and divides them, pushing result to stack.
 // Throws errors for non-matching types and insufficient operands, as well as division by zero.
-pub fn div(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn div(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "/";
 	macro_rules! div_match{
 		($($var:ident, $type:ty),* $(,)?) => {
@@ -578,7 +578,7 @@ pub fn modulo_by_zero_error(v1: Value, v2: Value) -> String{
 
 //Pops two items from top of stack and modulos them, pushing result to stack.
 // Throws errors for non-matching types and insufficient operands, as well as modulo by zero.
-pub fn modulo(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn modulo(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "% or mod";
 	macro_rules! mod_match{
 		($($var:ident),* $(,)?) => {
@@ -617,7 +617,7 @@ pub fn modulo(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, 
 }
 
 //Adds two values of matching numerical types together, pusing the result to the stack.
-pub fn power(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn power(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let res: Result<Value, String> = match s.pop2(){
 		(Some(Value::Float32(a)), Some(Value::Float32(b))) => {
 			Ok(Value::Float32(a.powf(b)))
@@ -647,7 +647,7 @@ pub fn power(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, S
 }
 
 //Swaps the top two items on the stack, errors out of inusfficient items exist.
-pub fn swap(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn swap(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(a), Some(b)) => {
 			s.push(b);
@@ -662,7 +662,7 @@ pub fn swap(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, St
 
 //Removes the top item from the stack 
 // or errors out if stack is empty.
-pub fn drop(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn drop(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop(){
 		Some(_) => Ok(RetCode::Normal),
 		None => Err(needs_n_args_only_n_provided("drop", "One", "none")),
@@ -671,14 +671,14 @@ pub fn drop(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, St
 
 //Clears existing stack to be empty. 
 // This can be useful if you want a clean stack without doing a ton of drops.
-pub fn drop_stack(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn drop_stack(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.clear_stack();
 	Ok(RetCode::Normal)
 }
 
 //Rotates top three items on stack, 
 // putting the top item below the previous two.
-pub fn rot(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn rot(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop3(){
 		(Some(a), Some(b), Some(c)) => {
 			s.push(c);
@@ -696,7 +696,7 @@ pub fn rot(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 
 //Very literally just copies the top element of the stack and pushes it. 
 // If it's a box, the box itself is copied, not the data it contains.
-pub fn dup(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn dup(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop(){
 		Some(v) => {
 			s.push(v);
@@ -709,7 +709,7 @@ pub fn dup(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 
 //Works like dup but duplicates the data held by box types 
 // and creates a new box to hold the duplicated data.
-pub fn deep_dup(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn deep_dup(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "deepDup";
 	if let Some(v) = s.pop(){
 		if let Some(val) = h.get_heap_ref(v){
@@ -735,7 +735,7 @@ pub fn equality_error(op_type: &str, v1: Value, v2: Value) -> String{
 //Checks for equality between two data types. For boxes it checks to see 
 // if the box numbers are equal and for NULL box it checks for self-equality.
 //Consumes both items from stack and pushes resulting boolean based on their comparison.
-pub fn is_equal(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn is_equal(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(Value::StringBox(_) | Value::ListBox(_) | Value::ObjectBox(_) | Value::MiscBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::StringBox(_) | Value::ListBox(_) | Value::ObjectBox(_) | Value::MiscBox(_)))   => {
 			s.push(Value::Boolean(false));
@@ -766,7 +766,7 @@ pub fn is_equal(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode
 //Checks for inequality between two data types. For boxes it checks to see 
 // if the box numbers are equal and for NULL box it checks for self-inequality.
 //Consumes both items from stack and pushes resulting boolean based on their comparison.
-pub fn is_not_equal(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn is_not_equal(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(Value::StringBox(_) | Value::ListBox(_) | Value::ObjectBox(_) | Value::MiscBox(_)), Some(Value::NULLBox)) | (Some(Value::NULLBox), Some(Value::StringBox(_) | Value::ListBox(_) | Value::ObjectBox(_) | Value::MiscBox(_)))   => {
 			s.push(Value::Boolean(true));
@@ -799,7 +799,7 @@ pub fn comparison_error(op_type: &str, v1: Value, v2: Value) -> String{
 }
 
 //Compares two values on stack to see if the second to top is greater than the top.
-pub fn is_greater_than(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn is_greater_than(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(a), Some(b)) => {
 			if discriminant(&a) == discriminant(&b) {
@@ -823,7 +823,7 @@ pub fn is_greater_than(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<
 }
 
 //Compares two values on stack to see if the second to top is less than the top.
-pub fn is_less_than(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn is_less_than(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(a), Some(b)) => {
 			if discriminant(&a) == discriminant(&b) {
@@ -847,7 +847,7 @@ pub fn is_less_than(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<Ret
 }
 
 //Compares two values on stack to see if the second to top is greater than or equal to the top.
-pub fn is_greater_than_equal_to(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn is_greater_than_equal_to(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(a), Some(b)) => {
 			if discriminant(&a) == discriminant(&b) {
@@ -871,7 +871,7 @@ pub fn is_greater_than_equal_to(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -
 }
 
 //Compares two values on stack to see if the second to top is less than or equal to the top.
-pub fn is_less_than_equal_to(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn is_less_than_equal_to(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(a), Some(b)) => {
 			if discriminant(&a) == discriminant(&b) {
@@ -914,7 +914,7 @@ fn bad_concat_type_error(v1: Value, v2: Value) -> String{
 //Concatenates two strings or two lists together.
 // The second to top item gets a copy of the top's values appended. 
 // The top is NOT free'd for simplicity.
-pub fn concat(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn concat(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "++";
 	match s.pop2(){
 		(Some(a), Some(b)) => {
@@ -954,7 +954,7 @@ pub fn logical_operator_type_error(op_type: &str, v1: Value, v2: Value) -> Strin
 }
 
 //Performs logical AND on two operands.
-pub fn and(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn and(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
 			s.push(Value::Boolean(a && b));
@@ -977,7 +977,7 @@ pub fn and(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 }
 
 //Performs logical OR on two operands.
-pub fn or(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn or(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
 			s.push(Value::Boolean(a || b));
@@ -1000,7 +1000,7 @@ pub fn or(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Stri
 }
 
 //Performs logical XOR on two operands.
-pub fn xor(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn xor(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop2(){
 		(Some(Value::Boolean(a)), Some(Value::Boolean(b))) => {
 			s.push(Value::Boolean(a != b));
@@ -1023,7 +1023,7 @@ pub fn xor(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, Str
 }
 
 //Performs logical NOT on top of stack if boolean.
-pub fn not(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn not(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop(){
 		Some(Value::Boolean(x)) => {s.push(Value::Boolean(!x)); Ok(RetCode::Normal)},
 		Some(x) => {
@@ -1039,7 +1039,7 @@ fn list_push_type_error(v1: Value, v2: Value) -> String{
 }
 
 //Pushes a value to a list or a character to a string.
-pub fn list_push(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn list_push(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "push/p";
 	match s.pop2(){
 		(Some(Value::ListBox(bn)), Some(v)) => {
@@ -1082,7 +1082,7 @@ pub fn pop_error(op_type: &str, collection_type: &str, op_detail: &str) -> Strin
 }
 
 //Pops from the end of a list/string and pushes the popped thing to the stack.
-pub fn list_pop(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn list_pop(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "pop/po";
 	let res: Result<(Value, Value), String> = match s.pop(){
 		Some(Value::ListBox(bn)) => {
@@ -1127,7 +1127,7 @@ pub fn list_pop(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode
 }
 
 //Pushes a value to the front of a list or a character to the front of a string.
-pub fn list_front_push(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn list_front_push(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "fpush/fp";
 	match s.pop2(){
 		(Some(Value::ListBox(bn)), Some(v)) => {
@@ -1166,7 +1166,7 @@ pub fn list_front_push(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<
 }
 
 //Pops from the front of a list/string and pushes the popped thing to the stack.
-pub fn list_front_pop(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn list_front_pop(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "fpop/fpo";
 	let res: Result<(Value, Value), String> = match s.pop(){
 		Some(Value::ListBox(bn)) => {
@@ -1214,7 +1214,7 @@ pub fn list_front_pop(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<R
 
 //Indexes into a list or string, 
 // pushing the indexed item to the stack.
-pub fn index(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn index(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "index";
 	match s.pop2(){
 		(Some(Value::ListBox(bn)), Some(Value::UIntSize(i))) => {
@@ -1258,7 +1258,7 @@ pub fn index(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, S
 }
 
 //Determines length of string or list and pushes it to stack.
-pub fn length(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn length(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "length/len";
 	match s.pop(){
 		Some(v) => {
@@ -1280,7 +1280,7 @@ pub fn length(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, 
 }
 
 //Takes a string/list and pushes a boolean based on whether it's empty or not.
-pub fn is_empty(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn is_empty(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "isEmpty";
 	match s.pop(){
 		Some(v) => {
@@ -1302,7 +1302,7 @@ pub fn is_empty(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode
 }
 
 //Clears a list/string to empty.
-pub fn list_clear(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn list_clear(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "clear";
 	match s.pop(){
 		Some(v) => {
@@ -1326,7 +1326,7 @@ pub fn list_clear(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCo
 //Consumes a list/object/string box and a value/char and 
 // pushes a boolean based on whether or not that value/value/char
 // is in that list/object/string box.
-pub fn list_contains(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn list_contains(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "contains";
 	match s.pop2(){
 		(Some(Value::ListBox(bn)), Some(v)) => {
@@ -1387,7 +1387,7 @@ fn item_change_type_error(a: Value, b: Value, c: Value) -> String{
 }
 
 //Alters an item in a list at a particular index to something else.
-pub fn change_item_at(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn change_item_at(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "changeItemAt";
 	match s.pop3(){
 		(Some(Value::ListBox(bn)), Some(Value::UIntSize(i)), Some(v)) => {
@@ -1424,7 +1424,7 @@ pub fn non_char_error(op_type: &str, v: Value) -> String{
 }
 
 //Conumes a character and pushes a boolean saying whether or not it's whitespace.
-pub fn whitespace_detect(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn whitespace_detect(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop(){
 		Some(Value::Char(c)) => {
 			s.push(Value::Boolean(c.is_whitespace()));
@@ -1438,7 +1438,7 @@ pub fn whitespace_detect(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Resul
 }
 
 //Determines if top of stack is an alphabetical char.
-pub fn alpha_char_detect(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn alpha_char_detect(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop(){
 		Some(Value::Char(c)) => {
 			s.push(Value::Boolean(c.is_alphabetic()));
@@ -1452,7 +1452,7 @@ pub fn alpha_char_detect(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Resul
 }
 
 //Determines if top of stack is a numeric char.
-pub fn num_char_detect(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn num_char_detect(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	match s.pop(){
 		Some(Value::Char(c)) => {
 			s.push(Value::Boolean(c.is_numeric()));
@@ -1472,7 +1472,7 @@ pub fn invalid_types_for_obj_add_or_mut(op_type: &str, v1: Value, v2: Value, v3:
 }
 
 //Adds a field to the given object and pushes the mutated object back.
-pub fn add_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn add_field(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "objAddField";
 	match s.pop3(){
 		(Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
@@ -1519,7 +1519,7 @@ pub fn field_not_in_obj_err(op_type: &str, field_name: &str, err_box: Value) -> 
 
 //Given an object and string box, conumes the boxes 
 // and pushes the value at that key if it exists.
-pub fn get_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn get_field(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "objGetField";
 	match s.pop2(){
 		(Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
@@ -1554,7 +1554,7 @@ pub fn invalid_mutation_error(op_name: &str, v1: Value, v2: Value) -> String{
 }
 
 //Mutates the field to a new value in an object if it exists and it's a valid mutation.
-pub fn mut_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn mut_field(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "objMutField";
 	match s.pop3(){
 		(Some(Value::ObjectBox(a)), Some(Value::StringBox(b)), Some(v)) => {
@@ -1591,7 +1591,7 @@ pub fn mut_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCod
 }
 
 //Removes a field from an object at the desired key held in the string box.
-pub fn remove_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn remove_field(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "objRemField";
 	match s.pop2(){
 		(Some(Value::ObjectBox(a)), Some(Value::StringBox(b))) => {
@@ -1624,7 +1624,7 @@ pub fn remove_field(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<Ret
 // If the second to top is less than the top, a negative one is pushed
 // If the second to top is equal to the top, a zero is pushed
 // If the second to top is greater than the top, a one is pushed
-pub fn string_compare(s: &mut Stack, h: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn string_compare(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "stringCompare";
 	match s.pop2(){
 		(Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
@@ -1668,7 +1668,7 @@ macro_rules! binary_bitwise_op{
 }
 
 //Performs bitwise OR between two integers.
-pub fn bit_or(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn bit_or(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "bitOr/|";
 	let res: Result<Value, String> = match s.pop2(){
 		(Some(a), Some(b)) => {
@@ -1694,7 +1694,7 @@ pub fn bit_or(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, 
 }
 
 //Performs bitwise AND between two matching integer types.
-pub fn bit_and(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn bit_and(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "bitAnd/&";
 	let res: Result<Value, String> = match s.pop2(){
 		(Some(a), Some(b)) => {
@@ -1720,7 +1720,7 @@ pub fn bit_and(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode,
 }
 
 //Performs bitwise XOR between two matching integer types.
-pub fn bit_xor(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn bit_xor(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "bitXor/^";
 	let res: Result<Value, String> = match s.pop2(){
 		(Some(a), Some(b)) => {
@@ -1746,7 +1746,7 @@ pub fn bit_xor(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode,
 }
 
 //Performs a bitwise not on an integer on the stack.
-pub fn bit_not(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn bit_not(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let res = match s.pop(){
 		Some(Value::IntSize(n)) => Ok(Value::IntSize(!n)),
 		Some(Value::UIntSize(n)) => Ok(Value::UIntSize(!n)),
@@ -1803,7 +1803,7 @@ macro_rules! shift_macro{
 }
 
 //Performs a left or right bitshift by n bits on an integer.
-pub fn bit_shift(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn bit_shift(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	let op_name = "bitShift";
 	let res = match s.pop2(){
 		(Some(a), Some(b)) => {
@@ -1827,61 +1827,61 @@ pub fn bit_shift(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCod
 }
 
 //Pushes maximum value for isize datatype to stack.
-pub fn max_isize(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_isize(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::IntSize(isize::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for usize datatype to stack.
-pub fn max_usize(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_usize(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::UIntSize(usize::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for i8 datatype to stack.
-pub fn max_i8(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_i8(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::Int8(i8::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for i16 datatype to stack.
-pub fn max_i16(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_i16(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::Int16(i16::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for i32 datatype to stack.
-pub fn max_i32(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_i32(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::Int32(i32::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for i64 datatype to stack.
-pub fn max_i64(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_i64(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::Int64(i64::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for u8 datatype to stack.
-pub fn max_u8(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_u8(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::UInt8(u8::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for u16 datatype to stack.
-pub fn max_u16(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_u16(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::UInt16(u16::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for u32 datatype to stack.
-pub fn max_u32(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_u32(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::UInt32(u32::MAX));
 	Ok(RetCode::Normal)
 }
 
 //Pushes maximum value for u64 datatype to stack.
-pub fn max_u64(s: &mut Stack, _: &mut Heap, _: Option<&str> ) -> Result<RetCode, String>{
+pub fn max_u64(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 	s.push(Value::UInt64(u64::MAX));
 	Ok(RetCode::Normal)
 }
@@ -1940,7 +1940,7 @@ macro_rules! cast_match{
 
 //Performs all valid casts in existence wherein the top 
 // of the stack tries to be casted to another data type.
-pub fn cast_op(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn cast_op(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "cast";
 	let needed = "Two";	
 	let provided = "only one/none";
@@ -2021,7 +2021,7 @@ pub fn io_needing_one_item_on_stack_error(op_type: &str, needed_type: &str, atte
 
 //Prints contents of a string box and consumes it. 
 // Like everything else, the stringbox is not free'd.
-pub fn print_line(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn print_line(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "printLine";
 	match s.pop(){
 		Some(Value::StringBox(bn)) => {
@@ -2043,7 +2043,7 @@ pub fn unable_to_read_error(op_type: &str, reason: &str) -> String{
 
 //Reads a line from stdin and allocates it as 
 // a string on the heap, pushing a stringbox to the stack.
-pub fn read_line_from_in(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn read_line_from_in(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let mut input = String::new();
 
 	match io::stdin().read_line(&mut input){
@@ -2059,7 +2059,7 @@ pub fn read_line_from_in(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result
 
 //Prints out a single char to stdout. 
 // Top of stack must be a char.
-pub fn print_char(s: &mut Stack, _: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn print_char(s: &mut Stack, _: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "printChar";
 	match s.pop(){
 		Some(Value::Char(c)) => {
@@ -2071,7 +2071,7 @@ pub fn print_char(s: &mut Stack, _: &mut Heap, _: Option<&str>) -> Result<RetCod
 }
 
 //Reads in one Char from stdin and pushes it to the stack.
-pub fn read_char(s: &mut Stack, _: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn read_char(s: &mut Stack, _: &mut Heap) -> Result<RetCode, String>{
 	let mut buff: [u8; 1] = [0];
 	let mut buff_collection: [u8; 4] = [0; 4];
 	let mut buff_collection_length: usize = 0;
@@ -2109,7 +2109,7 @@ pub fn read_char(s: &mut Stack, _: &mut Heap, _: Option<&str>) -> Result<RetCode
 //Prints contents of a string box and consumes it. 
 // Like everything else, the stringbox is not free'd.
 //Unlike printline, this operator doesn't append a newline character.
-pub fn print_string(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn print_string(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "print";
 	match s.pop(){
 		Some(Value::StringBox(bn)) => {
@@ -2134,7 +2134,7 @@ pub fn print_string(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetC
 
 //Reads the contents of stdin into a string. Basically like readline \
 // but doesn't stop reading until stdin is manually closed.
-pub fn read_from_in(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn read_from_in(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let mut buff: [u8; 8192] = [0; 8192];
 	let mut bytes: Vec<u8> = Vec::new();
 
@@ -2167,7 +2167,7 @@ pub fn read_from_in(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetC
 
 //Prints each item on the stack while 
 // also indicating if box types are valid or not.
-pub fn debug_stack_print(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn debug_stack_print(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let filler_str = "--------------------------------";
 	let valid_or_invalid = ["", "[INVALID]"];
 
@@ -2188,7 +2188,7 @@ pub fn debug_stack_print(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result
 
 //Prints the whole heap to stdout for debugging purposes.
 //This is something like O(n^2) at least so definitely only use it for debugging!
-pub fn debug_heap_print(_: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn debug_heap_print(_: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let filler_str = "////////////////////////////////";
 	let heap_size = h.read_heap().len();
 	let free_list_size = h.read_free_list().len();	
@@ -2241,7 +2241,7 @@ fn file_open_error(op_name: &str, name: &str, reason: &str) -> String{
 
 //Writes the data of one stringbox to a file with the name held in the other string box. 
 // Creates a file if one doesn't exist. 
-pub fn write_data_to_file(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn write_data_to_file(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "fileWrite";
 	match s.pop2(){
 		(Some(Value::StringBox(a)), Some(Value::StringBox(b))) => {
@@ -2290,7 +2290,7 @@ pub fn single_arg_file_io_type_error(op_type: &str, v: Value) -> String{
 }
 
 //Reads the contents of a file into a string and allocates it on the heap.
-pub fn read_data_from_file(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn read_data_from_file(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "fileRead";
 	match s.pop(){
 		Some(Value::StringBox(bn)) => {
@@ -2331,7 +2331,7 @@ pub fn read_data_from_file(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Resu
 }
 
 //Creates a file with the desired name. Throws error if the file already exists.
-pub fn create_file_based_on_string(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn create_file_based_on_string(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "fileCreate";
 	match s.pop(){
 		Some(Value::StringBox(bn)) => {
@@ -2370,7 +2370,7 @@ pub fn create_file_based_on_string(s: &mut Stack, h: &mut Heap, _: Option<&str>)
 }
 
 //Deletes a file with the input name.
-pub fn delete_file_based_on_string(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn delete_file_based_on_string(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "fileRemove";
 	match s.pop(){
 		Some(Value::StringBox(bn)) => {
@@ -2399,7 +2399,7 @@ pub fn delete_file_based_on_string(s: &mut Stack, h: &mut Heap, _: Option<&str>)
 }
 
 //Pushes a boolean based on whether or not the file exists.
-pub fn file_exists(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn file_exists(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "fileExists";
 	match s.pop(){
 		Some(Value::StringBox(bn)) => {
@@ -2426,7 +2426,7 @@ pub fn file_exists(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCo
 
 //Consumes a value and pushes a stringbox whose contents 
 // is a string that represents the type of the consumed value.
-pub fn query_type(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn query_type(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	match s.pop(){
 		Some(v) => {
 			let type_str = type_to_string(v);
@@ -2440,7 +2440,7 @@ pub fn query_type(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCod
 
 //If the top of the stack is a true boolean, the program leaves the current scope.
 // This is useful for early function returns and breaking out of loops. 
-pub fn leave_scope_if_true(s: &mut Stack, _: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn leave_scope_if_true(s: &mut Stack, _: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "leaveScopeIfTrue";
 	match s.pop(){
 		Some(Value::Boolean(b)) => {
@@ -2456,7 +2456,7 @@ pub fn leave_scope_if_true(s: &mut Stack, _: &mut Heap, _: Option<&str>) -> Resu
 }
 
 //Throws an error containing a string held by a stringbox at the top of the stack.
-pub fn throw_custom_error(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn throw_custom_error(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let op_name = "throwCustomError";
 	match s.pop(){
 		Some(Value::StringBox(bn)) => {
@@ -2476,7 +2476,7 @@ pub fn throw_custom_error(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Resul
 //Fetches arguments passed to program and converts them into a list 
 // of stringboxes where each stringbox contains an argument string.
 //This basically is like argv in C.
-pub fn get_args(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn get_args(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	//Fetches args from environment.
 	let all_args: Vec<String> = env::args().collect();
 	
@@ -2500,7 +2500,7 @@ fn invalid_type_for_valid_box_check(v: Value) -> String{
 }
 
 //Consumes top of stack and checks if it's a valid box.
-pub fn is_valid_box(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn is_valid_box(s: &mut Stack, h: &mut Heap) -> Result<RetCode, String>{
 	let res = match s.pop(){
 		Some(v) => {
 			match (h.is_box(v), h.validate_box(v)){
@@ -2517,7 +2517,7 @@ pub fn is_valid_box(s: &mut Stack, h: &mut Heap, _: Option<&str>) -> Result<RetC
 
 //Gets the current unix time as a 64 bit bload 
 // and pushes it to the stack as such.
-pub fn time_unix_now(s: &mut Stack, _: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn time_unix_now(s: &mut Stack, _: &mut Heap) -> Result<RetCode, String>{
 	match SystemTime::now().duration_since(UNIX_EPOCH){
 		Ok(time) => {
 			let secs = time.as_secs();
@@ -2538,7 +2538,7 @@ fn invalid_stack_top_for_time_wait(v: Value) -> String{
 
 //Causes the program to pause for a specified number of seconds.
 //Accepts either f64 or f32.
-pub fn time_wait(s: &mut Stack, _: &mut Heap, _: Option<&str>) -> Result<RetCode, String>{
+pub fn time_wait(s: &mut Stack, _: &mut Heap) -> Result<RetCode, String>{
 	macro_rules! wait_match{
 		($($type:ty, $var:ident),* $(,)?) => {
 			match s.pop(){
