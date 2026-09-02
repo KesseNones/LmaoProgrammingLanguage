@@ -609,7 +609,7 @@ impl Operator{
 // a command to run an operator or something like that.
 #[derive(PartialEq, Eq, Clone)]
 pub enum Token{
-	V(SuperValue),
+	V((SuperValue)),
 	Word((Box<String>, Operator))
 }
 
@@ -997,7 +997,7 @@ pub fn tokenize(chars: Vec<char>) -> Result<Vec<String>, String>{
 
 }
 
-pub fn throw_parse_error(t: &str, attempted_token: &String) -> String{
+pub fn throw_parse_error(t: &str, attempted_token: &str) -> String{
 	return format!("Parse error! Incorrectly constructed {}! Tried: {}", t, attempted_token);
 }
 
@@ -1037,28 +1037,21 @@ pub fn replace_literals_with_escapes(s: &str) -> String{
 	new_str
 }
 
-//Given reference to list of seperated tokens, 
-// differentiates each one as either a value or word.
-//WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
-pub fn lex_tokens(
-	tokens: Vec<String>, 
-	imported: &mut HashMap<String, ()>) -> Result<Vec<Token>, String>
-{
-	let mut lexed: Vec<Token> = Vec::new();
-
+//Takes in a string and returns a token or related error message.
+fn lex_token(tok: &str) -> Result<Token, String>{
 	macro_rules! tok_match{
 		($el:ident, $(($tystr:literal, $ty:ty, $var:ident)),* $(,)?) => {
-			match &$el{
+			match $el{
 				t if t == "True" || t == "true" => {
-					lexed.push(Token::V(Value::Boolean(true).into()));
+					Ok(Token::V(Value::Boolean(true).into()))
 				},
 				t if t == "False" || t == "false" => {
-					lexed.push(Token::V(Value::Boolean(false).into()));
+					Ok(Token::V(Value::Boolean(false).into()))
 				},
 				//String case.
 				t if t.starts_with("\"") && t.ends_with("\"") => {
-					lexed.push(Token::V(HeapValue::String(
-					replace_literals_with_escapes(&t[1..(t.len() - 1)])).into()));
+					Ok(Token::V(HeapValue::String(
+					replace_literals_with_escapes(&t[1..(t.len() - 1)])).into()))
 				}, 
 				//Char case.
 				t if t.starts_with("\'") && t.ends_with("\'") => {
@@ -1077,18 +1070,17 @@ pub fn lex_tokens(
 							_ => captured,
 						};
 					}
-					lexed.push(Token::V(Value::Char(captured).into()));
+					Ok(Token::V(Value::Char(captured).into()))
 				},
 				//List case.
-				t if t == "[]" => lexed.push(Token::V(HeapValue::List(Vec::new()).into())),
+				t if t == "[]" => Ok(Token::V(HeapValue::List(Vec::new()).into())),
 				//Object case.
-				t if t == "{}" => lexed.push(
-					Token::V(HeapValue::Object(HashMap::new()).into())),
+				t if t == "{}" => Ok(Token::V(HeapValue::Object(HashMap::new()).into())),
 				//Generalized macro case handling specified floats and integers.
 				$(t if t.ends_with($tystr) && t.len() > $tystr.len() => {
 					match $el[0..($el.len() - $tystr.len())].parse::<$ty>(){
-						Ok(parsed) => lexed.push(Token::V(Value::$var(parsed).into())),	
-						Err(_) => return Err(throw_parse_error($tystr, t)),
+						Ok(parsed) => Ok(Token::V(Value::$var(parsed).into())),	
+						Err(_) => Err(throw_parse_error($tystr, t)),
 					}
 				},)*
 				//Type inference for float.
@@ -1098,8 +1090,8 @@ pub fn lex_tokens(
 							&& t.chars().next().unwrap() <= '9')) 
 						=> {
 					match $el.parse::<f32>(){
-						Ok(parsed) => lexed.push(Token::V(Value::Float32(parsed).into())),
-						Err(_) => return Err(throw_parse_error("f32", t)),
+						Ok(parsed) => Ok(Token::V(Value::Float32(parsed).into())),
+						Err(_) => Err(throw_parse_error("f32", t)),
 					}
 				},
 				//Type inference for integer.
@@ -1108,91 +1100,107 @@ pub fn lex_tokens(
 							&& t.chars().next().unwrap() <= '9') 
 						=> {
 					match $el.parse::<isize>(){
-						Ok(parsed) => lexed.push(Token::V(Value::IntSize(parsed).into())),
-						Err(_) => return Err(throw_parse_error("isize", t)),
+						Ok(parsed) => Ok(Token::V(Value::IntSize(parsed).into())),
+						Err(_) => Err(throw_parse_error("isize", t)),
 					}
 				},
 
+				//Handle this in tokenize itself!
 				//Recursive import() statement case.
-				t if t.starts_with("import(") && t.ends_with(")") => {
-					//Grabs file string out of import statement. 
-					let import_str = "import("; 
-					let file_str = &t[(import_str.len())..(t.len() - 1)];
-					
-					let import_file_path = Path::new(file_str);
+				//t if t.starts_with("import(") && t.ends_with(")") => {
+				//	//Grabs file string out of import statement. 
+				//	let import_str = "import("; 
+				//	let file_str = &t[(import_str.len())..(t.len() - 1)];
+				//	
+				//	let import_file_path = Path::new(file_str);
 
-					//If file not already imported, inserts into file hashmap.
-					// If it is, then nothing happens.
-					if !imported.contains_key(file_str){
-						imported.insert(file_str.to_string(), ());
+				//	//If file not already imported, inserts into file hashmap.
+				//	// If it is, then nothing happens.
+				//	if !imported.contains_key(file_str){
+				//		imported.insert(file_str.to_string(), ());
 
-						//Opens the input file to read from.
-						let mut import_file = match File::open(&import_file_path){
-							Ok(f) => f,
-							Err(reason) => {
-								let import_file_name = import_file_path.display();
-								return Err(format!("Unable to open import \
-									file {} for parsing because {}", import_file_name, reason));
-							}, 
-						};
+				//		//Opens the input file to read from.
+				//		let mut import_file = match File::open(&import_file_path){
+				//			Ok(f) => f,
+				//			Err(reason) => {
+				//				let import_file_name = import_file_path.display();
+				//				return Err(format!("Unable to open import \
+				//					file {} for parsing because {}", import_file_name, reason));
+				//			}, 
+				//		};
 
-						//Reads in the code from the given file after opening it.
-						let mut import_code_str = String::new();
-						match import_file.read_to_string(&mut import_code_str){
-							Ok(_) => {},
-							Err(reason) => {
-								let import_file_name = import_file_path.display();
-								return Err(format!("Unable to read in\
-									import file {} because {}", import_file_name, reason)); 
-							}, 
-						}
+				//		//Reads in the code from the given file after opening it.
+				//		let mut import_code_str = String::new();
+				//		match import_file.read_to_string(&mut import_code_str){
+				//			Ok(_) => {},
+				//			Err(reason) => {
+				//				let import_file_name = import_file_path.display();
+				//				return Err(format!("Unable to read in\
+				//					import file {} because {}", import_file_name, reason)); 
+				//			}, 
+				//		}
 
-						//Pushes all $elens from recursive traversal into current lexed list.
-						match tokenize(import_code_str.chars().collect()){
-							Ok(import_tokens) => {
-								match lex_tokens(import_tokens, imported){
-									Ok(toks) => {
-										for tok in toks.into_iter(){
-											lexed.push(tok)
-										}
-									},
-									Err(e) => return Err(e),
-								}
-									
-							},
-							Err(e) => return Err(e),
-						}
+				//		//Pushes all $elens from recursive traversal into current lexed list.
+				//		match tokenize(import_code_str.chars().collect()){
+				//			Ok(import_tokens) => {
+				//				match lex_tokens(import_tokens, imported){
+				//					Ok(toks) => {
+				//						for tok in toks.into_iter(){
+				//							lexed.push(tok)
+				//						}
+				//					},
+				//					Err(e) => return Err(e),
+				//				}
+				//					
+				//			},
+				//			Err(e) => return Err(e),
+				//		}
 
-					}
+				//	}
 
-				}, 
+				//}, 
 				
 				//General catch-all case mostly meant for operators.
 				_ => {
 					let op_val = Operator::new(&$el);
 					
-					lexed.push(Token::Word((Box::new($el), op_val)));
+					Ok(Token::Word((Box::new($el.to_string()), op_val)))
 				}, 
 			}	
 		};
 	}
 
-	for tok in tokens.into_iter(){
-		tok_match!{tok,
-			("f32", f32, Float32),
-			("f64", f64, Float64),
-			
-			("usize", usize, UIntSize),
-			("u8", u8, UInt8),
-			("u16", u16, UInt16),
-			("u32", u32, UInt32),
-			("u64", u64, UInt64),
+	tok_match!{tok,
+		("f32", f32, Float32),
+		("f64", f64, Float64),
+		
+		("usize", usize, UIntSize),
+		("u8", u8, UInt8),
+		("u16", u16, UInt16),
+		("u32", u32, UInt32),
+		("u64", u64, UInt64),
 
-			("isize", isize, IntSize),
-			("i8", i8, Int8),
-			("i16", i16, Int16),
-			("i32", i32, Int32),
-			("i64", i64, Int64),
+		("isize", isize, IntSize),
+		("i8", i8, Int8),
+		("i16", i16, Int16),
+		("i32", i32, Int32),
+		("i64", i64, Int64),
+	}
+}
+
+//Given reference to list of seperated tokens, 
+// differentiates each one as either a value or word.
+//WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
+pub fn lex_tokens(
+	tokens: Vec<String>, 
+	imported: &mut HashMap<String, ()>) -> Result<Vec<Token>, String>
+{
+	let mut lexed: Vec<Token> = Vec::new();
+
+	for tok in tokens.iter(){
+		match lex_token(tok){
+			Ok(token) => lexed.push(token),
+			Err(e) => return Err(e),
 		}
 	}
 
