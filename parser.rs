@@ -871,34 +871,27 @@ pub fn type_to_string(v: Value) -> String{
 //Takes in a file string and calls the necessary functions 
 // to build an AST from it.
 pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> Result<ASTNode, String>{
-	match tokenize(program_string.chars().collect()){
-		Ok(tokens) => {
-			//Constructs means of checking for duplicate imports.
-			let mut imported_files: HashMap<String, ()> = HashMap::new();
-			if argc > 1{
-				imported_files.insert(argv[1].clone(), ());
-			}
-	
-			match lex_tokens(tokens, &mut imported_files){
-				Ok(lexed) => {
-					match make_ast(lexed){
-						Ok(res) => return Ok(res),
-						Err(e) => return Err(e),
-					}
-				},
-				Err(e) => return Err(e),	
-			}
-
-		},
-		Err(e) => return Err(e),
+	//Constructs means of checking for duplicate imports.
+	let mut imported_files: HashMap<String, ()> = HashMap::new();
+	if argc > 1{
+		imported_files.insert(argv[1].clone(), ());
 	}
 
-
+	match tokenize(&program_string){
+		Ok(tokens) => {
+			match make_ast(tokens){
+				Ok(res) => return Ok(res),
+				Err(e) => return Err(e),
+			}
+		},
+		Err(e) => return Err(e),	
+	}
 }
 
-//Tokenizes list of chars into list of strings.
-pub fn tokenize(chars: Vec<char>) -> Result<Vec<String>, String>{
-	let mut tokens: Vec<String> = Vec::new();
+//Tokenizes program string into list of tokens.
+pub fn tokenize(program_string: &String) -> Result<Vec<Token>, String>{
+	let chars: Vec<char> = program_string.chars().collect();
+	let mut tokens: Vec<Token> = Vec::new();
 	let mut curr_token: Vec<char> = Vec::new();
 
 	let mut in_string = false;
@@ -907,18 +900,6 @@ pub fn tokenize(chars: Vec<char>) -> Result<Vec<String>, String>{
 	let mut i: usize = 0;
 	while i < chars.len(){
 		match (chars[i], in_string, in_comment){
-			//Char tokenization
-			('\'', false, false) => {
-				if ((i + 3) < chars.len()) && (chars[i + 1] == '\\') && (chars[i + 3] == '\''){
-					tokens.push(String::from(format!("\'\\{}\'", chars[i + 2])));
-					i += 4;
-				}else if ((i + 2) < chars.len()) && (chars[i + 2] == '\''){
-					tokens.push(String::from(format!("\'{}\'", chars[i + 1])));
-					i += 3;
-				}else{
-					return Err("Parse error! Char missing closing apostraphie!".to_string());
-				}
-			},
 			//Start of string case.
 			('\"', false, false) => {
 				curr_token.push(chars[i]);
@@ -940,8 +921,6 @@ pub fn tokenize(chars: Vec<char>) -> Result<Vec<String>, String>{
 			//End of string case.
 			('\"', true, false) => {
 				curr_token.push(chars[i]);
-				tokens.push(curr_token.iter().collect());
-				curr_token.clear();
 				in_string = false;
 				i += 1;
 			},
@@ -973,7 +952,10 @@ pub fn tokenize(chars: Vec<char>) -> Result<Vec<String>, String>{
 					curr_token.push(c);
 				}else{
 					if curr_token.len() > 0{
-						tokens.push(curr_token.iter().collect());
+						match lex_token(&curr_token.iter().collect::<String>()){
+							Ok(token) => tokens.push(token),
+							Err(e) => return Err(e),
+						}
 						curr_token.clear();
 					}
 				}
@@ -988,13 +970,14 @@ pub fn tokenize(chars: Vec<char>) -> Result<Vec<String>, String>{
 		return Err("Parse error! String not ended with matching double quotation!".to_string());
 	}
 
-	//If there was a valid token at the exact end of a file, it's picked up here.
 	if curr_token.len() > 0{
-		tokens.push(curr_token.iter().collect());
+		match lex_token(&curr_token.iter().collect::<String>()){
+			Ok(token) => tokens.push(token),
+			Err(e) => return Err(e),
+		}
 	}
 
 	Ok(tokens)
-
 }
 
 pub fn throw_parse_error(t: &str, attempted_token: &str) -> String{
@@ -1054,23 +1037,26 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 					replace_literals_with_escapes(&t[1..(t.len() - 1)])).into()))
 				}, 
 				//Char case.
-				t if t.starts_with("\'") && t.ends_with("\'") => {
+				t if t.starts_with("\'") && t.ends_with("\'") && t.len() < 6 => {
 					let mut iter = $el[1..].chars();
-					let mut captured: char = iter.nth(0).unwrap();
-					if captured == '\\'{
-						captured = match iter.nth(0).unwrap(){
-							'n' => '\n',
-							't' => '\t',
-							'r' => '\r',
-							'0' => '\0',
-							'\'' => '\'',
-							'\"' => '\"',
-							'b' => '\x08',
-							'f' => '\x0c',
-							_ => captured,
-						};
+					match (iter.nth(0), iter.nth(0)){
+						(Some('\\'), Some(c)) => {
+							let res = match c{
+								'n' => '\n',
+								't' => '\t',
+								'r' => '\r',
+								'0' => '\0',
+								'\'' => '\'',
+								'\"' => '\"',
+								'b' => '\x08',
+								'f' => '\x0c',
+								_ => '\\',
+							};	
+							Ok(Token::V(Value::Char(res).into()))
+						},
+						(Some(c), Some(_)) => Ok(Token::V(Value::Char(c).into())),
+						_ => Err(format!("Parsing error! Token {} is not a valid Char!", t)),	
 					}
-					Ok(Token::V(Value::Char(captured).into()))
 				},
 				//List case.
 				t if t == "[]" => Ok(Token::V(HeapValue::List(Vec::new()).into())),
@@ -1186,25 +1172,6 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 		("i32", i32, Int32),
 		("i64", i64, Int64),
 	}
-}
-
-//Given reference to list of seperated tokens, 
-// differentiates each one as either a value or word.
-//WARNING! OWNERSHIP TRANSFERS SO, YOU BETTER WATCH OUT!
-pub fn lex_tokens(
-	tokens: Vec<String>, 
-	imported: &mut HashMap<String, ()>) -> Result<Vec<Token>, String>
-{
-	let mut lexed: Vec<Token> = Vec::new();
-
-	for tok in tokens.iter(){
-		match lex_token(tok){
-			Ok(token) => lexed.push(token),
-			Err(e) => return Err(e),
-		}
-	}
-
-	Ok(lexed)
 }
 
 //This function does the heavy-lifting of recursively building the AST.
