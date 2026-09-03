@@ -609,7 +609,7 @@ impl Operator{
 // a command to run an operator or something like that.
 #[derive(PartialEq, Eq, Clone)]
 pub enum Token{
-	V((SuperValue)),
+	V(SuperValue),
 	Word((Box<String>, Operator))
 }
 
@@ -877,7 +877,7 @@ pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: Stri
 		imported_files.insert(argv[1].clone(), ());
 	}
 
-	match tokenize(&program_string){
+	match tokenize(&program_string, &mut imported_files){
 		Ok(tokens) => {
 			match make_ast(tokens){
 				Ok(res) => return Ok(res),
@@ -889,7 +889,8 @@ pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: Stri
 }
 
 //Tokenizes program string into list of tokens.
-pub fn tokenize(program_string: &String) -> Result<Vec<Token>, String>{
+pub fn tokenize(program_string: &String, imported: &mut HashMap<String, ()>) 
+-> Result<Vec<Token>, String>{
 	let chars: Vec<char> = program_string.chars().collect();
 	let mut tokens: Vec<Token> = Vec::new();
 	let mut curr_token: Vec<char> = Vec::new();
@@ -952,11 +953,54 @@ pub fn tokenize(program_string: &String) -> Result<Vec<Token>, String>{
 					curr_token.push(c);
 				}else{
 					if curr_token.len() > 0{
-						match lex_token(&curr_token.iter().collect::<String>()){
-							Ok(token) => tokens.push(token),
-							Err(e) => return Err(e),
-						}
+						let t = curr_token.iter().collect::<String>();
 						curr_token.clear();
+
+						if t.starts_with("import(\"") && t.ends_with("\")"){
+							let import_str = "import(\"";
+							let file_str = &t[import_str.len()..t.len()-2];
+
+							let import_file_path = Path::new(file_str);
+
+							if !imported.contains_key(file_str){
+								imported.insert(file_str.to_string(), ());
+			
+								//Opens the input file to read from.
+								let mut import_file = match File::open(&import_file_path){
+									Ok(f) => f,
+									Err(reason) => {
+										let import_file_name = import_file_path.display();
+										return Err(format!("Unable to open import \
+											file {} for parsing because {}", import_file_name, reason));
+									}, 
+								};
+
+								//Reads in the code from the given file after opening it.
+								let mut import_code_str = String::new();
+								match import_file.read_to_string(&mut import_code_str){
+									Ok(_) => {},
+									Err(reason) => {
+										let import_file_name = import_file_path.display();
+										return Err(format!("Unable to read in\
+											import file {} because {}", import_file_name, reason)); 
+									}, 
+								}
+
+								//Pushes all tokens from recursive traversal into current lexed list.
+								match tokenize(&import_code_str, imported){
+									Ok(import_tokens) => {
+										tokens.extend(import_tokens)	
+									},
+									Err(e) => return Err(e),
+								}
+							}
+						}else{
+							match lex_token(&t){
+								Ok(token) => tokens.push(token),
+								Err(e) => return Err(e),
+							}
+						}
+
 					}
 				}
 
@@ -1090,62 +1134,6 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 						Err(_) => Err(throw_parse_error("isize", t)),
 					}
 				},
-
-				//Handle this in tokenize itself!
-				//Recursive import() statement case.
-				//t if t.starts_with("import(") && t.ends_with(")") => {
-				//	//Grabs file string out of import statement. 
-				//	let import_str = "import("; 
-				//	let file_str = &t[(import_str.len())..(t.len() - 1)];
-				//	
-				//	let import_file_path = Path::new(file_str);
-
-				//	//If file not already imported, inserts into file hashmap.
-				//	// If it is, then nothing happens.
-				//	if !imported.contains_key(file_str){
-				//		imported.insert(file_str.to_string(), ());
-
-				//		//Opens the input file to read from.
-				//		let mut import_file = match File::open(&import_file_path){
-				//			Ok(f) => f,
-				//			Err(reason) => {
-				//				let import_file_name = import_file_path.display();
-				//				return Err(format!("Unable to open import \
-				//					file {} for parsing because {}", import_file_name, reason));
-				//			}, 
-				//		};
-
-				//		//Reads in the code from the given file after opening it.
-				//		let mut import_code_str = String::new();
-				//		match import_file.read_to_string(&mut import_code_str){
-				//			Ok(_) => {},
-				//			Err(reason) => {
-				//				let import_file_name = import_file_path.display();
-				//				return Err(format!("Unable to read in\
-				//					import file {} because {}", import_file_name, reason)); 
-				//			}, 
-				//		}
-
-				//		//Pushes all $elens from recursive traversal into current lexed list.
-				//		match tokenize(import_code_str.chars().collect()){
-				//			Ok(import_tokens) => {
-				//				match lex_tokens(import_tokens, imported){
-				//					Ok(toks) => {
-				//						for tok in toks.into_iter(){
-				//							lexed.push(tok)
-				//						}
-				//					},
-				//					Err(e) => return Err(e),
-				//				}
-				//					
-				//			},
-				//			Err(e) => return Err(e),
-				//		}
-
-				//	}
-
-				//}, 
-				
 				//General catch-all case mostly meant for operators.
 				_ => {
 					let op_val = Operator::new(&$el);
