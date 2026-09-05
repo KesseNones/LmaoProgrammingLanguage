@@ -897,19 +897,20 @@ pub fn tokenize(program_string: &String, imported: &mut HashMap<String, ()>)
 
 	let mut in_string = false;
 	let mut in_comment = false;
+	let mut in_char = false;
 
 	let mut i: usize = 0;
 	while i < chars.len(){
-		match (chars[i], in_string, in_comment){
+		match (chars[i], in_string, in_comment, in_char){
 			//Start of string case.
-			('\"', false, false) => {
+			('\"', false, false, false) => {
 				curr_token.push(chars[i]);
 				in_string = true;
 				i += 1;
 
 			},
 			//Makes it so strings can have double quotes inside them, as long as they are escaped.
-			('\\', true, false) => {
+			('\\', true, false, false) => {
 				if ((i + 1) < chars.len()) && (chars[i + 1] == '\"'){
 					curr_token.push('\\');
 					curr_token.push('\"');
@@ -920,18 +921,39 @@ pub fn tokenize(program_string: &String, imported: &mut HashMap<String, ()>)
 				}
 			},
 			//End of string case.
-			('\"', true, false) => {
+			('\"', true, false, false) => {
 				curr_token.push(chars[i]);
 				in_string = false;
 				i += 1;
 			},
 			//In string case.
-			(_, true, false) => {
+			(_, true, false, false) => {
 				curr_token.push(chars[i]);
 				i += 1;
 			},
+			//Start of Char case.
+			('\'', false, false, false) => {
+				curr_token.push(chars[i]);
+				in_char = true;
+				i += 1;	
+			},
+			//End of Char case, or continuance with escape.
+			('\'', false, false, true) => {
+				if 
+					curr_token.len() > 0 && 
+					curr_token[curr_token.len() - 1] != '\\'{
+					in_char = false	
+				}
+				curr_token.push(chars[i]);
+				i += 1;
+			},
+			//In Char case.
+			(c, false, false, true) => {
+				curr_token.push(c);
+				i += 1;	
+			},
 			//Comment entry case.
-			('/', false, false) => {
+			('/', false, false, false) => {
 				if ((i + 1) < chars.len()) && (chars[i + 1] == '/'){
 					in_comment = true;
 					i += 2;
@@ -941,14 +963,14 @@ pub fn tokenize(program_string: &String, imported: &mut HashMap<String, ()>)
 				}
 			},
 			//Exit comment case.
-			('\n', false, true) => {
+			('\n', false, true, false) => {
 				in_comment = false;
 				i += 1;
 			},
 			//In comment case.
-			(_, false, true) => i += 1,
+			(_, false, true, false) => i += 1,
 			//General parsing case.
-			(c, false, false) => {
+			(c, false, false, false) => {
 				if !c.is_whitespace(){
 					curr_token.push(c);
 				}else{
@@ -1081,9 +1103,10 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 					replace_literals_with_escapes(&t[1..(t.len() - 1)])).into()))
 				}, 
 				//Char case.
-				t if t.starts_with("\'") && t.ends_with("\'") && t.len() < 6 => {
-					let mut iter = $el[1..].chars();
-					match (iter.nth(0), iter.nth(0)){
+				t if t.starts_with("\'") && t.ends_with("\'") && t.len() < 13 => {
+					let mut iter = t.chars();
+					_ = iter.next();
+					match (iter.next(), iter.next()){
 						(Some('\\'), Some(c)) => {
 							let res = match c{
 								'n' => '\n',
