@@ -623,6 +623,7 @@ pub enum Token{
 	File{name: String, tokens: Vec<Token>},
 	Terminator,
 	Fragment(String),
+	CastTo,
 	NOTHING
 }
 
@@ -649,6 +650,7 @@ impl fmt::Display for Token{
 			Token::Terminator => write!(f, "Terminator: ;"),
 			Token::Fragment(frag) => write!(f, "Fragment: {}", frag),
 			Token::File{name: n, tokens: _} => write!(f, "File: {}", n),
+			Token::CastTo => write!(f, "CastTo"),
 			Token::NOTHING => write!(f, "NOTHING"),
 		}
 	}
@@ -1194,8 +1196,9 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 				"loc" => Ok(Token::Loc),
 				"func" => Ok(Token::Func),
 				"attempt" => Ok(Token::Attempt),
+				"castTo" => Ok(Token::CastTo),
+				//Terminators for some/all fancy operators.
 				"onError" => Ok(Token::OnError),
-				//Only two valid terminators in Lmao.
 				";" => Ok(Token::Terminator),
 				"else" => Ok(Token::Else),
 				//General catch-all case mostly meant for operators.
@@ -1490,6 +1493,21 @@ pub fn make_ast_prime(
 							return Err(format!("Parsing error! Expected box command fragment and terminator after box keyword. Found nothing!"));
 						},
 						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+					}
+				},
+				Token::CastTo => {
+					match tokens.get(token_index + 1){
+						Some(Token::Fragment(ty)) => {
+							match CastType::try_cast(ty, CastType::MiscBox){
+								Ok(cast_type) => {
+									already_parsed.push(ASTNode::CastTo(cast_type));
+									token_index += 1;
+								},
+								Err(_) => return Err(format!("Parse error! Token \"{}\" is not a valid casting data type!", ty)),
+							}
+						},
+						Some(a) => return Err(format!("Parse error! CastTo Token expects Fragment token after it! Provided: {}", a)),
+						None => return Err("Parse error! CastTo expects Fragment token after it but no token is provided!".to_string())
 					}
 				},
 				Token::Func => {
