@@ -609,31 +609,47 @@ impl Operator{
 // a command to run an operator or something like that.
 #[derive(PartialEq, Eq, Clone)]
 pub enum Token{
-	V(SuperValue),
-	Word((Box<String>, Operator))
+	Val(SuperValue),
+	Op(Operator),
+	If,
+	Else,
+	While,
+	Var,
+	Loc,
+	Box,
+	Func,
+	Attempt,
+	OnError,
+	File{name: String, tokens: Vec<Token>},
+	Terminator,
+	Fragment(String),
+	NOTHING
 }
-
-//Useful impl for AST construction.
-impl From<(&str, Option<Operator>)> for Token{
-	fn from(params: (&str, Option<Operator>)) -> Self{
-		let string_box = Box::new(params.0.to_string());
-		let op_val = if let Some(o) = params.1{o}else{Operator::Unknown};
-		Token::Word((string_box, op_val))	
-	}
-}
-
 
 impl Default for Token{
 	fn default() -> Self{
-		Token::V(SuperValue::default())
+		Token::Val(SuperValue::default())
 	}
 }
 
 impl fmt::Display for Token{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self {
-			Token::V(val) => write!(f, "{}", val),
-			Token::Word((w, _)) => write!(f, "Word {}", w),
+			Token::Val(v) => write!(f, "Value: {}", v),
+			Token::Op(o) => write!(f, "Op: {}", o.stringify()),
+			Token::If => write!(f, "If"),
+			Token::Else => write!(f, "Else"),
+			Token::While => write!(f, "While"),
+			Token::Var => write!(f, "Var"),
+			Token::Loc => write!(f, "Loc"),
+			Token::Box => write!(f, "Box"),
+			Token::Func => write!(f, "Func"),
+			Token::Attempt => write!(f, "Attempt"),
+			Token::OnError => write!(f, "OnError"),
+			Token::Terminator => write!(f, "Terminator: ;"),
+			Token::Fragment(frag) => write!(f, "Fragment: {}", frag),
+			Token::File{name: n, tokens: _} => write!(f, "File: {}", n),
+			Token::NOTHING => write!(f, "NOTHING"),
 		}
 	}
 }
@@ -795,13 +811,23 @@ impl AttErrData{
 	}
 }
 
+#[derive(Clone)]
+pub struct FileData{
+	pub name: String,	
+	pub program: ASTNode
+}
+impl FileData{
+	fn new(name: &str, prog: ASTNode) -> Self{
+		FileData{name: name.to_string(), program: prog}
+	}
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
 	Op(Operator),
 	Val(Value),	
 	HeapVal(Box<HeapValue>),
-	Word(Box<String>),
 	If(Box<IfData>),
 	While(Box<ASTNode>),
 	Expression(Box<Vec<ASTNode>>),
@@ -812,6 +838,7 @@ pub enum ASTNode{
 	AttErr(Box<AttErrData>),
 	Defer(Rc<ASTNode>),
 	CastTo(CastType),
+	File(Box<FileData>)
 }
 
 //Useful for shorthand conversion of ASTNode vec to Expression.
@@ -848,7 +875,7 @@ impl fmt::Display for ASTNode{
 			ASTNode::AttErr(data) => write!(f, "AttErr [attempt: {}, err: {}]", data.att, data.err),
 			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
-			ASTNode::Word(wd) => write!(f, "Word {}", wd)
+			ASTNode::File(data) => write!(f, "File {}", data.name)
 		}
 	}
 }
@@ -873,11 +900,8 @@ pub fn type_to_string(v: Value) -> String{
 pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> Result<ASTNode, String>{
 	//Constructs means of checking for duplicate imports.
 	let mut imported_files: HashMap<String, ()> = HashMap::new();
-	if argc > 1{
-		imported_files.insert(argv[1].clone(), ());
-	}
 
-	match tokenize(&program_string, &mut imported_files){
+	match tokenize(&program_string, &mut imported_files, &argv[1]){
 		Ok(tokens) => {
 			match make_ast(tokens){
 				Ok(res) => return Ok(res),
@@ -889,8 +913,10 @@ pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: Stri
 }
 
 //Tokenizes program string into list of tokens.
-pub fn tokenize(program_string: &String, imported: &mut HashMap<String, ()>) 
--> Result<Vec<Token>, String>{
+pub fn tokenize(
+program_string: &str, imported: &mut HashMap<String, ()>, program_name: &str) 
+-> Result<Token, String>
+{
 	let chars: Vec<char> = program_string.chars().collect();
 	let mut tokens: Vec<Token> = Vec::new();
 	let mut curr_token: Vec<char> = Vec::new();
@@ -1009,9 +1035,9 @@ pub fn tokenize(program_string: &String, imported: &mut HashMap<String, ()>)
 								}
 
 								//Pushes all tokens from recursive traversal into current lexed list.
-								match tokenize(&import_code_str, imported){
-									Ok(import_tokens) => {
-										tokens.extend(import_tokens)	
+								match tokenize(&import_code_str, imported, file_str){
+									Ok(import_token) => {
+										tokens.push(import_token)	
 									},
 									Err(e) => return Err(e),
 								}
@@ -1043,7 +1069,7 @@ pub fn tokenize(program_string: &String, imported: &mut HashMap<String, ()>)
 		}
 	}
 
-	Ok(tokens)
+	Ok(Token::File{name: program_name.to_string(), tokens: tokens})
 }
 
 pub fn throw_parse_error(t: &str, attempted_token: &str) -> String{
@@ -1092,14 +1118,18 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 		($el:ident, $(($tystr:literal, $ty:ty, $var:ident)),* $(,)?) => {
 			match $el{
 				t if t == "True" || t == "true" => {
-					Ok(Token::V(Value::Boolean(true).into()))
+					let bool_val = Value::Boolean(true);
+					let sup = SuperValue::Reg(bool_val);
+					Ok(Token::Val(sup))
 				},
 				t if t == "False" || t == "false" => {
-					Ok(Token::V(Value::Boolean(false).into()))
+					let bool_val = Value::Boolean(false);
+					let sup = SuperValue::Reg(bool_val);
+					Ok(Token::Val(sup))
 				},
 				//String case.
 				t if t.starts_with("\"") && t.ends_with("\"") => {
-					Ok(Token::V(HeapValue::String(
+					Ok(Token::Val(HeapValue::String(
 					replace_literals_with_escapes(&t[1..(t.len() - 1)])).into()))
 				}, 
 				//Char case.
@@ -1119,20 +1149,20 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 								'f' => '\x0c',
 								_ => '\\',
 							};	
-							Ok(Token::V(Value::Char(res).into()))
+							Ok(Token::Val(Value::Char(res).into()))
 						},
-						(Some(c), Some(_)) => Ok(Token::V(Value::Char(c).into())),
+						(Some(c), Some(_)) => Ok(Token::Val(Value::Char(c).into())),
 						_ => Err(format!("Parsing error! Token {} is not a valid Char!", t)),	
 					}
 				},
 				//List case.
-				t if t == "[]" => Ok(Token::V(HeapValue::List(Vec::new()).into())),
+				t if t == "[]" => Ok(Token::Val(HeapValue::List(Vec::new()).into())),
 				//Object case.
-				t if t == "{}" => Ok(Token::V(HeapValue::Object(HashMap::new()).into())),
+				t if t == "{}" => Ok(Token::Val(HeapValue::Object(HashMap::new()).into())),
 				//Generalized macro case handling specified floats and integers.
 				$(t if t.ends_with($tystr) && t.len() > $tystr.len() => {
 					match $el[0..($el.len() - $tystr.len())].parse::<$ty>(){
-						Ok(parsed) => Ok(Token::V(Value::$var(parsed).into())),	
+						Ok(parsed) => Ok(Token::Val(Value::$var(parsed).into())),	
 						Err(_) => Err(throw_parse_error($tystr, t)),
 					}
 				},)*
@@ -1143,7 +1173,7 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 							&& t.chars().next().unwrap() <= '9')) 
 						=> {
 					match $el.parse::<f32>(){
-						Ok(parsed) => Ok(Token::V(Value::Float32(parsed).into())),
+						Ok(parsed) => Ok(Token::Val(Value::Float32(parsed).into())),
 						Err(_) => Err(throw_parse_error("f32", t)),
 					}
 				},
@@ -1153,15 +1183,39 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 							&& t.chars().next().unwrap() <= '9') 
 						=> {
 					match $el.parse::<isize>(){
-						Ok(parsed) => Ok(Token::V(Value::IntSize(parsed).into())),
+						Ok(parsed) => Ok(Token::Val(Value::IntSize(parsed).into())),
 						Err(_) => Err(throw_parse_error("isize", t)),
 					}
 				},
+				//The keywords for starting fancy operators.
+				"if" => Ok(Token::If),
+				"while" => Ok(Token::While),
+				"var" => Ok(Token::Var),
+				"loc" => Ok(Token::Loc),
+				"func" => Ok(Token::Func),
+				"attempt" => Ok(Token::Attempt),
+				"onError" => Ok(Token::OnError),
+				//Only two valid terminators in Lmao.
+				";" => Ok(Token::Terminator),
+				"else" => Ok(Token::Else),
 				//General catch-all case mostly meant for operators.
-				_ => {
-					let op_val = Operator::new(&$el);
-					
-					Ok(Token::Word((Box::new($el.to_string()), op_val)))
+				t => {
+					//If valid operator, kick that back.
+					let op_val = Operator::new(&t);
+					if op_val != Operator::Unknown{
+						return Ok(Token::Op(op_val));
+					}
+
+					//If alphanumeric only, kick back as fragment.
+					for c in t.chars(){
+						if c.is_whitespace(){
+							return Err(
+								format!(
+							"Parsing error! Token: \"{}\" is not a valid Token!", t)
+							);
+						}
+					}	
+					Ok(Token::Fragment(t.to_string()))
 				}, 
 			}	
 		};
@@ -1187,363 +1241,343 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
-	mut already_parsed: Vec<ASTNode>, 
-	tokens: Vec<Token>, 
-	token_index: usize,
-	terminators: Vec<Token>
-) -> Result<(Vec<ASTNode>, Vec<Token>, usize, Option<usize>), String>{
-	//If out of tokens to parse, end or throw error if there were terminators to look for.
-	if token_index >= tokens.len(){
-		if terminators.len() == 0{
-			return Ok((already_parsed, tokens, token_index, None))
-		}else{
-			let mut terms = String::new();
-			for t in terminators.iter(){
-				terms.push_str(&format!("{}, ", t));
+	prog_name: &str,
+	tokens: &Vec<Token>, 
+	mut token_index: usize,
+	fancy_op: Token
+) -> Result<(Vec<ASTNode>, usize), String>{
+
+	let mut already_parsed: Vec<ASTNode> = Vec::new();
+
+	//Loops through all tokens in expression.
+	loop{
+		//If out of tokens to parse, end or throw error if there were terminators to look for.
+		if token_index >= tokens.len(){
+			if fancy_op != Token::NOTHING{
+				return Err(format!("Ended Fancy Operator based on token: {} without finding a valid terminator!", fancy_op));
+			}else{
+				return Ok((already_parsed, token_index));
 			}
-			return Err(format!("Ended expression without finding one of: {}", terms));
-		}
-	//If still tokens to parse, converts the tokens into an ASTNode.
-	}else{
-		match &tokens[token_index]{
-			//Stop on terminator case. 
-			tok if terminators.contains(tok) => Ok((already_parsed, tokens, token_index + 1, Some(token_index))),
-			//Parse if statement case.
-			Token::Word((cmd, _)) if cmd.as_str() == "if" => {
-				match parse_if(tokens, token_index + 1){
-					Ok((true_branch, false_branch, tokens_prime, token_index_prime)) => {
-						let new_data = Box::new(IfData::new(true_branch, false_branch));
-						already_parsed.push(ASTNode::If(new_data));
-						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
-					},	
-					Err(e) => return Err(e),
-				}
-			},
-			//While loop parsing case.
-			Token::Word((cmd, _)) if cmd.as_str() == "while" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
-					Ok((loop_body, tokens_prime, token_index_prime, _)) => {
-						already_parsed.push(ASTNode::While(Box::new(loop_body.into())));
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
-					},
-					Err(e) => return Err(e),
-				}                 
-
-			},
-			//Function case.
-			Token::Word((cmd, _)) if cmd.as_str() == "func" => {
-				//Makes sure there's enough stuff to look to parse the function.
-				if token_index + 2 > (tokens.len() - 1){
-					return Err("Insufficient tokens left for function to be parsed!".to_string());
-				}
-
-				let mut toks = tokens;
-				let command = std::mem::take(&mut toks[token_index + 1]);
-				let name = std::mem::take(&mut toks[token_index + 2]);
-				let (command_str, name_str) = match (command, name){
-					(Token::Word(c), Token::Word(n)) => (c.0, n.0),
-					(_, _) => return Err("SHOULD NEVER GET HERE!!!".to_string()),
-				};
-
-				match make_ast_prime(Vec::new(), toks, token_index + 3, vec![(";", None).into()]){
-					Ok((fbod, tokens_prime, token_index_prime, _)) => {
-						let fbod_ast = Rc::new(fbod.into());
-						let new_cmd = FunCmd::new(&command_str);
-
-						if new_cmd == FunCmd::Unknown{
-							return Err(format!("Function error! Invalid command given! Valid: def, call. Given: {}", command_str));
-						}
-
-						let new_data = FuncData::new(new_cmd, &*name_str, fbod_ast);
-						already_parsed.push(ASTNode::Function(Box::new(new_data)));
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
-
-					},
-					Err(e) => return Err(e),
-				}	
-
-			},
-			//Var command parsing case.
-			Token::Word((cmd, _)) if cmd.as_str() == "var" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
-					Ok((var_data, tokens_prime, token_index_prime, _)) => {
-						if var_data.len() >= 2{
-							let (cmd, name) = match (&var_data[0], &var_data[1]){
-								(ASTNode::Word(c), ASTNode::Word(n)) => (c, n),
-								(_, _) => {return Err("Malformed variable command Error! \
-									Insufficient parameters given for variable command!".to_string())},
-							};
-							let new_cmd = VarCmd::new(&cmd);
-							let new_data = Box::new(VarData::new(&name, new_cmd));
-							already_parsed.push(ASTNode::Variable(new_data));
-							make_ast_prime(already_parsed, tokens_prime, 
-							token_index_prime, terminators)
-
-						}else{
-							return Err("Malformed variable command Error! \
-								Insufficient parameters given for variable command!".to_string());
-						}
-					},
-					Err(e) => return Err(e),
-				}
-			},
-			//Loc command parsing case.
-			Token::Word((cmd, _)) if cmd.as_str() == "loc" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]){
-					Ok((var_data, tokens_prime, token_index_prime, _)) => {
-						if var_data.len() >= 2{
-							let (cmd, name) = match (&var_data[0], &var_data[1]){
-								(ASTNode::Word(c), ASTNode::Word(n)) => (c, n),
-								(_, _) => return Err("Malformed local variable command Error!".to_string())
-							};
-							let new_cmd = VarCmd::new(&cmd);
-							let new_data = Box::new(VarData::new(&name, new_cmd));
-							already_parsed.push(ASTNode::LocVar(new_data));
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
-
-						}else{
-							Err("Malformed local variable command Error! \
-								Insufficient parameters given for local variable command!".to_string())
-						}
-					},
-					Err(e) => return Err(e),
-				}	
-	
-			},
-			//Box command case.
-			Token::Word((cmd, _)) if cmd.as_str() == "box" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()]) {
-					Ok((box_data, tokens_prime, token_index_prime, _)) => {
-						if box_data.len() >= 1{
-							let box_cmd_str = match &box_data[0]{
-								ASTNode::Word(c) => c,
-								_ => return Err(format!("Malformed box command! Invalid AST Node given! Attempted: {}", &box_data[0])),
-							};
-						
-							let box_cmd = BoxCmd::new(&box_cmd_str);
-							if box_cmd == BoxCmd::Unknown{
-								return Err(format!("Malformed box command! Invalid Box operator given! Valid: make, open, altr, null. Attempted: {}", box_cmd_str));
-							}
-
-							already_parsed.push(ASTNode::BoxOp(box_cmd));
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
-						}else{
-							return Err("Malformed box command! No box command token given!".to_string());
-						}
-					},
-					Err(e) => return Err(e),
-				}
-			},
-			//Attempt onError case.
-			Token::Word((cmd, _)) if cmd.as_str() == "attempt" => {
-				match parse_att_err(tokens, token_index + 1){
-					Ok((att_branch, err_branch, tokens_prime, token_index_prime)) => {
-						let new_data = Box::new(AttErrData::new(att_branch, err_branch));
-						already_parsed.push(ASTNode::AttErr(new_data));
-						return make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators);
-					},
-					Err(e) => return Err(e),
-				} 
-			},
-			//Defer case.
-			Token::Word((cmd, _)) if cmd.as_str() == "defer" => {
-				match make_ast_prime(
-						Vec::new(),
-						tokens, 
-						token_index + 1, 
-						vec![(";", None).into()]
-					) {
-					Ok((defer_body, tokens_prime, token_index_prime, _)) => {
-						let new_body = Rc::new(defer_body.into());
-						
-						already_parsed.push(ASTNode::Defer(new_body));
-						make_ast_prime(already_parsed, tokens_prime, token_index_prime, terminators)
-					},
-					Err(e) => return Err(e),
-				} 
-			},
-			//castTo case
-			Token::Word((cmd, _)) if cmd.as_str() == "castTo" => {
-				match make_ast_prime(Vec::new(), tokens, token_index + 1, vec![(";", None).into()])  {
-					Ok((cast_data, tokens_prime, token_index_prime, _)) => {
-						if cast_data.len() >= 1{
-							let data_type = match &cast_data[0]{
-								ASTNode::Word(d) => {
-									if let Ok(ty) = CastType::try_cast(&**d, CastType::MiscBox){
-										ty
-									}else{
-										return Err(format!("Operator castTo error! \"{}\" is not a valid data type for casting!", d));
+		//If still tokens to parse, converts the tokens into an ASTNode.
+		}else{
+			match &tokens[token_index]{
+				Token::Terminator => {
+					match fancy_op{
+						Token::Attempt => {
+							return Err("Invalid terminator for attempt given! Expected \"onError\", found \";\"".to_string());
+						},
+						Token::NOTHING => {
+							return Err("Invalid terminator given! Not inside fancy operator!".to_string());
+						},
+						_ => {
+							return Ok((already_parsed, token_index));	
+						},
+					}
+				},
+				Token::Val(sup_val) => {
+					match sup_val{
+						SuperValue::Reg(v) => {
+							already_parsed.push(ASTNode::Val(*v));
+						},
+						SuperValue::Heap(hv) => {
+							already_parsed.push(ASTNode::HeapVal(Box::new(*hv.clone())));
+						},
+					}				
+				},
+				//Basically a direct translation.
+				Token::Op(o) => already_parsed.push(ASTNode::Op(*o)),
+				//If you see a rogue fragment like this, error out!
+				Token::Fragment(f) => {
+					return Err(format!("Parsing error! Fragment \"{}\" not contained by a fancy Operator!", f))
+				},	
+				Token::While =>{
+					match make_ast_prime(
+						prog_name, tokens, token_index + 1, Token::While
+					)
+					{
+						Ok((loop_body, token_idx_prime)) => {
+							let loop_expr = ASTNode::Expression(Box::new(loop_body));
+							already_parsed.push(ASTNode::While(Box::new(loop_expr)));
+							token_index = token_idx_prime;	
+						},
+						Err(e) => return Err(e),
+					}
+					
+				},
+				Token::If => {
+					match make_ast_prime(
+						prog_name, tokens, token_index + 1, Token::If
+					)
+					{
+						Ok((if_body, token_idx_prime)) => {
+							token_index = token_idx_prime;
+							//If else statement detected, 
+							// parses recursively the else body.
+							// Otherwise just puts nothing in for else_body.
+							let else_body: Vec<ASTNode>;
+							match tokens[token_index]{
+								Token::Else => {
+									match make_ast_prime(
+										prog_name, tokens, token_index + 1, Token::Else
+									)
+									{
+										Ok((bod, tok_idx_prime_prime)) => {
+											else_body = bod;	
+											token_index = tok_idx_prime_prime;
+										},
+										Err(e) => return Err(e),
 									}
 								},
-								_ => return Err("Malformed castTo!".to_string())
-							};
+								Token::Terminator => else_body = Vec::new(),
+								_ => return Err("SHOULD NEVER GET HERE!".to_string())
+							}
+	
+							//Boxes up ASTNodes to then push as If node.
+							let if_expr = ASTNode::Expression(Box::new(if_body));
+							let else_expr = ASTNode::Expression(Box::new(else_body));
+							let if_data = IfData::new(if_expr, else_expr);
+							let if_node = ASTNode::If(Box::new(if_data));
+							already_parsed.push(if_node);
 
-							already_parsed.push(ASTNode::CastTo(data_type));
-							make_ast_prime(already_parsed, tokens_prime, token_index_prime,  terminators)
-						}else{
-							return Err("Malformed castTo command! No data type given!".to_string())
+						},
+						Err(e) => return Err(e),
+					}
+				},
+				//Acts like a terminator but only for If statements.
+				Token::Else => {
+					match fancy_op{
+						Token::If => return Ok((already_parsed, token_index)),
+						Token::NOTHING => {
+							return Err("Parse error! Else token detected outside of fancy operator!".to_string());
+						},
+						t => {
+							return Err(
+								format!(
+									"Parse error! Else token must follow \
+									If token! Else following \"{}\" token here!", t
+								)
+							);
 						}
-					},	
-					Err(e) => return Err(e),
-				}
-			},
-			Token::Word((cmd, op)) => {
-				if *op != Operator::Unknown{
-					already_parsed.push(ASTNode::Op(*op));
-				}else{
-					already_parsed.push(ASTNode::Word(Box::new(*cmd.clone())));
-				}
-				make_ast_prime(already_parsed, tokens, token_index + 1, terminators)	
-			},
-			Token::V(val) =>{
-				match val{
-					SuperValue::Heap(h)	=> {
-						already_parsed.push(ASTNode::HeapVal(Box::new(*h.clone())));
-					},
-					SuperValue::Reg(v) => {
-						already_parsed.push(ASTNode::Val(*v));
-					},
-				}
-				make_ast_prime(already_parsed, tokens, token_index + 1, terminators)	
-			},
+					}
+				},
+				Token::Attempt => {
+					match make_ast_prime(
+						prog_name, tokens, token_index + 1, Token::Attempt
+					)
+					{
+						Ok((att_body, token_idx_prime)) => {
+							match make_ast_prime(
+								prog_name, tokens, token_idx_prime + 1, Token::OnError
+							)
+							{
+								Ok((err_bod, tok_idx_prime_prime)) => {
+									let att_expr = ASTNode::Expression(Box::new(att_body));
+									let err_expr = ASTNode::Expression(Box::new(err_bod));	
+									let att_err_data = AttErrData::new(att_expr, err_expr);
+									
+									let att_err_node = ASTNode::AttErr(Box::new(att_err_data));
+
+									already_parsed.push(att_err_node);
+									token_index = tok_idx_prime_prime;
+								},
+								Err(e) => return Err(e),
+							}
+						},
+						Err(e) => return Err(e),
+					}
+				},
+				Token::OnError => {
+					match fancy_op{
+						Token::Attempt => return Ok((already_parsed, token_index)),
+						Token::NOTHING => {
+							return Err("Parse error! OnError token detected outside of fancy operator!".to_string());
+						},
+						t => {
+							return Err(
+								format!(
+									"Parse error! OnError token must follow \
+									Attempt token! OnError following \"{}\" token here!", t
+								)
+							);
+						},
+					}
+				},
+				Token::Var => {
+					let ti = token_index;
+					let ts = tokens;
+					match (ts.get(ti + 1), ts.get(ti + 2), ts.get(ti + 3)) {
+						(Some(Token::Fragment(a)), Some(Token::Fragment(name)), 
+						Some(Token::Terminator)) => 
+						{
+							//Parses command and throws a fit if not known.
+							let command = VarCmd::new(a);
+							if command == VarCmd::Unknown{
+								return Err(format!("Parsing error! Unknown Var command \"{}\" for variable named \"{}\"!", a, name));
+							}
+
+							let var_data = VarData::new(name, command);
+							already_parsed.push(ASTNode::Variable(Box::new(var_data)));
+							token_index += 3;
+						},
+						(Some(a), Some(b), Some(c)) => {
+							return Err(
+								format!("Parsing error! Var command needs 2 Fragment tokens and one Terminator token! Found: {} {} {}", a, b, c)
+							);
+						},
+						(Some(a), Some(b), None) => {
+							return Err(format!("Parsing error! Expected ending terminator token for total of 3 arguments! Only supplied with: {} and {}", a, b));
+						},
+						(Some(a), None, None) => {
+							return Err(format!("Parsing error! Expected middle Fragment token and Terminator token at the end for total of 3 arguments! Only supplied with: {}", a));
+						},
+						(None, None, None) => {
+							return Err(format!("Parsing error! No arguments supplied for Var token!"));
+						},
+						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+					}
+				},
+				Token::Loc => {
+					let ti = token_index;
+					let ts = tokens;
+					match (ts.get(ti + 1), ts.get(ti + 2), ts.get(ti + 3)) {
+						(Some(Token::Fragment(a)), Some(Token::Fragment(name)), 
+						Some(Token::Terminator)) => 
+						{
+							//Parses command and throws a fit if not known.
+							let command = VarCmd::new(a);
+							if command == VarCmd::Unknown || command == VarCmd::Delete{
+								return Err(format!("Parsing error! Invalid Loc command \"{}\" for local variable named \"{}\"!", a, name));
+							}
+
+							let var_data = VarData::new(name, command);
+							already_parsed.push(ASTNode::LocVar(Box::new(var_data)));
+							token_index += 3;
+						},
+						(Some(a), Some(b), Some(c)) => {
+							return Err(
+								format!("Parsing error! Loc command needs 2 Fragment tokens and one Terminator token! Found tokens: {} {} {}", a, b, c)
+							);
+						},
+						(Some(a), Some(b), None) => {
+							return Err(format!("Parsing error! Expected ending terminator token for total of 3 arguments! Only supplied with first two: {} and {}", a, b));
+						},
+						(Some(a), None, None) => {
+							return Err(format!("Parsing error! Expected middle Fragment token and Terminator token at the end for total of 3 arguments! Only supplied with: {}", a));
+						},
+						(None, None, None) => {
+							return Err(format!("Parsing error! No arguments supplied for Loc token!"));
+						},
+						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+					}
+				},
+				Token::Box => {
+					match (tokens.get(token_index + 1), tokens.get(token_index + 2)){
+						(Some(Token::Fragment(f)), Some(Token::Terminator)) => {
+							let cmd = BoxCmd::new(f);
+							if cmd == BoxCmd::Unknown{
+								return Err(format!("Parsing error! Token \"{}\" is not a valid box command!", f));
+							}
+							already_parsed.push(ASTNode::BoxOp(cmd));	
+							token_index += 2;
+						},
+						(Some(a), Some(b)) => {
+							return Err(format!("Parsing error! Expected valid box command Fragment token and terminator token! Received tokens: \"{}\" and \"{}\"", a, b));
+						},
+						(Some(a), None) => {
+							return Err(format!("Parsing error! Expected terminator after box command \"{}\"; found nothing!", a));
+						},
+						(None, None) => {
+							return Err(format!("Parsing error! Expected box command fragment and terminator after box keyword. Found nothing!"));
+						},
+						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+					}
+				},
+				Token::Func => {
+					match (tokens.get(token_index + 1), tokens.get(token_index + 2)) {
+						(Some(Token::Fragment(c)), Some(Token::Fragment(name))) => {
+							match FunCmd::new(c){
+								FunCmd::Define => {
+									match make_ast_prime(
+										prog_name, tokens, token_index + 3, Token::Func
+									)
+									{
+										Ok((f_bod, token_index_prime)) => {
+											let bod_node = ASTNode::Expression(Box::new(f_bod));
+											let f_data = FuncData::new(FunCmd::Define, name, Rc::new(bod_node));
+											already_parsed.push(ASTNode::Function(Box::new(f_data)));
+											token_index = token_index_prime;
+										},
+										Err(e) => return Err(e),
+									}
+								},
+								FunCmd::Call => {
+									//Since it's a function call, 
+									// it checks for a terminator and that's it.
+									match tokens.get(token_index + 3){
+										Some(Token::Terminator) => {
+											let empty_bod: Vec<ASTNode> = Vec::new();
+											let bod_box = Box::new(empty_bod);
+											let empty = ASTNode::Expression(bod_box);
+											let f_data = FuncData::new(FunCmd::Call, name, Rc::new(empty));
+											already_parsed.push(ASTNode::Function(Box::new(f_data)));
+
+											token_index += 3;
+										},
+										Some(a) => {
+											return Err(format!("Parsing error! Expected Terminator token at end of calling function \"{}\" found: \"{}\"", name, a));	
+										},
+										None => {
+											return Err(format!("Parsing error! Expected Terminator token at end of calling function \"{}\" found nothing!", name));	
+										},
+									}
+								},
+								FunCmd::Unknown => {
+									return Err(format!("Parsing error! Invalid command token given for function \"{}\"! Given: \"{}\"", name, c));
+								}
+							}
+						},
+						(Some(a), Some(b)) => {
+							return Err(format!("Parsing error! Func token expected at least two fragment tokens after it! Found: \"{}\" and \"{}\"", a, b));	
+						},
+						(Some(a), None) => {
+							return Err(format!("Parsing error! Func token expected at least two fragment tokens after it! Only found: \"{}\"", a));	
+						},
+						(None, None) => {
+							return Err(format!("Parsing error! Func token expected at least two fragment tokens after it! Found nothing!"));	
+						},
+						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+					}
+				},
+				Token::File{name: n, tokens: toks} => {
+					match make_ast_prime(&n, &toks, 0, Token::NOTHING) {
+						Ok((file_body, _)) => {
+							let new_expr = ASTNode::Expression(Box::new(file_body));
+							let f_data = FileData::new(&n, new_expr);
+							already_parsed.push(ASTNode::File(Box::new(f_data)));
+						},
+						Err(e) => return Err(e)
+					}	
+				},
+				Token::NOTHING => (),
+			}
+			token_index += 1;
 		}
 	}
-
 }
 
-//Used to recursively parse an attempt branch for AttErr
-pub fn parse_att_err(
-	tokens: Vec<Token>,
-	token_index: usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
-	match make_ast_prime(
-			Vec::new(),
-			tokens, 
-			token_index, 
-			vec![("onError", None).into()]
-		) {
-		Ok((att_branch, tokens_prime, token_index_prime, terminator_index)) => {
-			match terminator_index{
-				Some(i) => {
-					match tokens_prime[i]{
-						Token::Word(ref cmd) if *cmd.0 == "onError" => {
-							match make_ast_prime(
-									Vec::new(),
-									tokens_prime,
-									token_index_prime, 
-									vec![(";", None).into()]
-								) {
-								Ok((error_branch, tokens_prime_prime, token_index_prime_prime, _)) => {
-									Ok((att_branch.into(), error_branch.into(), 
-										tokens_prime_prime, token_index_prime_prime))
-								},
-								Err(e) => return Err(e),
-							}
-						},
-						_ => Err("Failed to correctly construct attempt onError block!".to_string()),
-					}
-				},
-				None => return Err("REALLY SHOULD NEVER GET HERE!".to_string())
-			}
-		},
-		Err(e) => return Err(e),	
-	}
-}
-
-pub fn parse_if(
-	tokens: Vec<Token>, 
-	token_index: usize) -> Result<(ASTNode, ASTNode, Vec<Token>, usize), String>{
-	match make_ast_prime(
-			Vec::new(), 
-			tokens, 
-			token_index,  
-			vec![("else", None).into(), (";", None).into()]
-		){
-		Ok((true_branch, tokens_prime, token_index_prime, terminator_index)) => {
-			match terminator_index{
-				Some(i) => {
-					match tokens_prime[i]{
-						Token::Word(ref cmd) if *cmd.0 == "else" => {
-							match parse_else(tokens_prime, token_index_prime) {
-								Ok((false_branch, tokens_prime_prime, token_index_prime_prime)) => {
-				
-								Ok((ASTNode::Expression(Box::new(true_branch)), 
-									false_branch, tokens_prime_prime, 
-									token_index_prime_prime))
-								},
-								Err(e) => return Err(e),
-							}
-						},
-						_ => Ok((true_branch.into(), vec![].into(), tokens_prime, token_index_prime)),  
-					}
-				},
-				_ => return Err("SHOULD NEVER GET HERE!!!".to_string()),
-			}
-		},
-		Err(e) => return Err(e),	
-	}
-}
-
-pub fn parse_else(
-	tokens: Vec<Token>, 
-	token_index: usize) -> Result<(ASTNode, Vec<Token>, usize), String>{
-	match  
-		make_ast_prime(
-			Vec::new(),
-			tokens, 
-			token_index,
-			vec![(";", None).into()]
-		){
-		Ok((if_false, tokens_prime, token_index_prime, _)) => {
-			Ok((if_false.into(), tokens_prime, token_index_prime))
-		},
-		Err(e) => return Err(e),
-	}
-}
-
-//Runs through AST expression.
-// If it finds a Word, it's an error, as all words should've been consumed 
-// in forming the AST.
-fn pre_run_ast_check(nodes: &ASTNode) -> Result<(), String>{
-	match nodes{
-		ASTNode::Expression(nds) => {
-			for node in nds.iter(){
-				match node{
-					ASTNode::Word(text) => return Err(format!("Unknown operator error! Word \"{}\" is not a valid operator and isn't part of any fancy operators.", text)),
-					ASTNode::If(data) => {
-						if let Err(e1) = pre_run_ast_check(&data.if_true){
-							return Err(e1);	
-						}
-						if let Err(e2) = pre_run_ast_check(&data.if_false){
-							return Err(e2);	
-						}
-					},
-					ASTNode::While(bod) => {
-						if let Err(e) = pre_run_ast_check(bod) {return Err(e);}	
-					},
-					ASTNode::Function(data) => 
-					{
-						if let Err(e) = pre_run_ast_check(&*data.bod) {return Err(e);}
-					},
-					_ => (),
-				}
-			}
-		},
-		_ => (),
-	}
-	Ok(())
-}
-
-//Consumes a vec of tokens and generates an Abstract Syntax Tree (AST) from it,
-// returning it for the program to then run. 
-pub fn make_ast(tokens: Vec<Token>) -> Result<ASTNode, String>{
-	match make_ast_prime(Vec::new(), tokens, 0, Vec::new()){
-		Ok(res) => {
-			let ast = res.0.into();
-			match pre_run_ast_check(&ast){
-				Ok(_) => Ok(ast),
-				Err(er) => Err(er),
-			}
-		}, 
-		Err(e) => return Err(e),
+// Consumes a file Token and creates an AST based on it.
+pub fn make_ast(tokens: Token) -> Result<ASTNode, String>{
+	if let Token::File{name: n, tokens: toks} = tokens{
+		match make_ast_prime(&n, &toks, 0, Token::NOTHING){
+			Ok((ast_vec, _)) => {
+				let ast_expr = ASTNode::Expression(Box::new(ast_vec));
+				let ast_data = FileData::new(&n, ast_expr);
+				Ok(ASTNode::File(Box::new(ast_data)))
+			},
+			Err(e) => return Err(e),
+		}
+	}else{
+		return Err(format!("Parsing error! AST creation must start at File level Token! \
+Received token: {}", tokens));
 	}
 }
