@@ -624,6 +624,7 @@ pub enum Token{
 	Terminator,
 	Fragment(String),
 	CastTo,
+	Defer,
 	NOTHING
 }
 
@@ -645,6 +646,7 @@ impl fmt::Display for Token{
 			Token::Loc => write!(f, "Loc"),
 			Token::Box => write!(f, "Box"),
 			Token::Func => write!(f, "Func"),
+			Token::Defer => write!(f, "Defer"),
 			Token::Attempt => write!(f, "Attempt"),
 			Token::OnError => write!(f, "OnError"),
 			Token::Terminator => write!(f, "Terminator: ;"),
@@ -1198,6 +1200,7 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 				"attempt" => Ok(Token::Attempt),
 				"castTo" => Ok(Token::CastTo),
 				"box" => Ok(Token::Box),
+				"defer" => Ok(Token::Defer),
 				//Terminators for some/all fancy operators.
 				"onError" => Ok(Token::OnError),
 				";" => Ok(Token::Terminator),
@@ -1302,6 +1305,20 @@ pub fn make_ast_prime(
 						Ok((loop_body, token_idx_prime)) => {
 							let loop_expr = ASTNode::Expression(Box::new(loop_body));
 							already_parsed.push(ASTNode::While(Box::new(loop_expr)));
+							token_index = token_idx_prime;	
+						},
+						Err(e) => return Err(e),
+					}
+					
+				},
+				Token::Defer =>{
+					match make_ast_prime(
+						prog_name, tokens, token_index + 1, Token::Defer
+					)
+					{
+						Ok((def_bod, token_idx_prime)) => {
+							let def_exp = ASTNode::Expression(Box::new(def_bod));
+							already_parsed.push(ASTNode::Defer(Rc::new(def_exp)));
 							token_index = token_idx_prime;	
 						},
 						Err(e) => return Err(e),
