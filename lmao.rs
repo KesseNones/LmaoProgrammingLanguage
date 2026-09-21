@@ -450,6 +450,12 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 							Err(e) => {err_break!{e}},
 						}
 					},
+					ASTNode::File(f_data) => {
+						match run_program(&f_data.program, s, h, vars, fns){
+							Ok(_) => (),
+							Err(e) => {err_break!{e}},
+						}
+					},
                     _ => {},
                 }
             }
@@ -496,8 +502,13 @@ prev_state: Option<(Stack, Heap, Variables, Functions)>
 	// or runs the program and updates the state.
 	match parse_string_to_ast(&argv, argc, program_string){
 		Ok(ast) => {
-			let res = run_program(&ast, &mut s, &mut h, &mut vs, &mut fs);
-			(res, s, h, vs, fs)
+			if let ASTNode::File(data) = ast{
+				let res = run_program(&data.program, &mut s, &mut h, &mut vs, &mut fs);
+				(res, s, h, vs, fs)
+			}else{
+				let e = Err(format!("Parsing error! Top level of AST must be type File! Received node: {}", ast));
+				(e, s, h, vs, fs)
+			}
 		},
 		Err(e) => (Err(e), s, h, vs, fs)
 	}
