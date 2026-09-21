@@ -1497,18 +1497,26 @@ pub fn make_ast_prime(
 					}
 				},
 				Token::CastTo => {
-					match tokens.get(token_index + 1){
-						Some(Token::Fragment(ty)) => {
+					match (tokens.get(token_index + 1), tokens.get(token_index + 2)){
+						(Some(Token::Fragment(ty)), Some(Token::Terminator)) => {
 							match CastType::try_cast(ty, CastType::MiscBox){
 								Ok(cast_type) => {
 									already_parsed.push(ASTNode::CastTo(cast_type));
-									token_index += 1;
+									token_index += 2;
 								},
 								Err(_) => return Err(format!("Parse error! Token \"{}\" is not a valid casting data type!", ty)),
 							}
 						},
-						Some(a) => return Err(format!("Parse error! CastTo Token expects Fragment token after it! Provided: {}", a)),
-						None => return Err("Parse error! CastTo expects Fragment token after it but no token is provided!".to_string())
+						(Some(a), Some(b)) => {
+							return Err(format!("Parsing error! Expected data type Fragment and terminator token! Received tokens: \"{}\" and \"{}\"", a, b));
+						},
+						(Some(a), None) => {
+							return Err(format!("Parsing error! Expected terminator after data type \"{}\"; found nothing!", a));
+						},
+						(None, None) => {
+							return Err(format!("Parsing error! Expected data type fragment and terminator tokens after CastTo token. Found nothing!"));
+						},
+						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
 					}
 				},
 				Token::Func => {
