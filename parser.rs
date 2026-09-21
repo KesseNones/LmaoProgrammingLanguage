@@ -1197,6 +1197,7 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 				"func" => Ok(Token::Func),
 				"attempt" => Ok(Token::Attempt),
 				"castTo" => Ok(Token::CastTo),
+				"box" => Ok(Token::Box),
 				//Terminators for some/all fancy operators.
 				"onError" => Ok(Token::OnError),
 				";" => Ok(Token::Terminator),
