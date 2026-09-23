@@ -929,6 +929,8 @@ program_string: &str, imported: &mut HashMap<String, ()>, program_name: &str)
 	let mut in_comment = false;
 	let mut in_char = false;
 
+	let mut line = 1;
+
 	let mut i: usize = 0;
 	while i < chars.len(){
 		match (chars[i], in_string, in_comment, in_char){
@@ -1022,8 +1024,8 @@ program_string: &str, imported: &mut HashMap<String, ()>, program_name: &str)
 									Ok(f) => f,
 									Err(reason) => {
 										let import_file_name = import_file_path.display();
-										return Err(format!("Unable to open import \
-											file {} for parsing because {}", import_file_name, reason));
+										return Err(format!("Error at line {}. Unable to open import \
+											file {} for parsing because {}", line, import_file_name, reason));
 									}, 
 								};
 
@@ -1052,10 +1054,9 @@ program_string: &str, imported: &mut HashMap<String, ()>, program_name: &str)
 								Err(e) => return Err(e),
 							}
 						}
-
+						if c == '\n' {line += 1;}
 					}
 				}
-
 				i += 1;
 			},
 			_ => return Err("SHOULD NEVER GET HERE!!!!!!!".to_string()),
