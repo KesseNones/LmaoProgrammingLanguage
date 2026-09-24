@@ -904,9 +904,10 @@ pub fn type_to_string(v: Value) -> String{
 pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> Result<ASTNode, String>{
 	//Constructs means of checking for duplicate imports.
 	let mut imported_files: HashMap<String, ()> = HashMap::new();
-
-	match tokenize(&program_string, &mut imported_files, &argv[1]){
-		Ok(tokens) => {
+	
+	let top_file = FileInfo::new(&argv[1], &program_string);
+	match tokenize(top_file, &mut imported_files){
+		Ok((tokens, file_info)) => {
 			match make_ast(tokens){
 				Ok(res) => return Ok(res),
 				Err(e) => return Err(e),
@@ -916,12 +917,31 @@ pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: Stri
 	}
 }
 
+#[derive(Clone)]
+struct FileInfo{
+	pub name: String,
+	pub program: String,
+	pub lines: Vec<u32>
+}
+
+impl FileInfo{
+	fn new(n: &str, prog: &str) -> Self{
+		FileInfo{
+			name: n.to_string(),
+			program: prog.to_string(),
+			lines: Vec::new()
+		}
+	}
+	fn append_line(&mut self, num: u32) {
+		self.lines.push(num);
+	}
+}
+
 //Tokenizes program string into list of tokens.
-pub fn tokenize(
-program_string: &str, imported: &mut HashMap<String, ()>, program_name: &str) 
--> Result<Token, String>
+pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>) 
+-> Result<(Token, FileInfo), String>
 {
-	let chars: Vec<char> = program_string.chars().collect();
+	let chars: Vec<char> = file.program.chars().collect();
 	let mut tokens: Vec<Token> = Vec::new();
 	let mut curr_token: Vec<char> = Vec::new();
 
@@ -1041,8 +1061,9 @@ program_string: &str, imported: &mut HashMap<String, ()>, program_name: &str)
 								}
 
 								//Pushes all tokens from recursive traversal into current lexed list.
-								match tokenize(&import_code_str, imported, file_str){
-									Ok(import_token) => {
+								let import_info = FileInfo::new(&file_str, &import_code_str);
+								match tokenize(import_info, imported){
+									Ok((import_token, file_info)) => {
 										tokens.push(import_token)	
 									},
 									Err(e) => return Err(e),
@@ -1054,7 +1075,10 @@ program_string: &str, imported: &mut HashMap<String, ()>, program_name: &str)
 								Err(e) => return Err(e),
 							}
 						}
-						if c == '\n' {line += 1;}
+						if c == '\n' {
+							file.append_line(line);
+							line += 1;
+						}
 					}
 				}
 				i += 1;
@@ -1074,7 +1098,7 @@ program_string: &str, imported: &mut HashMap<String, ()>, program_name: &str)
 		}
 	}
 
-	Ok(Token::File{name: program_name.to_string(), tokens: tokens})
+	Ok((Token::File{name: file.name.clone(), tokens: tokens}, file))
 }
 
 pub fn throw_parse_error(t: &str, attempted_token: &str) -> String{
