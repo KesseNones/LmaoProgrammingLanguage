@@ -921,6 +921,7 @@ pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: Stri
 struct FileInfo{
 	pub name: String,
 	pub program: String,
+	pub prog_lines: Vec<String>,
 	pub lines: Vec<u32>
 }
 
@@ -929,6 +930,10 @@ impl FileInfo{
 		FileInfo{
 			name: n.to_string(),
 			program: prog.to_string(),
+			prog_lines: prog
+				.lines()
+				.map(|el| el.to_string())
+				.collect(),
 			lines: Vec::new()
 		}
 	}
@@ -936,13 +941,12 @@ impl FileInfo{
 		self.lines.push(num);
 	}
   	fn err_str_line(self, err: &str, line_num: u32) -> String{
-		let prog_lines: Vec<&str> = self.program.lines().collect();
 		let line = line_num as usize;
-  		if line > prog_lines.len(){
+  		if line > self.prog_lines.len(){
 			panic!("Error number that was too big was used!!!!");
 		}
   		format!("Error at line {}:\n{}\n{}\n", 
-		line_num, prog_lines[line - 1], err)	
+		line_num, self.prog_lines[line - 1], err)	
   	}
 }
 
