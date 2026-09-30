@@ -1062,13 +1062,14 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 
 								//Reads in the code from the given file after opening it.
 								let mut import_code_str = String::new();
-								match import_file.read_to_string(&mut import_code_str){
-									Ok(_) => {},
-									Err(reason) => {
-										let import_file_name = import_file_path.display();
-										return Err(format!("Unable to read in\
-											import file {} because {}", import_file_name, reason)); 
-									}, 
+								if let Err(reason) = import_file.read_to_string(&mut import_code_str){
+									let import_file_name = import_file_path.display();
+									let err_str = file.err_str_line(
+										&format!("Unable to read in import \
+										file \"{}\" for parsing because {}", 
+										import_file_name, reason), line
+									);
+									return Err(err_str);
 								}
 
 								//Pushes all tokens from recursive traversal into current lexed list.
