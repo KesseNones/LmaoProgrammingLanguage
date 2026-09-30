@@ -1078,7 +1078,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 									Ok((import_token, file_info)) => {
 										tokens.push(import_token)	
 									},
-									Err(e) => return Err(e),
+									Err(e) => return Err(file.err_str_line(&e, line)),
 								}
 							}
 						}else{
