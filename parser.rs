@@ -943,7 +943,8 @@ impl FileInfo{
   	fn err_str_line(&self, err: &str, line_num: u32) -> String{
 		let line = line_num as usize;
   		if line > self.prog_lines.len(){
-			panic!("Error number that was too big was used!!!!");
+			panic!("Error number that was too big was used!!!! \
+			Max: {} Given: {}", self.prog_lines.len(), line);
 		}
   		format!("Error at line {}:\n{}\n{}\n", 
 		line_num, self.prog_lines[line - 1], err)	
@@ -974,36 +975,30 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 			('\"', false, false, false) => {
 				curr_token.push(chars[i]);
 				in_string = true;
-				i += 1;
-
 			},
 			//Makes it so strings can have double quotes inside them, as long as they are escaped.
 			('\\', true, false, false) => {
 				if ((i + 1) < chars.len()) && (chars[i + 1] == '\"'){
 					curr_token.push('\\');
 					curr_token.push('\"');
-					i += 2;
+					i += 1;
 				}else{
 					curr_token.push('\\');
-					i += 1;
 				}
 			},
 			//End of string case.
 			('\"', true, false, false) => {
 				curr_token.push(chars[i]);
 				in_string = false;
-				i += 1;
 			},
 			//In string case.
 			(_, true, false, false) => {
 				curr_token.push(chars[i]);
-				i += 1;
 			},
 			//Start of Char case.
 			('\'', false, false, false) => {
 				curr_token.push(chars[i]);
 				in_char = true;
-				i += 1;	
 			},
 			//End of Char case, or continuance with escape.
 			('\'', false, false, true) => {
@@ -1013,27 +1008,23 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 					in_char = false	
 				}
 				curr_token.push(chars[i]);
-				i += 1;
 			},
 			//In Char case.
 			(c, false, false, true) => {
 				curr_token.push(c);
-				i += 1;	
 			},
 			//Comment entry case.
 			('/', false, false, false) => {
 				if ((i + 1) < chars.len()) && (chars[i + 1] == '/'){
 					in_comment = true;
-					i += 2;
+					i += 1;
 				}else{
 					curr_token.push(chars[i]);
-					i += 1;
 				}
 			},
 			//Exit comment case.
 			('\n', false, true, false) => {
 				in_comment = false;
-				i += 1;
 			},
 			//In comment case.
 			(_, false, true, false) => i += 1,
@@ -1095,16 +1086,17 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 								Err(e) => return Err(e),
 							}
 						}
-						if c == '\n' {
-							file.append_line(line);
-							line += 1;
-						}
 					}
 				}
-				i += 1;
 			},
 			_ => return Err("SHOULD NEVER GET HERE!!!!!!!".to_string()),
 		}
+		if chars[i] == '\n' {
+			file.append_line(line);
+			line += 1;
+		}
+
+		i += 1;
 	}
 
 	if in_string{
