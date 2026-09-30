@@ -1084,13 +1084,13 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 						}else{
 							match lex_token(&t){
 								Ok(token) => tokens.push(token),
-								Err(e) => return Err(e),
+								Err(e) => return Err(file.err_str_line(&e, line)),
 							}
 						}
 					}
 				}
 			},
-			_ => return Err("SHOULD NEVER GET HERE!!!!!!!".to_string()),
+			_ => return Err(file.err_str_line("SHOULD NEVER GET HERE!!!!!!!", line)),
 		}
 		if chars[i] == '\n' {
 			file.append_line(line);
@@ -1115,7 +1115,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 }
 
 pub fn throw_parse_error(t: &str, attempted_token: &str) -> String{
-	return format!("Parse error! Incorrectly constructed {}! Tried: {}", t, attempted_token);
+	return format!("Incorrectly constructed {}! Tried: {}", t, attempted_token);
 }
 
 pub fn replace_literals_with_escapes(s: &str) -> String{
@@ -1194,7 +1194,7 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 							Ok(Token::Val(Value::Char(res).into()))
 						},
 						(Some(c), Some(_)) => Ok(Token::Val(Value::Char(c).into())),
-						_ => Err(format!("Parsing error! Token {} is not a valid Char!", t)),	
+						_ => Err(format!("Token {} is not a valid Char!", t)),	
 					}
 				},
 				//List case.
@@ -1256,7 +1256,7 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 						if c.is_whitespace(){
 							return Err(
 								format!(
-							"Parsing error! Token: \"{}\" is not a valid Token!", t)
+							"Token: \"{}\" is not a valid Token!", t)
 							);
 						}
 					}	
