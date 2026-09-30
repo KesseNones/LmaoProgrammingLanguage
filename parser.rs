@@ -946,8 +946,8 @@ impl FileInfo{
 			panic!("Error number that was too big was used!!!! \
 			Max: {} Given: {}", self.prog_lines.len(), line);
 		}
-  		format!("Error at line {}:\n{}\n{}\n", 
-		line_num, self.prog_lines[line - 1], err)	
+  		format!("Error in \"{}\" at line {}:\n{}\n{}\n", 
+		self.name, line_num, self.prog_lines[line - 1], err)	
   	}
 	fn get_line(&self, line_num: u32) -> Option<&String>{
 		self.prog_lines.get(line_num as usize)
