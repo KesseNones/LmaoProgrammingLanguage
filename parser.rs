@@ -940,7 +940,7 @@ impl FileInfo{
 	fn append_line(&mut self, num: u32) {
 		self.lines.push(num);
 	}
-  	fn err_str_line(self, err: &str, line_num: u32) -> String{
+  	fn err_str_line(&self, err: &str, line_num: u32) -> String{
 		let line = line_num as usize;
   		if line > self.prog_lines.len(){
 			panic!("Error number that was too big was used!!!!");
@@ -948,6 +948,9 @@ impl FileInfo{
   		format!("Error at line {}:\n{}\n{}\n", 
 		line_num, self.prog_lines[line - 1], err)	
   	}
+	fn get_line(&self, line_num: u32) -> Option<&String>{
+		self.prog_lines.get(line_num as usize)
+	}
 }
 
 //Tokenizes program string into list of tokens.
