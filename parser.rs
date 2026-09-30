@@ -1027,7 +1027,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 				in_comment = false;
 			},
 			//In comment case.
-			(_, false, true, false) => i += 1,
+			(_, false, true, false) => (),
 			//General parsing case.
 			(c, false, false, false) => {
 				if !c.is_whitespace(){
