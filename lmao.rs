@@ -578,7 +578,7 @@ fn main(){
 				if command_str == "RUN"{
 					let mut source_string = String::new();
 					for kv in source_code.iter(){
-						source_string.push_str(&format!("{}\n", kv.1));
+						source_string.push_str(&format!("{}", kv.1));
 					}
 
 					println!("\n{}\nProgram result:\n", sep_str);
@@ -764,7 +764,7 @@ fn main(){
 				if source_included{
 					let mut code_with_include = String::new();
 					for kv in source_code.iter(){
-						code_with_include.push_str(&format!("{}\n", kv.1));
+						code_with_include.push_str(&format!("{}", kv.1));
 					}	
 					code_with_include.push_str(&single_line_prog_str);
 					single_line_prog_str = code_with_include;
