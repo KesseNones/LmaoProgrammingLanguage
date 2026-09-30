@@ -935,6 +935,15 @@ impl FileInfo{
 	fn append_line(&mut self, num: u32) {
 		self.lines.push(num);
 	}
+  	fn err_str_line(self, err: &str, line_num: u32) -> String{
+		let prog_lines: Vec<&str> = self.program.lines().collect();
+		let line = line_num as usize;
+  		if line > prog_lines.len(){
+			panic!("Error number that was too big was used!!!!");
+		}
+  		format!("Error at line {}:\n{}\n{}\n", 
+		line_num, prog_lines[line - 1], err)	
+  	}
 }
 
 //Tokenizes program string into list of tokens.
@@ -1044,8 +1053,12 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 									Ok(f) => f,
 									Err(reason) => {
 										let import_file_name = import_file_path.display();
-										return Err(format!("Error at line {}. Unable to open import \
-											file {} for parsing because {}", line, import_file_name, reason));
+										let err_str = file.err_str_line(
+											&format!("Unable to open import \
+											file \"{}\" for parsing because {}", 
+											import_file_name, reason), line
+										);
+										return Err(err_str);
 									}, 
 								};
 
