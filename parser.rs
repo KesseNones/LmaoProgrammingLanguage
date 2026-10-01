@@ -941,13 +941,13 @@ impl FileInfo{
 		self.lines.push(num);
 	}
   	fn err_str_line(&self, err: &str, line_num: u32) -> String{
-		let line = line_num as usize;
-  		if line > self.prog_lines.len(){
+		let linedex = (line_num - 1) as usize;
+  		if linedex > self.prog_lines.len() - 1{
 			panic!("Error number that was too big was used!!!! \
-			Max: {} Given: {}", self.prog_lines.len(), line);
+			Max: {} Given: {}", self.prog_lines.len() - 1, linedex);
 		}
   		format!("Error in \"{}\" at line {}:\n{}\n{}\n", 
-		self.name, line_num, self.prog_lines[line - 1], err)	
+		self.name, line_num, self.prog_lines[linedex], err)	
   	}
 	fn get_line(&self, line_num: u32) -> Option<&String>{
 		self.prog_lines.get(line_num as usize)
@@ -969,7 +969,24 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 	let mut line = 1;
 
 	let mut i: usize = 0;
-	while i < chars.len(){
+	loop{
+		if i > chars.len() - 1{
+			if in_string{
+				let t: String = curr_token.iter().collect();
+				let err_str = format!("String \"{}\" not ended with matching double quotation!", t);
+				return Err(file.err_str_line(&err_str, line));
+			}
+
+			if curr_token.len() > 0{
+				match lex_token(&curr_token.iter().collect::<String>()){
+					Ok(token) => tokens.push(token),
+					Err(e) => return Err(e),
+				}
+			}
+			
+			break;
+		}
+
 		match (chars[i], in_string, in_comment, in_char){
 			//Start of string case.
 			('\"', false, false, false) => {
@@ -1092,7 +1109,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 			},
 			_ => return Err(file.err_str_line("SHOULD NEVER GET HERE!!!!!!!", line)),
 		}
-		if chars[i] == '\n' {
+		if chars[i] == '\n' && i < chars.len() - 1{
 			file.append_line(line);
 			line += 1;
 		}
@@ -1100,16 +1117,6 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 		i += 1;
 	}
 
-	if in_string{
-		return Err("Parse error! String not ended with matching double quotation!".to_string());
-	}
-
-	if curr_token.len() > 0{
-		match lex_token(&curr_token.iter().collect::<String>()){
-			Ok(token) => tokens.push(token),
-			Err(e) => return Err(e),
-		}
-	}
 
 	Ok((Token::File{name: file.name.clone(), tokens: tokens}, file))
 }
