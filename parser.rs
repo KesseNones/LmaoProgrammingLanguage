@@ -606,7 +606,7 @@ impl Operator{
 }
 
 #[derive(Clone, Eq, PartialEq)]
-struct FileInfo{
+pub struct FileInfo{
 	pub name: String,
 	pub program: String,
 	pub prog_lines: Vec<String>,
@@ -860,12 +860,12 @@ impl AttErrData{
 
 #[derive(Clone)]
 pub struct FileData{
-	pub name: String,	
+	pub file: FileInfo,	
 	pub program: ASTNode
 }
 impl FileData{
-	fn new(name: &str, prog: ASTNode) -> Self{
-		FileData{name: name.to_string(), program: prog}
+	fn new(f: FileInfo, prog: ASTNode) -> Box<Self>{
+		Box::new(FileData{file: f, program: prog})
 	}
 }
 
@@ -922,7 +922,7 @@ impl fmt::Display for ASTNode{
 			ASTNode::AttErr(data) => write!(f, "AttErr [attempt: {}, err: {}]", data.att, data.err),
 			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
-			ASTNode::File(data) => write!(f, "File {}", data.name)
+			ASTNode::File(data) => write!(f, "File {}", data.file.name)
 		}
 	}
 }
@@ -1651,9 +1651,8 @@ pub fn make_ast_prime(
 				Token::File{file: f, tokens: toks} => {
 					match make_ast_prime(&f, &toks, 0, Token::NOTHING) {
 						Ok((file_body, _)) => {
-							let new_expr = ASTNode::Expression(Box::new(file_body));
-							let f_data = FileData::new(&f.name, new_expr);
-							already_parsed.push(ASTNode::File(Box::new(f_data)));
+							let f_data = FileData::new(f.clone(), file_body.into());
+							already_parsed.push(ASTNode::File(f_data));
 						},
 						Err(e) => return Err(e)
 					}	
@@ -1670,9 +1669,8 @@ pub fn make_ast(tokens: Token) -> Result<ASTNode, String>{
 	if let Token::File{file: f, tokens: toks} = tokens{
 		match make_ast_prime(&f, &toks, 0, Token::NOTHING){
 			Ok((ast_vec, _)) => {
-				let ast_expr = ASTNode::Expression(Box::new(ast_vec));
-				let ast_data = FileData::new(&f.name, ast_expr);
-				Ok(ASTNode::File(Box::new(ast_data)))
+				let ast_data = FileData::new(f, ast_vec.into());
+				Ok(ASTNode::File(ast_data))
 			},
 			Err(e) => return Err(e),
 		}
