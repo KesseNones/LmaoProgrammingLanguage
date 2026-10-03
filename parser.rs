@@ -827,8 +827,8 @@ pub struct IfData{
 }
 
 impl IfData{
-	pub fn new(t: ASTNode, f: ASTNode) -> Self{
-		IfData{if_true: t, if_false: f}
+	pub fn new(t: ASTNode, f: ASTNode) -> Box<Self>{
+		Box::new(IfData{if_true: t, if_false: f})
 	}
 }
 
@@ -1408,12 +1408,10 @@ pub fn make_ast_prime(
 								Token::Terminator => else_body = Vec::new(),
 								_ => return Err("SHOULD NEVER GET HERE!".to_string())
 							}
-	
-							//Boxes up ASTNodes to then push as If node.
-							let if_expr = ASTNode::Expression(Box::new(if_body));
-							let else_expr = ASTNode::Expression(Box::new(else_body));
-							let if_data = IfData::new(if_expr, else_expr);
-							let if_node = ASTNode::If(Box::new(if_data));
+
+							//Builds and pushes If ASTNode.	
+							let if_data = IfData::new(if_body.into(), else_body.into());
+							let if_node = ASTNode::If(if_data);
 							already_parsed.push(if_node);
 
 						},
