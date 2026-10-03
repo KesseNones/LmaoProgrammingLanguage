@@ -605,6 +605,49 @@ impl Operator{
 	}
 }
 
+#[derive(Clone, Eq, PartialEq)]
+struct FileInfo{
+	pub name: String,
+	pub program: String,
+	pub prog_lines: Vec<String>,
+	pub lines: Vec<u32>
+}
+
+impl FileInfo{
+	fn new(n: &str, prog: &str) -> Self{
+		FileInfo{
+			name: n.to_string(),
+			program: prog.to_string(),
+			prog_lines: prog
+				.lines()
+				.map(|el| el.to_string())
+				.collect(),
+			lines: Vec::new()
+		}
+	}
+	fn append_line(&mut self, num: u32) {
+		self.lines.push(num);
+	}
+  	fn err_str_line(&self, err: &str, line_num: u32) -> String{
+		let linedex = (line_num - 1) as usize;
+  		if linedex > self.prog_lines.len() - 1{
+			panic!("Error number that was too big was used!!!! \
+			Max: {} Given: {}", self.prog_lines.len() - 1, linedex);
+		}
+  		format!("Error in \"{}\" at line {}:\n{}\n{}\n", 
+		self.name, line_num, self.prog_lines[linedex], err)	
+  	}
+	//Gets line number from token index.
+	// Returns line if valid number and 0 if not.
+	fn line_from_tok_idx(&self, idx: usize) -> u32{
+		if let Some(l) = self.lines.get(idx){
+			*l
+		}else{
+			0
+		}
+	}
+}
+
 //Can either be a value to push to the stack or 
 // a command to run an operator or something like that.
 #[derive(PartialEq, Eq, Clone)]
@@ -620,7 +663,7 @@ pub enum Token{
 	Func,
 	Attempt,
 	OnError,
-	File{name: String, tokens: Vec<Token>},
+	File{file: FileInfo, tokens: Vec<Token>},
 	Terminator,
 	Fragment(String),
 	CastTo,
@@ -651,7 +694,7 @@ impl fmt::Display for Token{
 			Token::OnError => write!(f, "OnError"),
 			Token::Terminator => write!(f, "Terminator: ;"),
 			Token::Fragment(frag) => write!(f, "Fragment: {}", frag),
-			Token::File{name: n, tokens: _} => write!(f, "File: {}", n),
+			Token::File{file: fi, tokens: _} => write!(f, "File: {}", fi.name),
 			Token::CastTo => write!(f, "CastTo"),
 			Token::NOTHING => write!(f, "NOTHING"),
 		}
@@ -907,8 +950,8 @@ pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: Stri
 	
 	let top_file = FileInfo::new(&argv[1], &program_string);
 	match tokenize(top_file, &mut imported_files){
-		Ok((tokens, file_info)) => {
-			match make_ast(tokens){
+		Ok(token) => {
+			match make_ast(token){
 				Ok(res) => return Ok(res),
 				Err(e) => return Err(e),
 			}
@@ -917,52 +960,9 @@ pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: Stri
 	}
 }
 
-#[derive(Clone)]
-struct FileInfo{
-	pub name: String,
-	pub program: String,
-	pub prog_lines: Vec<String>,
-	pub lines: Vec<u32>
-}
-
-impl FileInfo{
-	fn new(n: &str, prog: &str) -> Self{
-		FileInfo{
-			name: n.to_string(),
-			program: prog.to_string(),
-			prog_lines: prog
-				.lines()
-				.map(|el| el.to_string())
-				.collect(),
-			lines: Vec::new()
-		}
-	}
-	fn append_line(&mut self, num: u32) {
-		self.lines.push(num);
-	}
-  	fn err_str_line(&self, err: &str, line_num: u32) -> String{
-		let linedex = (line_num - 1) as usize;
-  		if linedex > self.prog_lines.len() - 1{
-			panic!("Error number that was too big was used!!!! \
-			Max: {} Given: {}", self.prog_lines.len() - 1, linedex);
-		}
-  		format!("Error in \"{}\" at line {}:\n{}\n{}\n", 
-		self.name, line_num, self.prog_lines[linedex], err)	
-  	}
-	//Gets line number from token index.
-	// Returns line if valid number and 0 if not.
-	fn line_from_tok_idx(&self, idx: usize) -> u32{
-		if let Some(l) = self.lines.get(idx){
-			*l
-		}else{
-			0
-		}
-	}
-}
-
 //Tokenizes program string into list of tokens.
 pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>) 
--> Result<(Token, FileInfo), String>
+-> Result<Token, String>
 {
 	let chars: Vec<char> = file.program.chars().collect();
 	let mut tokens: Vec<Token> = Vec::new();
@@ -1098,7 +1098,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 								//Pushes all tokens from recursive traversal into current lexed list.
 								let import_info = FileInfo::new(&file_str, &import_code_str);
 								match tokenize(import_info, imported){
-									Ok((import_token, file_info)) => {
+									Ok(import_token) => {
 										tokens.push(import_token)	
 									},
 									Err(e) => return Err(file.err_str_line(&e, line)),
@@ -1124,7 +1124,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 	}
 
 
-	Ok((Token::File{name: file.name.clone(), tokens: tokens}, file))
+	Ok(Token::File{file: file, tokens: tokens})
 }
 
 pub fn throw_parse_error(t: &str, attempted_token: &str) -> String{
@@ -1643,11 +1643,11 @@ pub fn make_ast_prime(
 						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
 					}
 				},
-				Token::File{name: n, tokens: toks} => {
-					match make_ast_prime(&n, &toks, 0, Token::NOTHING) {
+				Token::File{file: f, tokens: toks} => {
+					match make_ast_prime(&f.name, &toks, 0, Token::NOTHING) {
 						Ok((file_body, _)) => {
 							let new_expr = ASTNode::Expression(Box::new(file_body));
-							let f_data = FileData::new(&n, new_expr);
+							let f_data = FileData::new(&f.name, new_expr);
 							already_parsed.push(ASTNode::File(Box::new(f_data)));
 						},
 						Err(e) => return Err(e)
@@ -1662,11 +1662,11 @@ pub fn make_ast_prime(
 
 // Consumes a file Token and creates an AST based on it.
 pub fn make_ast(tokens: Token) -> Result<ASTNode, String>{
-	if let Token::File{name: n, tokens: toks} = tokens{
-		match make_ast_prime(&n, &toks, 0, Token::NOTHING){
+	if let Token::File{file: f, tokens: toks} = tokens{
+		match make_ast_prime(&f.name, &toks, 0, Token::NOTHING){
 			Ok((ast_vec, _)) => {
 				let ast_expr = ASTNode::Expression(Box::new(ast_vec));
-				let ast_data = FileData::new(&n, ast_expr);
+				let ast_data = FileData::new(&f.name, ast_expr);
 				Ok(ASTNode::File(Box::new(ast_data)))
 			},
 			Err(e) => return Err(e),
