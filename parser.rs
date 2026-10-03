@@ -1297,6 +1297,11 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 	}
 }
 
+fn fancy_op_sans_term_err(fancy_op: Token) -> String {
+	format!("Ended Fancy Operator based on token: {} \
+without finding a valid terminator!", fancy_op)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1312,7 +1317,7 @@ pub fn make_ast_prime(
 		//If out of tokens to parse, end or throw error if there were terminators to look for.
 		if token_index >= tokens.len(){
 			if fancy_op != Token::NOTHING{
-				return Err(format!("Ended Fancy Operator based on token: {} without finding a valid terminator!", fancy_op));
+				return Err(fancy_op_sans_term_err(fancy_op));
 			}else{
 				return Ok((already_parsed, token_index));
 			}
