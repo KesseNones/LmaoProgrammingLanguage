@@ -853,8 +853,8 @@ pub struct AttErrData{
 	pub err: ASTNode 
 }
 impl AttErrData{
-	fn new(attempt: ASTNode, error: ASTNode) -> Self{
-		AttErrData{att: attempt, err: error}
+	fn new(attempt: ASTNode, error: ASTNode) -> Box<Self>{
+		Box::new(AttErrData{att: attempt, err: error})
 	}
 }
 
@@ -1446,11 +1446,10 @@ pub fn make_ast_prime(
 							)
 							{
 								Ok((err_bod, tok_idx_prime_prime)) => {
-									let att_expr = ASTNode::Expression(Box::new(att_body));
-									let err_expr = ASTNode::Expression(Box::new(err_bod));	
-									let att_err_data = AttErrData::new(att_expr, err_expr);
-									
-									let att_err_node = ASTNode::AttErr(Box::new(att_err_data));
+									let att_err_data = AttErrData::new(
+										att_body.into(), err_bod.into()
+									);
+									let att_err_node = ASTNode::AttErr(att_err_data);
 
 									already_parsed.push(att_err_node);
 									token_index = tok_idx_prime_prime;
