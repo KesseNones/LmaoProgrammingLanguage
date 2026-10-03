@@ -1299,7 +1299,7 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
-	prog_name: &str,
+	file: &FileInfo,
 	tokens: &Vec<Token>, 
 	mut token_index: usize,
 	fancy_op: Token
@@ -1350,7 +1350,7 @@ pub fn make_ast_prime(
 				},	
 				Token::While =>{
 					match make_ast_prime(
-						prog_name, tokens, token_index + 1, Token::While
+						file, tokens, token_index + 1, Token::While
 					)
 					{
 						Ok((loop_body, token_idx_prime)) => {
@@ -1364,7 +1364,7 @@ pub fn make_ast_prime(
 				},
 				Token::Defer =>{
 					match make_ast_prime(
-						prog_name, tokens, token_index + 1, Token::Defer
+						file, tokens, token_index + 1, Token::Defer
 					)
 					{
 						Ok((def_bod, token_idx_prime)) => {
@@ -1378,7 +1378,7 @@ pub fn make_ast_prime(
 				},
 				Token::If => {
 					match make_ast_prime(
-						prog_name, tokens, token_index + 1, Token::If
+						file, tokens, token_index + 1, Token::If
 					)
 					{
 						Ok((if_body, token_idx_prime)) => {
@@ -1390,7 +1390,7 @@ pub fn make_ast_prime(
 							match tokens[token_index]{
 								Token::Else => {
 									match make_ast_prime(
-										prog_name, tokens, token_index + 1, Token::Else
+										file, tokens, token_index + 1, Token::Else
 									)
 									{
 										Ok((bod, tok_idx_prime_prime)) => {
@@ -1434,12 +1434,12 @@ pub fn make_ast_prime(
 				},
 				Token::Attempt => {
 					match make_ast_prime(
-						prog_name, tokens, token_index + 1, Token::Attempt
+						file, tokens, token_index + 1, Token::Attempt
 					)
 					{
 						Ok((att_body, token_idx_prime)) => {
 							match make_ast_prime(
-								prog_name, tokens, token_idx_prime + 1, Token::OnError
+								file, tokens, token_idx_prime + 1, Token::OnError
 							)
 							{
 								Ok((err_bod, tok_idx_prime_prime)) => {
@@ -1593,7 +1593,7 @@ pub fn make_ast_prime(
 							match FunCmd::new(c){
 								FunCmd::Define => {
 									match make_ast_prime(
-										prog_name, tokens, token_index + 3, Token::Func
+										file, tokens, token_index + 3, Token::Func
 									)
 									{
 										Ok((f_bod, token_index_prime)) => {
@@ -1644,7 +1644,7 @@ pub fn make_ast_prime(
 					}
 				},
 				Token::File{file: f, tokens: toks} => {
-					match make_ast_prime(&f.name, &toks, 0, Token::NOTHING) {
+					match make_ast_prime(&f, &toks, 0, Token::NOTHING) {
 						Ok((file_body, _)) => {
 							let new_expr = ASTNode::Expression(Box::new(file_body));
 							let f_data = FileData::new(&f.name, new_expr);
@@ -1663,7 +1663,7 @@ pub fn make_ast_prime(
 // Consumes a file Token and creates an AST based on it.
 pub fn make_ast(tokens: Token) -> Result<ASTNode, String>{
 	if let Token::File{file: f, tokens: toks} = tokens{
-		match make_ast_prime(&f.name, &toks, 0, Token::NOTHING){
+		match make_ast_prime(&f, &toks, 0, Token::NOTHING){
 			Ok((ast_vec, _)) => {
 				let ast_expr = ASTNode::Expression(Box::new(ast_vec));
 				let ast_data = FileData::new(&f.name, ast_expr);
