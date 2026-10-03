@@ -949,8 +949,14 @@ impl FileInfo{
   		format!("Error in \"{}\" at line {}:\n{}\n{}\n", 
 		self.name, line_num, self.prog_lines[linedex], err)	
   	}
-	fn get_line(&self, line_num: u32) -> Option<&String>{
-		self.prog_lines.get(line_num as usize)
+	//Gets line number from token index.
+	// Returns line if valid number and 0 if not.
+	fn line_from_tok_idx(&self, idx: usize) -> u32{
+		if let Some(l) = self.lines.get(idx){
+			*l
+		}else{
+			0
+		}
 	}
 }
 
