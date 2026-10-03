@@ -839,11 +839,11 @@ pub struct VarData{
 }
 
 impl VarData{
-	fn new(n: &str, c: VarCmd) -> Self{
-		VarData{
+	fn new(n: &str, c: VarCmd) -> Box<Self>{
+		Box::new(VarData{
 			name: n.to_string(),
 			cmd: c
-		}
+		})
 	}
 }
 
@@ -1491,7 +1491,7 @@ pub fn make_ast_prime(
 							}
 
 							let var_data = VarData::new(name, command);
-							already_parsed.push(ASTNode::Variable(Box::new(var_data)));
+							already_parsed.push(ASTNode::Variable(var_data));
 							token_index += 3;
 						},
 						(Some(a), Some(b), Some(c)) => {
@@ -1525,7 +1525,7 @@ pub fn make_ast_prime(
 							}
 
 							let var_data = VarData::new(name, command);
-							already_parsed.push(ASTNode::LocVar(Box::new(var_data)));
+							already_parsed.push(ASTNode::LocVar(var_data));
 							token_index += 3;
 						},
 						(Some(a), Some(b), Some(c)) => {
