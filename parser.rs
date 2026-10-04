@@ -1416,6 +1416,11 @@ fn invalid_castto_tokens(a: &Token, b: &Token) -> String{
 Received tokens: \"{}\" and \"{}\"", a, b)
 }
 
+fn castto_missing_term(a: &Token) -> String{
+	format!("Expected Terminator after data type \"{}\"; \
+found nothing!", a)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1706,7 +1711,8 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), None) => {
-							return Err(format!("Parsing error! Expected terminator after data type \"{}\"; found nothing!", a));
+							let e = castto_missing_term(a);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(None, None) => {
 							return Err(format!("Parsing error! Expected data type fragment and terminator tokens after CastTo token. Found nothing!"));
