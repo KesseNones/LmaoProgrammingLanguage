@@ -1486,10 +1486,10 @@ pub fn make_ast_prime(
 									already_parsed.push(att_err_node);
 									token_index = tok_idx_prime_prime;
 								},
-								Err(e) => return Err(e),
+								Err(e) => return Err(file.err_str_tok(&e, token_idx_prime)),
 							}
 						},
-						Err(e) => return Err(e),
+						Err(e) => return Err(file.err_str_tok(&e, token_index)),
 					}
 				},
 				Token::OnError => {
