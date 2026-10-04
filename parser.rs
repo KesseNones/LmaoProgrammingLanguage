@@ -1741,7 +1741,7 @@ pub fn make_ast_prime(
 											already_parsed.push(ASTNode::Function(f_data));
 											token_index = token_index_prime;
 										},
-										Err(e) => return Err(e),
+										Err(e) => return Err(file.err_str_tok(&e, token_index)),
 									}
 								},
 								FunCmd::Call => {
