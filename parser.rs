@@ -1371,6 +1371,13 @@ of 3 arguments! Only supplied with: {} and {}",
 	loc_or_var[is_var as usize], a, b)
 }
 
+fn missing_term_and_middle(a: &Token, is_var: bool) -> String{
+	let loc_or_var = ["Loc", "Var"];
+	format!("{} command expected middle Fragment token \
+ and Terminator token at the end for total \
+of 3 arguments! Only supplied with: {}", 
+loc_or_var[is_var as usize], a)
+}
 
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
@@ -1571,7 +1578,8 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), None, None) => {
-							return Err(format!("Parsing error! Expected middle Fragment token and Terminator token at the end for total of 3 arguments! Only supplied with: {}", a));
+							let e = missing_term_and_middle(a, true);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(None, None, None) => {
 							return Err(format!("Parsing error! No arguments supplied for Var token!"));
