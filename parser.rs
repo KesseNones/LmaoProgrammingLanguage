@@ -1385,6 +1385,13 @@ fn var_missing_args(is_var: bool) -> String{
 	loc_or_var[is_var as usize])
 }
 
+fn invalid_box_command(cmd: &str) -> String{
+	format!(
+		"\"{}\" is not a valid Box command!", 
+		cmd
+	)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1636,7 +1643,8 @@ pub fn make_ast_prime(
 						(Some(Token::Fragment(f)), Some(Token::Terminator)) => {
 							let cmd = BoxCmd::new(f);
 							if cmd == BoxCmd::Unknown{
-								return Err(format!("Parsing error! Token \"{}\" is not a valid box command!", f));
+								let e = invalid_box_command(f);
+								return Err(file.err_str_tok(&e, token_index));
 							}
 							already_parsed.push(ASTNode::BoxOp(cmd));	
 							token_index += 2;
