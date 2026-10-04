@@ -1317,6 +1317,10 @@ fn rogue_fragment_err(frag: &str) -> String{
 Fragment \"{}\" not contained by a fancy Operator!", frag)
 }
 
+fn never_here() -> String {
+	"SHOULD NEVER GET HERE!!!".to_string()
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1421,11 +1425,11 @@ pub fn make_ast_prime(
 											else_body = bod;	
 											token_index = tok_idx_prime_prime;
 										},
-										Err(e) => return Err(e),
+										Err(e) => return Err(file.err_str_tok(&e, token_idx_prime)),
 									}
 								},
 								Token::Terminator => else_body = Vec::new(),
-								_ => return Err("SHOULD NEVER GET HERE!".to_string())
+								_ => return Err(file.err_str_tok(&never_here(), token_index))
 							}
 
 							//Builds and pushes If ASTNode.	
@@ -1434,7 +1438,7 @@ pub fn make_ast_prime(
 							already_parsed.push(if_node);
 
 						},
-						Err(e) => return Err(e),
+						Err(e) => return Err(file.err_str_tok(&e, token_index)),
 					}
 				},
 				//Acts like a terminator but only for If statements.
