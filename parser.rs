@@ -1401,6 +1401,11 @@ fn box_missing_term(a: &Token) -> String{
 found nothing!", a)
 }
 
+fn missing_box_args() -> String{
+	"Parsing error! Expected Box command fragment \
+and Terminator after Box keyword. Found nothing!".to_string()
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1667,7 +1672,8 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));
 						},
 						(None, None) => {
-							return Err(format!("Parsing error! Expected box command fragment and terminator after box keyword. Found nothing!"));
+							let e = missing_box_args();
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
 					}
