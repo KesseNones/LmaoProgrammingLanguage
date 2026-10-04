@@ -637,13 +637,13 @@ impl FileInfo{
   		format!("Error in \"{}\" at line {}:\n{}\n{}\n", 
 		self.name, line_num, self.prog_lines[linedex], err)	
   	}
-	//Gets line number from token index.
-	// Returns line if valid number and 0 if not.
-	fn line_from_tok_idx(&self, idx: usize) -> u32{
-		if let Some(l) = self.lines.get(idx){
-			*l
+	//Takes in a token index.
+	//Produces an error message with line number or panics if invalid.
+	fn err_str_tok(&self, msg: &str, idx: usize) -> String{
+		if let Some(line) = self.lines.get(idx){
+			self.err_str_line(msg, *line)
 		}else{
-			0
+			panic!("Invalid index given for conversion! Given: {}", idx);
 		}
 	}
 }
@@ -1110,13 +1110,13 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 								Err(e) => return Err(file.err_str_line(&e, line)),
 							}
 						}
+						file.append_line(line);
 					}
 				}
 			},
 			_ => return Err(file.err_str_line("SHOULD NEVER GET HERE!!!!!!!", line)),
 		}
 		if chars[i] == '\n' && i < chars.len() - 1{
-			file.append_line(line);
 			line += 1;
 		}
 
@@ -1317,7 +1317,8 @@ pub fn make_ast_prime(
 		//If out of tokens to parse, end or throw error if there were terminators to look for.
 		if token_index >= tokens.len(){
 			if fancy_op != Token::NOTHING{
-				return Err(fancy_op_sans_term_err(fancy_op));
+				let err_str = fancy_op_sans_term_err(fancy_op);
+				return Err(file.err_str_tok(&err_str, tokens.len() - 1));
 			}else{
 				return Ok((already_parsed, token_index));
 			}
