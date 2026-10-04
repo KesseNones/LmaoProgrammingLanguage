@@ -1447,8 +1447,13 @@ two Fragment tokens after it! Found: \"{}\" and \"{}\"", a, b)
 }
 
 fn f_last_arg_missing(t: &Token) -> String{
-	format!("Func token expected at least two fragment tokens after it! \
+	format!("Func token expected at least two Fragment tokens after it! \
 Only found: \"{}\"", t)	
+}
+
+fn f_missing_both_args() -> String{
+	"Func token expected at least two Fragment tokens after it! Found nothing!"
+	.to_string()
 }
 
 //This function does the heavy-lifting of recursively building the AST.
@@ -1806,9 +1811,10 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));
 						},
 						(None, None) => {
-							return Err(format!("Parsing error! Func token expected at least two fragment tokens after it! Found nothing!"));	
+							let e = f_missing_both_args();
+							return Err(file.err_str_tok(&e, token_index));
 						},
-						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+						_ => return Err(file.err_str_tok(&never_here(), token_index)),
 					}
 				},
 				Token::File{file: f, tokens: toks} => {
