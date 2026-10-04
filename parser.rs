@@ -628,17 +628,26 @@ impl FileInfo{
 	fn append_line(&mut self, num: u32) {
 		self.lines.push(num);
 	}
+	//Wraps error string in a line number and program line display system.
   	fn err_str_line(&self, err: &str, line_num: u32) -> String{
 		let linedex = (line_num - 1) as usize;
   		if linedex > self.prog_lines.len() - 1{
 			panic!("Error number that was too big was used!!!! \
 			Max: {} Given: {}", self.prog_lines.len() - 1, linedex);
 		}
+		
+		//Error head.
 		let invert = "\x1b[7m";
 		let reset = "\x1b[0m";
-  		format!("{}Error in \"{}\" at line {}:{}\n{}\n{}\n", 
-		invert, self.name, line_num, reset, 
-		self.prog_lines[linedex], err)	
+		let line_marker_str = format!("Error in \"{}\" at line {}:", self.name, line_num);
+
+		//Program string with filler following it.
+		let p_str = format!("{}", self.prog_lines[linedex]);
+		let filler_line = "~".repeat(line_marker_str.chars().count());
+
+		//All put together.
+		format!("{}{}{}\n{}\n{}\n{}", invert, line_marker_str, 
+		reset, p_str, filler_line, err)
   	}
 	//Takes in a token index.
 	//Produces an error message with line number or panics if invalid.
