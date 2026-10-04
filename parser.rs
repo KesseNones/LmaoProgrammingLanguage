@@ -1675,7 +1675,7 @@ pub fn make_ast_prime(
 							let e = missing_box_args();
 							return Err(file.err_str_tok(&e, token_index));
 						},
-						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+						_ => return Err(file.err_str_tok(&never_here(), token_index)),
 					}
 				},
 				Token::CastTo => {
