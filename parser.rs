@@ -1326,6 +1326,13 @@ fn rogue_else_err() -> String{
 	.to_string()
 }
 
+fn non_if_term_err(t: Token) -> String{
+	format!(
+		"Else token must follow \
+		If token! Else following \"{}\" token here!", t
+	)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1455,12 +1462,8 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));	
 						},
 						t => {
-							return Err(
-								format!(
-									"Parse error! Else token must follow \
-									If token! Else following \"{}\" token here!", t
-								)
-							);
+							let e = non_if_term_err(t);
+							return Err(file.err_str_tok(&e, token_index));
 						}
 					}
 				},
