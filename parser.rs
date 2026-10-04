@@ -1307,6 +1307,11 @@ fn invalid_term_for_att() -> String{
 	.to_string()
 }
 
+fn term_not_ending_fancy_op() -> String{
+ "Invalid terminator given! Not inside fancy operator!"
+.to_string()
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1337,7 +1342,8 @@ pub fn make_ast_prime(
 								&invalid_term_for_att(), token_index));
 						},
 						Token::NOTHING => {
-							return Err("Invalid terminator given! Not inside fancy operator!".to_string());
+							let e = term_not_ending_fancy_op();
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						_ => {
 							return Ok((already_parsed, token_index));	
