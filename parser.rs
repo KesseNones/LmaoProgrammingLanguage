@@ -1345,6 +1345,14 @@ fn non_att_term_err(t: Token) -> String{
 	)
 }
 
+fn unknown_var_cmd(cmd: &str, name: &str, is_var: bool) -> String{
+	let loc_or_var = ["Loc", "Var"];
+	format!(
+		"Parsing error! Unknown {} command \"{}\" for variable named \"{}\"!", 
+		loc_or_var[is_var as usize], cmd, name
+	)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1527,7 +1535,8 @@ pub fn make_ast_prime(
 							//Parses command and throws a fit if not known.
 							let command = VarCmd::new(a);
 							if command == VarCmd::Unknown{
-								return Err(format!("Parsing error! Unknown Var command \"{}\" for variable named \"{}\"!", a, name));
+								let e = unknown_var_cmd(a, name, true);
+								return Err(file.err_str_tok(&e, token_index));
 							}
 
 							let var_data = VarData::new(name, command);
