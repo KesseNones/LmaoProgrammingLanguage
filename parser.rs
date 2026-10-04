@@ -1351,7 +1351,7 @@ fn non_att_term_err(t: Token) -> String{
 fn unknown_var_cmd(cmd: &str, name: &str, is_var: bool) -> String{
 	let loc_or_var = ["Loc", "Var"];
 	format!(
-		"Parsing error! Unknown {} command \"{}\" for variable named \"{}\"!", 
+		"Unknown {} command \"{}\" for variable named \"{}\"!", 
 		loc_or_var[is_var as usize], cmd, name
 	)
 }
@@ -1604,7 +1604,8 @@ pub fn make_ast_prime(
 							//Parses command and throws a fit if not known.
 							let command = VarCmd::new(a);
 							if command == VarCmd::Unknown || command == VarCmd::Delete{
-								return Err(format!("Parsing error! Invalid Loc command \"{}\" for local variable named \"{}\"!", a, name));
+								let e = unknown_var_cmd(a, name, false);
+								return Err(file.err_str_tok(&e, token_index));
 							}
 
 							let var_data = VarData::new(name, command);
@@ -1612,20 +1613,22 @@ pub fn make_ast_prime(
 							token_index += 3;
 						},
 						(Some(a), Some(b), Some(c)) => {
-							return Err(
-								format!("Parsing error! Loc command needs 2 Fragment tokens and one Terminator token! Found tokens: {} {} {}", a, b, c)
-							);
+							let e = invalid_var_toks(a, b, c, false);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), Some(b), None) => {
-							return Err(format!("Parsing error! Expected ending terminator token for total of 3 arguments! Only supplied with first two: {} and {}", a, b));
+							let e = missing_terminator(a, b, false);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), None, None) => {
-							return Err(format!("Parsing error! Expected middle Fragment token and Terminator token at the end for total of 3 arguments! Only supplied with: {}", a));
+							let e = missing_term_and_middle(a, false);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(None, None, None) => {
-							return Err(format!("Parsing error! No arguments supplied for Loc token!"));
+							let e = var_missing_args(false);
+							return Err(file.err_str_tok(&e, token_index));
 						},
-						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+						_ => return Err(file.err_str_tok(&never_here(), token_index)),
 					}
 				},
 				Token::Box => {
