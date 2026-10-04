@@ -1357,9 +1357,17 @@ fn invalid_var_toks(a: &Token, b: &Token, c: &Token, is_var: bool) -> String{
 	let loc_or_var = ["Loc", "Var"];
 	format!(
 		"{} command needs 2 Fragment tokens \
-and one Terminator token! Found: {} {} {}", 
+and one Terminator token! Found: {}, {}, and {}", 
 	loc_or_var[is_var as usize], a, b, c)
 }
+
+fn missing_terminator(a: &Token, b: &Token, is_var: bool) -> String{
+	let loc_or_var = ["Loc", "Var"];
+	format!("{} command expected ending terminator token for total \
+of 3 arguments! Only supplied with: {} and {}", 
+	loc_or_var[is_var as usize], a, b)
+}
+
 
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
@@ -1556,7 +1564,8 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), Some(b), None) => {
-							return Err(format!("Parsing error! Expected ending terminator token for total of 3 arguments! Only supplied with: {} and {}", a, b));
+							let e = missing_terminator(a, b, true);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), None, None) => {
 							return Err(format!("Parsing error! Expected middle Fragment token and Terminator token at the end for total of 3 arguments! Only supplied with: {}", a));
