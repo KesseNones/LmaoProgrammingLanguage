@@ -1353,6 +1353,14 @@ fn unknown_var_cmd(cmd: &str, name: &str, is_var: bool) -> String{
 	)
 }
 
+fn invalid_var_toks(a: &Token, b: &Token, c: &Token, is_var: bool) -> String{
+	let loc_or_var = ["Loc", "Var"];
+	format!(
+		"{} command needs 2 Fragment tokens \
+and one Terminator token! Found: {} {} {}", 
+	loc_or_var[is_var as usize], a, b, c)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1544,9 +1552,8 @@ pub fn make_ast_prime(
 							token_index += 3;
 						},
 						(Some(a), Some(b), Some(c)) => {
-							return Err(
-								format!("Parsing error! Var command needs 2 Fragment tokens and one Terminator token! Found: {} {} {}", a, b, c)
-							);
+							let e = invalid_var_toks(a, b, c, true);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), Some(b), None) => {
 							return Err(format!("Parsing error! Expected ending terminator token for total of 3 arguments! Only supplied with: {} and {}", a, b));
