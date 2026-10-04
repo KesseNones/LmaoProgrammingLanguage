@@ -1333,6 +1333,11 @@ fn non_if_term_err(t: Token) -> String{
 	)
 }
 
+fn rogue_onerror() -> String{
+	"OnError token detected outside of fancy operator!"
+	.to_string()
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1496,7 +1501,8 @@ pub fn make_ast_prime(
 					match fancy_op{
 						Token::Attempt => return Ok((already_parsed, token_index)),
 						Token::NOTHING => {
-							return Err("Parse error! OnError token detected outside of fancy operator!".to_string());
+							let e = rogue_onerror();
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						t => {
 							return Err(
