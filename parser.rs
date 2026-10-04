@@ -1406,6 +1406,11 @@ fn missing_box_args() -> String{
 and Terminator after Box keyword. Found nothing!".to_string()
 }
 
+fn invalid_cast_type(ty: &str) -> String{
+	format!("\"{}\" is \
+not a valid casting data type!", ty)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1686,7 +1691,9 @@ pub fn make_ast_prime(
 									already_parsed.push(ASTNode::CastTo(cast_type));
 									token_index += 2;
 								},
-								Err(_) => return Err(format!("Parse error! Token \"{}\" is not a valid casting data type!", ty)),
+								Err(_) => return Err(
+									file.err_str_tok(
+									&invalid_cast_type(ty), token_index)),
 							}
 						},
 						(Some(a), Some(b)) => {
