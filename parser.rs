@@ -1421,6 +1421,11 @@ fn castto_missing_term(a: &Token) -> String{
 found nothing!", a)
 }
 
+fn castto_missing_args() -> String{
+	"Expected data type Fragment and Terminator tokens \
+after CastTo token. Found nothing!".to_string()
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1715,9 +1720,10 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));
 						},
 						(None, None) => {
-							return Err(format!("Parsing error! Expected data type fragment and terminator tokens after CastTo token. Found nothing!"));
+							let e = castto_missing_args();
+							return Err(file.err_str_tok(&e, token_index));
 						},
-						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
+						_ => return Err(file.err_str_tok(&never_here(), token_index)),
 					}
 				},
 				Token::Func => {
