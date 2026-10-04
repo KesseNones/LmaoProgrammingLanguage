@@ -1441,6 +1441,11 @@ fn unknown_func_command(name: &str, c: &str) -> String{
   Given: \"{}\"", name, c)
 }
 
+fn invalid_func_args(a: &Token, b: &Token) -> String{
+	format!("Func token expected at least \
+two Fragment tokens after it! Found: \"{}\" and \"{}\"", a, b)	
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1788,7 +1793,8 @@ pub fn make_ast_prime(
 							}
 						},
 						(Some(a), Some(b)) => {
-							return Err(format!("Parsing error! Func token expected at least two fragment tokens after it! Found: \"{}\" and \"{}\"", a, b));	
+							let e = invalid_func_args(a, b);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), None) => {
 							return Err(format!("Parsing error! Func token expected at least two fragment tokens after it! Only found: \"{}\"", a));	
