@@ -1436,6 +1436,11 @@ fn f_call_missing_term(name: &str) -> String{
 of calling function \"{}\" found nothing!", name)	
 }
 
+fn unknown_func_command(name: &str, c: &str) -> String{
+	format!("Invalid command token given for function \"{}\"! \
+  Given: \"{}\"", name, c)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1777,7 +1782,8 @@ pub fn make_ast_prime(
 									}
 								},
 								FunCmd::Unknown => {
-									return Err(format!("Parsing error! Invalid command token given for function \"{}\"! Given: \"{}\"", name, c));
+									let e = unknown_func_command(name, c);
+									return Err(file.err_str_tok(&e, token_index));
 								}
 							}
 						},
