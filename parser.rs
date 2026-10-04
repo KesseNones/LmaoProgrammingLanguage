@@ -1312,6 +1312,11 @@ fn term_not_ending_fancy_op() -> String{
 .to_string()
 }
 
+fn rogue_fragment_err(frag: &str) -> String{
+	format!("Parsing error! \
+Fragment \"{}\" not contained by a fancy Operator!", frag)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1364,7 +1369,8 @@ pub fn make_ast_prime(
 				Token::Op(o) => already_parsed.push(ASTNode::Op(*o)),
 				//If you see a rogue fragment like this, error out!
 				Token::Fragment(f) => {
-					return Err(format!("Parsing error! Fragment \"{}\" not contained by a fancy Operator!", f))
+					let e = rogue_fragment_err(f);
+					return Err(file.err_str_tok(&e, token_index));
 				},	
 				Token::While =>{
 					match make_ast_prime(
