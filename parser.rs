@@ -1379,6 +1379,12 @@ of 3 arguments! Only supplied with: {}",
 loc_or_var[is_var as usize], a)
 }
 
+fn var_missing_args(is_var: bool) -> String{
+	let loc_or_var = ["Loc", "Var"];
+	format!("{} command takes 3 arguments, none supplied!", 
+	loc_or_var[is_var as usize])
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1582,7 +1588,8 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));
 						},
 						(None, None, None) => {
-							return Err(format!("Parsing error! No arguments supplied for Var token!"));
+							let e = var_missing_args(true);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						_ => return Err("SHOULD NEVER GET HERE!".to_string()),
 					}
