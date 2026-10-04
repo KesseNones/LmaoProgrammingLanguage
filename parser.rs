@@ -1392,6 +1392,10 @@ fn invalid_box_command(cmd: &str) -> String{
 	)
 }
 
+fn invalid_box_format(a: &Token, b: &Token) -> String{
+    format!("Expected valid Box command Fragment token and Terminator token! Received tokens: \"{}\" and \"{}\"", a, b)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1650,7 +1654,8 @@ pub fn make_ast_prime(
 							token_index += 2;
 						},
 						(Some(a), Some(b)) => {
-							return Err(format!("Parsing error! Expected valid box command Fragment token and terminator token! Received tokens: \"{}\" and \"{}\"", a, b));
+							let e = invalid_box_format(a, b);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 						(Some(a), None) => {
 							return Err(format!("Parsing error! Expected terminator after box command \"{}\"; found nothing!", a));
