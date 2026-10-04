@@ -1823,7 +1823,7 @@ pub fn make_ast_prime(
 							let f_data = FileData::new(f.clone(), file_body.into());
 							already_parsed.push(ASTNode::File(f_data));
 						},
-						Err(e) => return Err(e)
+						Err(e) => return Err(file.err_str_tok(&e, token_index))
 					}	
 				},
 				Token::NOTHING => (),
