@@ -1302,6 +1302,11 @@ fn fancy_op_sans_term_err(fancy_op: Token) -> String {
 without finding a valid terminator!", fancy_op)
 }
 
+fn invalid_term_for_att() -> String{
+	"Invalid terminator for attempt given! Expected \"onError\", found \";\""
+	.to_string()
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1328,7 +1333,8 @@ pub fn make_ast_prime(
 				Token::Terminator => {
 					match fancy_op{
 						Token::Attempt => {
-							return Err("Invalid terminator for attempt given! Expected \"onError\", found \";\"".to_string());
+							return Err(file.err_str_tok(
+								&invalid_term_for_att(), token_index));
 						},
 						Token::NOTHING => {
 							return Err("Invalid terminator given! Not inside fancy operator!".to_string());
