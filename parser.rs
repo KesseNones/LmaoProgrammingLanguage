@@ -1338,6 +1338,13 @@ fn rogue_onerror() -> String{
 	.to_string()
 }
 
+fn non_att_term_err(t: Token) -> String{
+	format!(
+		"OnError token must follow \
+		Attempt token! OnError following \"{}\" token here!", t
+	)
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1505,12 +1512,8 @@ pub fn make_ast_prime(
 							return Err(file.err_str_tok(&e, token_index));
 						},
 						t => {
-							return Err(
-								format!(
-									"Parse error! OnError token must follow \
-									Attempt token! OnError following \"{}\" token here!", t
-								)
-							);
+							let e = non_att_term_err(t);
+							return Err(file.err_str_tok(&e, token_index));
 						},
 					}
 				},
