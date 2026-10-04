@@ -1426,6 +1426,11 @@ fn castto_missing_args() -> String{
 after CastTo token. Found nothing!".to_string()
 }
 
+fn f_call_incorrect_term(name: &str, t: &Token) -> String{
+	format!("Expected Terminator token at end \
+of calling function \"{}\" found: \"{}\"", name, t)	
+}
+
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
 	file: &FileInfo,
@@ -1757,7 +1762,8 @@ pub fn make_ast_prime(
 											token_index += 3;
 										},
 										Some(a) => {
-											return Err(format!("Parsing error! Expected Terminator token at end of calling function \"{}\" found: \"{}\"", name, a));	
+											let e = f_call_incorrect_term(name, a);
+											return Err(file.err_str_tok(&e, token_index));
 										},
 										None => {
 											return Err(format!("Parsing error! Expected Terminator token at end of calling function \"{}\" found nothing!", name));	
