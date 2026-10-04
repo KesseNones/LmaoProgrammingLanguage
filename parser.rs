@@ -1392,11 +1392,11 @@ pub fn make_ast_prime(
 					)
 					{
 						Ok((def_bod, token_idx_prime)) => {
-							let def_exp = ASTNode::Expression(Box::new(def_bod));
-							already_parsed.push(ASTNode::Defer(Rc::new(def_exp)));
+							already_parsed
+								.push(ASTNode::Defer(Rc::new(def_bod.into())));
 							token_index = token_idx_prime;	
 						},
-						Err(e) => return Err(e),
+						Err(e) => return Err(file.err_str_tok(&e, token_index)),
 					}
 					
 				},
