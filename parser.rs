@@ -634,8 +634,11 @@ impl FileInfo{
 			panic!("Error number that was too big was used!!!! \
 			Max: {} Given: {}", self.prog_lines.len() - 1, linedex);
 		}
-  		format!("Error in \"{}\" at line {}:\n{}\n{}\n", 
-		self.name, line_num, self.prog_lines[linedex], err)	
+		let invert = "\x1b[7m";
+		let reset = "\x1b[0m";
+  		format!("{}Error in \"{}\" at line {}:{}\n{}\n{}\n", 
+		invert, self.name, line_num, reset, 
+		self.prog_lines[linedex], err)	
   	}
 	//Takes in a token index.
 	//Produces an error message with line number or panics if invalid.
