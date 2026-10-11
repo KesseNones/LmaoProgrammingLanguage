@@ -467,6 +467,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 					},
                     _ => {},
                 }
+				token_index += 1;
             }
         },
         _ => {res = Err(Box::new("Should never get to this point in running!".to_string()))},
@@ -485,7 +486,11 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 	}	
 
 	vars.remove_frame();
-	res
+	if let Ok(code_and_idx) = res{
+		Ok((code_and_idx.0, token_index))
+	}else{
+		res
+	}
 }
 
 //Given an input program string and args, 
