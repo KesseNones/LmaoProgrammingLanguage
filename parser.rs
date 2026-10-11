@@ -868,11 +868,12 @@ impl VarData{
 #[derive(Clone)]
 pub struct AttErrData{
 	pub att: ASTNode,
-	pub err: ASTNode 
+	pub err: ASTNode,
+	pub token_count: usize
 }
 impl AttErrData{
 	fn new(attempt: ASTNode, error: ASTNode) -> Box<Self>{
-		Box::new(AttErrData{att: attempt, err: error})
+		Box::new(AttErrData{att: attempt, err: error, token_count: 0})
 	}
 }
 
@@ -1637,9 +1638,11 @@ pub fn make_ast_prime(
 							)
 							{
 								Ok((err_bod, tok_idx_prime_prime)) => {
-									let att_err_data = AttErrData::new(
+									let mut att_err_data = AttErrData::new(
 										att_body.into(), err_bod.into()
 									);
+									att_err_data.token_count = 
+										tok_idx_prime_prime - token_index;
 									let att_err_node = ASTNode::AttErr(att_err_data);
 
 									already_parsed.push(att_err_node);
