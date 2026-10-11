@@ -1309,10 +1309,12 @@ pub fn list_clear(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 			match h.get_heap_ref_mut(v){
 				Some(HeapValue::String(st)) => {
 					st.clear();
+					s.push(v);
 					Ok(RetCode::Normal)
 				},
 				Some(HeapValue::List(l)) => {
 					l.clear();
+					s.push(v);
 					Ok(RetCode::Normal)
 				},
 				Some(_) => Err(format!("Operator ({}) error! Top of stack must be type StringBox or ListBox! Given: {}", op_name, v)),
