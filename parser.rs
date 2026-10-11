@@ -835,12 +835,18 @@ impl FuncData{
 #[derive(Clone)]
 pub struct IfData{
 	pub if_true: ASTNode,
-	pub if_false: ASTNode
+	pub if_false: ASTNode,
+	pub if_token_count: usize,
+	pub else_token_count: usize
 }
 
 impl IfData{
 	pub fn new(t: ASTNode, f: ASTNode) -> Box<Self>{
-		Box::new(IfData{if_true: t, if_false: f})
+		Box::new(IfData{
+			if_true: t, if_false: f,
+			if_token_count: 0, 
+			else_token_count: 0
+		})
 	}
 }
 
@@ -1566,11 +1572,13 @@ pub fn make_ast_prime(
 					)
 					{
 						Ok((if_body, token_idx_prime)) => {
+							let if_delta = token_idx_prime - token_index;
 							token_index = token_idx_prime;
 							//If else statement detected, 
 							// parses recursively the else body.
 							// Otherwise just puts nothing in for else_body.
 							let else_body: Vec<ASTNode>;
+							let else_delta: usize;
 							match tokens[token_index]{
 								Token::Else => {
 									match make_ast_prime(
@@ -1578,18 +1586,25 @@ pub fn make_ast_prime(
 									)
 									{
 										Ok((bod, tok_idx_prime_prime)) => {
+											else_delta = tok_idx_prime_prime - token_index;
 											else_body = bod;	
 											token_index = tok_idx_prime_prime;
 										},
 										Err(e) => return Err(file.err_str_tok(&e, token_idx_prime)),
 									}
 								},
-								Token::Terminator => else_body = Vec::new(),
+								Token::Terminator => {
+									else_body = Vec::new(); 
+									else_delta = 0;
+								},
 								_ => return Err(file.err_str_tok(&never_here(), token_index))
 							}
 
 							//Builds and pushes If ASTNode.	
-							let if_data = IfData::new(if_body.into(), else_body.into());
+							let mut if_data = 
+								IfData::new(if_body.into(), else_body.into());
+							if_data.if_token_count = if_delta;
+							if_data.else_token_count = else_delta;
 							let if_node = ASTNode::If(if_data);
 							already_parsed.push(if_node);
 
