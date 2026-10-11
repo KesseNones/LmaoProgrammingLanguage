@@ -1537,7 +1537,8 @@ pub fn make_ast_prime(
 					)
 					{
 						Ok((loop_body, token_idx_prime)) => {
-							let l_data = WhileData::new(loop_body.into(), 0);
+							let idx_delta = token_idx_prime - token_index;
+							let l_data = WhileData::new(loop_body.into(), idx_delta);
 							already_parsed.push(ASTNode::While(l_data));
 							token_index = token_idx_prime;	
 						},
