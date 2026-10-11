@@ -374,22 +374,22 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                             FunCmd::Define => {
 								let name = data.name.as_str();
 								let body = Rc::clone(&data.bod);
-								if !fns.func_def(name, body){
+								if !fns.func_def(name, body, data.start_token_index){
 									err_break!{func_already_defined(name)}
 								}
 								token_index = token_index + 2 + data.body_token_count;		
                             },
                             FunCmd::Call => {
 								let name = data.name.as_str();
-                                let func_body = match fns.get_body(name){
+                                let (func_body, findex) = match fns.get_body_and_idx(name){
                                     Some(b) => b,
                                     None => { err_break!{func_not_defined(name)} }, 
                                 };
 								let bod_res = 
-								run_program(&func_body, s, h, vars, fns, file, token_index);
+								run_program(&func_body, s, h, vars, fns, file, findex);
 
 								match bod_res{
-									Ok((_, token_index_prime)) => token_index = token_index_prime,
+									Ok(_) => token_index += 3,
 									Err(e) => {err_break!{e}}
 								}
                             },
