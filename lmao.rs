@@ -292,6 +292,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                             },
 							_ => {err_break!{should_never_get_here_for_func("box altr")}},
                         }
+						token_index += 2;
                     },
                     ASTNode::If(data) => {
                         match s.pop(){
