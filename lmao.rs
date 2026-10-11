@@ -455,7 +455,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 						run_program(&data.att, s, h, vars, fns, file, token_index);
 
 						match att_res{
-							Ok(_) => (),
+							Ok((_, tok_idx_prime)) => token_index = tok_idx_prime + data.err_token_count,
 							Err(e1) => {
 								s.push(h.insert_to_heap(HeapValue::String(*e1)));
 								
@@ -464,10 +464,9 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 								file, token_index);
 
 								match err_res{
-									Ok(_) => (),
+									Ok((_, tok_idx_prime_prime)) => token_index = tok_idx_prime_prime,
 									Err(e2) => {
-										res = Err(e2);
-										break;
+										err_break!{e2}
 									},
 								}
 									
@@ -487,10 +486,11 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 							Ok(_) => (),
 							Err(e) => {err_break!{e}},
 						}
+						token_index += 2;
 					},
 					ASTNode::File(f_data) => {
 						match run_program(&f_data.program, s, h, vars, 
-						fns, file, token_index){
+						fns, &f_data.file, 0){
 							Ok(_) => (),
 							Err(e) => {err_break!{e}},
 						}
