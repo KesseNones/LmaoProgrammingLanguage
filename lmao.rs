@@ -126,6 +126,13 @@ Result<RetCode, String>
 	}
 }
 
+fn invalid_stack_top_for_if(v: Value) -> String{
+	format!("If statement error! \
+		Top of stack needs to be type Boolean \
+		for effective branching to occur! \
+		Attempted value: {}", v)
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
 vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
@@ -298,20 +305,24 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                         match s.pop(){
                             Some(Value::Boolean(b)) => {
 								let branches = [&data.if_false, &data.if_true];
+								let offsets: [usize; 2] = [data.if_token_count + 1, 1];
 								let branch_res = 
-								run_program(branches[b as usize], s, h, vars, fns, file, token_index);
+								run_program(branches[b as usize], s, h, 
+								vars, fns, file, token_index + offsets[b as usize]);
 
                                 match branch_res{
-                                    Ok(_) => (),
+                                    Ok((_, token_index_prime)) => {
+										match (b, data.else_token_count > 0){
+											(true, true) => token_index = token_index_prime + data.else_token_count,
+											(true, false) => token_index = token_index_prime,
+											(false, true) => token_index = token_index_prime,
+											(false, false) => token_index += data.if_token_count,
+										}
+									},
                                     Err(e) => {err_break!{e}}
                                 }
                             },
-                            Some(v) => {
-                                err_break!{format!("If statement error! \
-                                    Top of stack needs to be type Boolean \
-                                    for effective branching to occur! \
-                                    Attempted value: {}", v)}
-                            },
+                            Some(v) => { err_break!{invalid_stack_top_for_if(v)} },
                             None => {err_break!{needs_n_args_only_n_provided("if", "One", "none")}}
                         }
                     },
