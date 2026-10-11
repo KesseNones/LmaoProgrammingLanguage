@@ -479,6 +479,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                         }else{
                             deferred = Some(vec![Rc::clone(data)]);
                         }
+						token_index += data.token_count;
                     },
                     ASTNode::CastTo(data_type) => {
 						match cast_fan_op(s, h, *data_type)
@@ -506,10 +507,10 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 	if let (Some(def), Ok(_)) = (deferred, &res){
 		for expr in def.iter().rev(){
 			let expr_res = 
-			run_program(&expr.body, s, h, vars, fns, file, token_index);
+			run_program(&expr.body, s, h, vars, fns, file, expr.start_token_index + 1);
 			
 			match expr_res{
-				Ok((_, token_index_prime)) => token_index = token_index_prime,
+				Ok(_) => (),
 				Err(e) => {err_break!{e}}
 			}	
 		}
