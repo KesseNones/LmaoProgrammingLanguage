@@ -377,6 +377,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 								if !fns.func_def(name, body){
 									err_break!{func_already_defined(name)}
 								}
+								token_index = token_index + 2 + data.body_token_count;		
                             },
                             FunCmd::Call => {
 								let name = data.name.as_str();
@@ -387,7 +388,10 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 								let bod_res = 
 								run_program(&func_body, s, h, vars, fns, file, token_index);
 
-								if let Err(e) = bod_res{err_break!{e}}
+								match bod_res{
+									Ok((_, token_index_prime)) => token_index = token_index_prime,
+									Err(e) => {err_break!{e}}
+								}
                             },
 							_ => {err_break!{should_never_get_here_for_func("function")}}
                         }

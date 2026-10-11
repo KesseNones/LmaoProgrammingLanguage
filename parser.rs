@@ -655,7 +655,7 @@ impl FileInfo{
 		if let Some(line) = self.lines.get(idx){
 			self.err_str_line(msg, *line)
 		}else{
-			panic!("Invalid index given for conversion! Given: {}", idx);
+			panic!("Invalid index given for conversion! Given: {} Max: {}", idx, self.lines.len() - 1);
 		}
 	}
 }
