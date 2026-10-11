@@ -148,6 +148,12 @@ fn func_not_defined(name: &str) -> String{
 		Try defining it using func def !", name)
 }
 
+fn invalid_loc_cmd() -> String{
+	"Unrecognized local variable command! \
+Valid: mak, get, mut".to_string()
+}
+
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
 vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
@@ -440,10 +446,9 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                                     },
                                 }
                             },
-                            _ => {
-                                err_break!{"Local Variable (loc) error! Unrecognized local variable command! Valid: mak, get, mut".to_string()}
-                            },
+                            _ => { err_break!{invalid_loc_cmd()} },
                         }
+						token_index += 3;
                     },
                     ASTNode::AttErr(data) => {
 						let att_res = 
