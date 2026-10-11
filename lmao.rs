@@ -210,6 +210,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                                 err_break!{"Variable (var) error! Unrecognized variable command! Valid: mak, get, mut, del .".to_string()}
                             },
                         }
+						token_index += 3;
                     },
                     ASTNode::BoxOp(box_op) => {
                         match box_op{
