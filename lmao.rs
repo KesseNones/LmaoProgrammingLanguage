@@ -355,6 +355,8 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                         }
 						//If the loop had an error, break out of the main loop.
 						if let Err(_) = res {break;}
+					
+						token_index += data.token_count;
                     },
                     ASTNode::Function(data) => {
                         match data.cmd{
