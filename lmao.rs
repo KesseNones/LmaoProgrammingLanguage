@@ -353,7 +353,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                                 Some(Value::Boolean(b)) => {
                                     if b{
 										let body_res = 
-										run_program(&data.body, s, h, vars, fns, file, token_index);
+										run_program(&data.body, s, h, vars, fns, file, token_index + 1);
 
 										match body_res{
 											Ok((RetCode::Normal, _)) => (),
@@ -452,7 +452,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                     },
                     ASTNode::AttErr(data) => {
 						let att_res = 
-						run_program(&data.att, s, h, vars, fns, file, token_index);
+						run_program(&data.att, s, h, vars, fns, file, token_index + 1);
 
 						match att_res{
 							Ok((_, tok_idx_prime)) => token_index = tok_idx_prime + data.err_token_count,
@@ -461,7 +461,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 								
 								let err_res = 
 								run_program(&data.err, s, h, vars, fns,
-								file, token_index);
+								file, token_index + 1 + data.att_token_count);
 
 								match err_res{
 									Ok((_, tok_idx_prime_prime)) => token_index = tok_idx_prime_prime,
