@@ -905,6 +905,17 @@ impl WhileData{
 	}
 }
 
+#[derive(Clone)]
+pub struct DeferData{
+	pub body: ASTNode,
+	pub token_count: usize
+}
+impl DeferData{
+	fn new(b: ASTNode, count: usize) -> Rc<Self>{
+		Rc::new(DeferData{body: b, token_count: count})
+	}
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
@@ -919,7 +930,7 @@ pub enum ASTNode{
 	LocVar(Box<VarData>),
 	BoxOp(BoxCmd),
 	AttErr(Box<AttErrData>),
-	Defer(Rc<ASTNode>),
+	Defer(Rc<DeferData>),
 	CastTo(CastType),
 	File(Box<FileData>)
 }
@@ -956,7 +967,7 @@ impl fmt::Display for ASTNode{
 			ASTNode::LocVar(data) => write!(f, "Local Variable [name: {}, cmd: {}]", data.name, data.cmd),
 			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
 			ASTNode::AttErr(data) => write!(f, "AttErr [attempt: {}, err: {}]", data.att, data.err),
-			ASTNode::Defer(bod) => write!(f, "Defer [{}]", bod),
+			ASTNode::Defer(data) => write!(f, "Defer [{}]", data.body),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
 			ASTNode::File(data) => write!(f, "File {}", data.file.name)
 		}
@@ -1565,8 +1576,9 @@ pub fn make_ast_prime(
 					)
 					{
 						Ok((def_bod, token_idx_prime)) => {
-							already_parsed
-								.push(ASTNode::Defer(Rc::new(def_bod.into())));
+							let data = DeferData::new(def_bod.into(), 
+								token_idx_prime - token_index);
+							already_parsed.push(ASTNode::Defer(data));
 							token_index = token_idx_prime;	
 						},
 						Err(e) => return Err(file.err_str_tok(&e, token_index)),

@@ -159,7 +159,7 @@ fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap,
 vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
 mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 {
-    let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
+    let mut deferred: Option<Vec<Rc<DeferData>>> = None;
 	let mut res: Result<(RetCode, usize), Box<String>> = 
 		Ok((RetCode::Normal, token_index)); 
 	vars.add_frame();
@@ -473,11 +473,11 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 							},
 						}
                     },
-                    ASTNode::Defer(body) => {
+                    ASTNode::Defer(data) => {
                         if let Some(def) = &mut deferred{
-                            def.push(Rc::clone(body));
+                            def.push(Rc::clone(data));
                         }else{
-                            deferred = Some(vec![Rc::clone(body)]);
+                            deferred = Some(vec![Rc::clone(data)]);
                         }
                     },
                     ASTNode::CastTo(data_type) => {
@@ -506,7 +506,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 	if let (Some(def), Ok(_)) = (deferred, &res){
 		for expr in def.iter().rev(){
 			let expr_res = 
-			run_program(expr, s, h, vars, fns, file, token_index);
+			run_program(&expr.body, s, h, vars, fns, file, token_index);
 			
 			match expr_res{
 				Ok((_, token_index_prime)) => token_index = token_index_prime,
