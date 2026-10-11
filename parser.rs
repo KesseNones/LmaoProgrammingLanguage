@@ -908,11 +908,16 @@ impl WhileData{
 #[derive(Clone)]
 pub struct DeferData{
 	pub body: ASTNode,
-	pub token_count: usize
+	pub token_count: usize,
+	pub start_token_index: usize
 }
 impl DeferData{
-	fn new(b: ASTNode, count: usize) -> Rc<Self>{
-		Rc::new(DeferData{body: b, token_count: count})
+	fn new(b: ASTNode, count: usize, start: usize) -> Rc<Self>{
+		Rc::new(DeferData{
+			body: b, 
+			token_count: count, 
+			start_token_index: start
+		})
 	}
 }
 
@@ -1577,7 +1582,7 @@ pub fn make_ast_prime(
 					{
 						Ok((def_bod, token_idx_prime)) => {
 							let data = DeferData::new(def_bod.into(), 
-								token_idx_prime - token_index);
+								token_idx_prime - token_index, token_index);
 							already_parsed.push(ASTNode::Defer(data));
 							token_index = token_idx_prime;	
 						},
