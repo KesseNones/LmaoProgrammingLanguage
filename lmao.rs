@@ -1,6 +1,5 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.18.0
 
 use std::collections::BTreeMap;
 use std::env;
@@ -123,7 +122,8 @@ Result<RetCode, String>
 
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
-vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
+vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
+mut token_index: usize) -> Result<RetCode, String>
 {
     let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
 	let mut res: Result<RetCode, String> = Ok(RetCode::Normal); 
@@ -290,7 +290,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                             Some(Value::Boolean(b)) => {
 								let branches = [&data.if_false, &data.if_true];
 								let branch_res = 
-								run_program(branches[b as usize], s, h, vars, fns);
+								run_program(branches[b as usize], s, h, vars, fns, file, token_index);
 
                                 match branch_res{
                                     Ok(_) => (),
@@ -312,7 +312,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                 Some(Value::Boolean(b)) => {
                                     if b{
 										let body_res = 
-										run_program(&bod, s, h, vars, fns);
+										run_program(&bod, s, h, vars, fns, file, token_index);
 
 										match body_res{
 											Ok(RetCode::Normal) => (),
@@ -357,7 +357,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                     }, 
                                 };
 								let bod_res = 
-								run_program(&func_body, s, h, vars, fns);
+								run_program(&func_body, s, h, vars, fns, file, token_index);
 
 								if let Err(e) = bod_res{err_break!{e}}
                             },
@@ -415,7 +415,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                     },
                     ASTNode::AttErr(data) => {
 						let att_res = 
-						run_program(&data.att, s, h, vars, fns);
+						run_program(&data.att, s, h, vars, fns, file, token_index);
 
 						match att_res{
 							Ok(_) => (),
@@ -423,7 +423,8 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 								s.push(h.insert_to_heap(HeapValue::String(e1)));
 								
 								let err_res = 
-								run_program(&data.err, s, h, vars, fns);
+								run_program(&data.err, s, h, vars, fns,
+								file, token_index);
 
 								match err_res{
 									Ok(_) => (),
@@ -451,7 +452,8 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 						}
 					},
 					ASTNode::File(f_data) => {
-						match run_program(&f_data.program, s, h, vars, fns){
+						match run_program(&f_data.program, s, h, vars, 
+						fns, file, token_index){
 							Ok(_) => (),
 							Err(e) => {err_break!{e}},
 						}
@@ -466,7 +468,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 	if let (Some(def), Ok(_)) = (deferred, &res){
 		for expr in def.iter().rev(){
 			let expr_res = 
-			run_program(expr, s, h, vars, fns);
+			run_program(expr, s, h, vars, fns, file, token_index);
 			
 			match expr_res{
 				Ok(_) => (),
@@ -503,7 +505,8 @@ prev_state: Option<(Stack, Heap, Variables, Functions)>
 	match parse_string_to_ast(&argv, argc, program_string){
 		Ok(ast) => {
 			if let ASTNode::File(data) = ast{
-				let res = run_program(&data.program, &mut s, &mut h, &mut vs, &mut fs);
+				let res = run_program(&data.program, &mut s, &mut h, 
+				&mut vs, &mut fs, &data.file, 0);
 				(res, s, h, vs, fs)
 			}else{
 				let e = Err(format!("Parsing error! Top level of AST must be type File! Received node: {}", ast));
