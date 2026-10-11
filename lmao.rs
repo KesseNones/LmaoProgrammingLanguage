@@ -313,13 +313,13 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                             None => {err_break!{needs_n_args_only_n_provided("if", "One", "none")}}
                         }
                     },
-                    ASTNode::While(bod) => {
+                    ASTNode::While(data) => {
                         loop {
                             match s.pop(){
                                 Some(Value::Boolean(b)) => {
                                     if b{
 										let body_res = 
-										run_program(&bod, s, h, vars, fns, file, token_index);
+										run_program(&data.body, s, h, vars, fns, file, token_index);
 
 										match body_res{
 											Ok((RetCode::Normal, _)) => (),

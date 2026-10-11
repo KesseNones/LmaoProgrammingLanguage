@@ -881,6 +881,17 @@ impl FileData{
 	}
 }
 
+#[derive(Clone)]
+pub struct WhileData{
+	pub body: ASTNode,
+	pub token_count: usize
+}
+impl WhileData{
+	fn new(b: ASTNode, count: usize) -> Box<Self>{
+		Box::new(WhileData{body: b, token_count: count})
+	}
+}
+
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
@@ -888,7 +899,7 @@ pub enum ASTNode{
 	Val(Value),	
 	HeapVal(Box<HeapValue>),
 	If(Box<IfData>),
-	While(Box<ASTNode>),
+	While(Box<WhileData>),
 	Expression(Box<Vec<ASTNode>>),
 	Function(Box<FuncData>),
 	Variable(Box<VarData>),
@@ -920,7 +931,7 @@ impl fmt::Display for ASTNode{
 			ASTNode::Val(v) => write!(f, "{}", v),
 			ASTNode::HeapVal(hv) => write!(f, "{}", hv),
 			ASTNode::If(data) => write!(f, "If [true_branch: {}, false_branch: {}]", data.if_true, data.if_false),
-			ASTNode::While(body) => write!(f, "While [{}]", body),
+			ASTNode::While(data) => write!(f, "While [{}]", data.body),
 			ASTNode::Expression(vec) => {
 				let strs: Vec<String> = vec.iter().map(|n| format!("{}", n)).collect();
 				write!(f, "Expression [{}]", strs.join(", "))
@@ -1526,8 +1537,8 @@ pub fn make_ast_prime(
 					)
 					{
 						Ok((loop_body, token_idx_prime)) => {
-							let loop_expr = Box::new(loop_body.into());
-							already_parsed.push(ASTNode::While(loop_expr));
+							let l_data = WhileData::new(loop_body.into(), 0);
+							already_parsed.push(ASTNode::While(l_data));
 							token_index = token_idx_prime;	
 						},
 						Err(e) => return Err(file.err_str_tok(&e, token_index)),
