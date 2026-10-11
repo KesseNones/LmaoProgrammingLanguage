@@ -138,7 +138,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 
 	macro_rules! err_break{
 		($err:expr) => {
-			res = Err(bformat!("{}", $err)); break;	
+			res = Err(bformat!("{}", file.err_str_tok(&$err, token_index))); break;	
 		};
 	}
 

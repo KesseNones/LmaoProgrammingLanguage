@@ -651,7 +651,7 @@ impl FileInfo{
   	}
 	//Takes in a token index.
 	//Produces an error message with line number or panics if invalid.
-	fn err_str_tok(&self, msg: &str, idx: usize) -> String{
+	pub fn err_str_tok(&self, msg: &str, idx: usize) -> String{
 		if let Some(line) = self.lines.get(idx){
 			self.err_str_line(msg, *line)
 		}else{
