@@ -205,7 +205,7 @@ impl Heap{
 						(Some(&mut left[num1].0), Some(&right[0].0))
 					}else{
 						let (left, right) = self.heap.split_at_mut(num1);
-						(Some(&mut left[0].0), Some(&right[num2].0))
+						(Some(&mut right[0].0), Some(&left[num2].0))
 					}
 				}
 			},
