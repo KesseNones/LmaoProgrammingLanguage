@@ -15,6 +15,12 @@ use parser::*;
 mod state_and_ops;
 use state_and_ops::*;
 
+macro_rules! bformat{
+	($($arg:tt)*) => {
+		Box::new(format!($($arg)*))
+	};
+}
+
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
 fn variable_lack_of_args_error(var_action: &str) -> String{
@@ -123,15 +129,16 @@ Result<RetCode, String>
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
 vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
-mut token_index: usize) -> Result<RetCode, String>
+mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 {
     let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
-	let mut res: Result<RetCode, String> = Ok(RetCode::Normal); 
+	let mut res: Result<(RetCode, usize), Box<String>> = 
+		Ok((RetCode::Normal, token_index)); 
 	vars.add_frame();
 
 	macro_rules! err_break{
 		($err:expr) => {
-			res = Err($err); break;	
+			res = Err(bformat!("{}", $err)); break;	
 		};
 	}
 
@@ -145,7 +152,7 @@ mut token_index: usize) -> Result<RetCode, String>
 						match run_operator(*id, s, h){
 							Ok(RetCode::Normal) => (),
 							Ok(RetCode::LeavingScopeEarly) => {
-								res = Ok(RetCode::LeavingScopeEarly);
+								res = Ok((RetCode::LeavingScopeEarly, token_index));
 								break;
 							},
 							Err(e) => {err_break!{e}},
@@ -315,8 +322,8 @@ mut token_index: usize) -> Result<RetCode, String>
 										run_program(&bod, s, h, vars, fns, file, token_index);
 
 										match body_res{
-											Ok(RetCode::Normal) => (),
-											Ok(RetCode::LeavingScopeEarly) => {
+											Ok((RetCode::Normal, _)) => (),
+											Ok((RetCode::LeavingScopeEarly, _)) => {
 												break;	
 											},
 											Err(e) => {err_break!{e}},
@@ -420,7 +427,7 @@ mut token_index: usize) -> Result<RetCode, String>
 						match att_res{
 							Ok(_) => (),
 							Err(e1) => {
-								s.push(h.insert_to_heap(HeapValue::String(e1)));
+								s.push(h.insert_to_heap(HeapValue::String(*e1)));
 								
 								let err_res = 
 								run_program(&data.err, s, h, vars, fns,
@@ -462,7 +469,7 @@ mut token_index: usize) -> Result<RetCode, String>
                 }
             }
         },
-        _ => {res = Err("Should never get to this point in running!".to_string())},
+        _ => {res = Err(Box::new("Should never get to this point in running!".to_string()))},
     }
 
 	if let (Some(def), Ok(_)) = (deferred, &res){
@@ -487,7 +494,7 @@ mut token_index: usize) -> Result<RetCode, String>
 fn run_prog_from_str(argv: &Vec<String>, argc: usize, program_string: String,
 prev_state: Option<(Stack, Heap, Variables, Functions)>
 ) -> 
-(Result<RetCode, String>, Stack, Heap, Variables, Functions)
+(Result<(RetCode, usize), Box<String>>, Stack, Heap, Variables, Functions)
 {
 	//Clones previous state to be used in run_program, or makes new one.
 	let (mut s, mut h, mut vs, mut fs);
@@ -509,11 +516,11 @@ prev_state: Option<(Stack, Heap, Variables, Functions)>
 				&mut vs, &mut fs, &data.file, 0);
 				(res, s, h, vs, fs)
 			}else{
-				let e = Err(format!("Parsing error! Top level of AST must be type File! Received node: {}", ast));
+				let e = Err(bformat!("Parsing error! Top level of AST must be type File! Received node: {}", ast));
 				(e, s, h, vs, fs)
 			}
 		},
-		Err(e) => (Err(e), s, h, vs, fs)
+		Err(e) => (Err(bformat!("{}", e)), s, h, vs, fs)
 	}
 }
 
