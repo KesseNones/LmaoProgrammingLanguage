@@ -509,7 +509,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 			run_program(expr, s, h, vars, fns, file, token_index);
 			
 			match expr_res{
-				Ok(_) => (),
+				Ok((_, token_index_prime)) => token_index = token_index_prime,
 				Err(e) => {err_break!{e}}
 			}	
 		}
