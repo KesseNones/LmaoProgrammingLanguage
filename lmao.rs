@@ -127,10 +127,16 @@ Result<RetCode, String>
 }
 
 fn invalid_stack_top_for_if(v: Value) -> String{
-	format!("If statement error! \
-		Top of stack needs to be type Boolean \
-		for effective branching to occur! \
+	format!("Top of stack needs to be type Boolean \
+		for effective If branching to occur! \
 		Attempted value: {}", v)
+}
+
+fn invalid_top_of_stack_for_loop(v: Value) -> String{
+	format!("Top of stack needs \
+		to be of type Boolean \
+		to determine if While loop needs \
+		to run/run again! Attempted value: {}", v)
 }
 
 //Iterates recursively through the AST and effectively runs the program doing so.
@@ -345,11 +351,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                                         break;
                                     }
                                 },
-                                Some(v) => {
-                                    err_break!{format!("While loop error! Top of stack needs \
-                                        to be of type Boolean to determine if loop needs \
-                                        to run/run again! Attempted value: {}", v)}
-                                },
+                                Some(v) => { err_break!{invalid_top_of_stack_for_loop(v)} },
                                 None => {err_break!{needs_n_args_only_n_provided("while", "One", "none")}},
                             }
                         }
