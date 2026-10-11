@@ -139,6 +139,15 @@ fn invalid_top_of_stack_for_loop(v: Value) -> String{
 		to run/run again! Attempted value: {}", v)
 }
 
+fn func_already_defined(name: &str) -> String{
+	format!("Function \"{}\" is already defined!", name)
+}
+
+fn func_not_defined(name: &str) -> String{
+	format!("Function \"{}\" is not defined! \
+		Try defining it using func def !", name)
+}
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
 vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
@@ -366,19 +375,14 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 								let name = data.name.as_str();
 								let body = Rc::clone(&data.bod);
 								if !fns.func_def(name, body){
-									err_break!{format!("Function definition (func def) error!\
-									 Function \"{}\" is already defined!", name)}
+									err_break!{func_already_defined(name)}
 								}
                             },
                             FunCmd::Call => {
 								let name = data.name.as_str();
                                 let func_body = match fns.get_body(name){
                                     Some(b) => b,
-                                    None => {
-                                        err_break!{format!("Function call (func call) error! \
-                                            Function \"{}\" is not defined! \
-                                            Try defining it using func def !", name)}
-                                    }, 
+                                    None => { err_break!{func_not_defined(name)} }, 
                                 };
 								let bod_res = 
 								run_program(&func_body, s, h, vars, fns, file, token_index);
