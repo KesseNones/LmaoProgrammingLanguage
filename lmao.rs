@@ -332,14 +332,10 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 								vars, fns, file, token_index + offsets[b as usize]);
 
                                 match branch_res{
-                                    Ok((_, token_index_prime)) => {
-										match (b, data.else_token_count > 0){
-											(true, true) => token_index = token_index_prime + data.else_token_count,
-											(true, false) => token_index = token_index_prime,
-											(false, true) => token_index = token_index_prime,
-											(false, false) => token_index += data.if_token_count,
-										}
-									},
+                                    Ok(_) => {
+										token_index += 
+										data.if_token_count + data.else_token_count;
+									}
                                     Err(e) => {err_break!{e}}
                                 }
                             },
