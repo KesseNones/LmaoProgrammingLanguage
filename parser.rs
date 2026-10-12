@@ -819,17 +819,17 @@ impl fmt::Display for FunCmd{
 pub struct FuncData{
 	pub cmd: FunCmd,
 	pub name: String,
-	pub bod: Rc<ASTNode>,
+	pub bod: ASTNode,
 	pub body_token_count: usize,
 	pub start_token_index: usize
 }
 
 impl FuncData{
-	pub fn new(c: FunCmd, n: &str, b: &Rc<ASTNode>, start: usize, size: usize) -> Rc<Self>{
+	pub fn new(c: FunCmd, n: &str, b: ASTNode, start: usize, size: usize) -> Rc<Self>{
 		Rc::new(FuncData{
 			cmd: c,
 			name: n.to_string(),
-			bod: Rc::clone(b),
+			bod: b,
 			body_token_count: size,
 			start_token_index: start
 		})
@@ -1830,9 +1830,9 @@ pub fn make_ast_prime(
 									)
 									{
 										Ok((f_bod, token_index_prime)) => {
-											let bod_node = Rc::new(f_bod.into());
-											let mut f_data = FuncData::new(
-												FunCmd::Define, name, &bod_node, token_index + 3, 
+											let f_data = FuncData::new(
+												FunCmd::Define, name, 
+												f_bod.into(), token_index + 3, 
 												token_index_prime - (token_index + 2));
 											already_parsed.push(ASTNode::Function(f_data));
 											token_index = token_index_prime;
@@ -1845,9 +1845,9 @@ pub fn make_ast_prime(
 									// it checks for a terminator and that's it.
 									match tokens.get(token_index + 3){
 										Some(Token::Terminator) => {
-											let empty_bod: Vec<ASTNode> = Vec::new();
-											let empty_node = Rc::new(empty_bod.into());
-											let f_data = FuncData::new(FunCmd::Call, name, &empty_node, 0, 0);
+											let f_data = FuncData::new(
+												FunCmd::Call, name, 
+												Vec::new().into(), 0, 0);
 											already_parsed.push(ASTNode::Function(f_data));
 
 											token_index += 3;
