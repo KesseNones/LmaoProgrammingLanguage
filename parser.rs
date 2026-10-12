@@ -885,12 +885,12 @@ impl AttErrData{
 
 #[derive(Clone)]
 pub struct FileData{
-	pub file: FileInfo,	
+	pub file: Rc<FileInfo>,	
 	pub program: ASTNode
 }
 impl FileData{
 	fn new(f: FileInfo, prog: ASTNode) -> Box<Self>{
-		Box::new(FileData{file: f, program: prog})
+		Box::new(FileData{file: Rc::new(f), program: prog})
 	}
 }
 
