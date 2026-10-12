@@ -452,7 +452,10 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 						run_program(&data.att, s, h, vars, fns, file, token_index + 1);
 
 						match att_res{
-							Ok((_, tok_idx_prime)) => token_index = tok_idx_prime + data.err_token_count,
+							Ok(_) => {
+								token_index += 
+								data.att_token_count + data.err_token_count
+							},
 							Err(e1) => {
 								s.push(h.insert_to_heap(HeapValue::String(*e1)));
 								
@@ -461,7 +464,10 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 								file, token_index + 1 + data.att_token_count);
 
 								match err_res{
-									Ok((_, tok_idx_prime_prime)) => token_index = tok_idx_prime_prime,
+									Ok(_) => {
+										token_index += 
+										data.att_token_count + data.err_token_count
+									},
 									Err(e2) => {
 										err_break!{e2}
 									},
