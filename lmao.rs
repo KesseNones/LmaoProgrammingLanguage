@@ -1,6 +1,5 @@
 //Jesse A. Jones
 //Lmao Programming Language, the Spiritual Successor to EcksDee
-//Version: 0.18.0
 
 use std::collections::BTreeMap;
 use std::env;
@@ -15,6 +14,12 @@ mod parser;
 use parser::*;
 mod state_and_ops;
 use state_and_ops::*;
+
+macro_rules! bformat{
+	($($arg:tt)*) => {
+		Box::new(format!($($arg)*))
+	};
+}
 
 //Error string for when var mak and var mut 
 // don't have anything on the stack for them.
@@ -121,17 +126,47 @@ Result<RetCode, String>
 	}
 }
 
+fn invalid_stack_top_for_if(v: Value) -> String{
+	format!("Top of stack needs to be type Boolean \
+		for effective If branching to occur! \
+		Attempted value: {}", v)
+}
+
+fn invalid_top_of_stack_for_loop(v: Value) -> String{
+	format!("Top of stack needs \
+		to be of type Boolean \
+		to determine if While loop needs \
+		to run/run again! Attempted value: {}", v)
+}
+
+fn func_already_defined(name: &str) -> String{
+	format!("Function \"{}\" is already defined!", name)
+}
+
+fn func_not_defined(name: &str) -> String{
+	format!("Function \"{}\" is not defined! \
+		Try defining it using func def !", name)
+}
+
+fn invalid_loc_cmd() -> String{
+	"Unrecognized local variable command! \
+Valid: mak, get, mut".to_string()
+}
+
+
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
-vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
+vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
+mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 {
-    let mut deferred: Option<Vec<Rc<ASTNode>>> = None;
-	let mut res: Result<RetCode, String> = Ok(RetCode::Normal); 
+    let mut deferred: Option<Vec<Rc<DeferData>>> = None;
+	let mut res: Result<(RetCode, usize), Box<String>> = 
+		Ok((RetCode::Normal, token_index)); 
 	vars.add_frame();
 
 	macro_rules! err_break{
 		($err:expr) => {
-			res = Err($err); break;	
+			res = Err(bformat!("{}", file.err_str_tok(&$err, token_index))); break;	
 		};
 	}
 
@@ -145,7 +180,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 						match run_operator(*id, s, h){
 							Ok(RetCode::Normal) => (),
 							Ok(RetCode::LeavingScopeEarly) => {
-								res = Ok(RetCode::LeavingScopeEarly);
+								res = Ok((RetCode::LeavingScopeEarly, token_index));
 								break;
 							},
 							Err(e) => {err_break!{e}},
@@ -203,6 +238,7 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                 err_break!{"Variable (var) error! Unrecognized variable command! Valid: mak, get, mut, del .".to_string()}
                             },
                         }
+						token_index += 3;
                     },
                     ASTNode::BoxOp(box_op) => {
                         match box_op{
@@ -284,39 +320,40 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                             },
 							_ => {err_break!{should_never_get_here_for_func("box altr")}},
                         }
+						token_index += 2;
                     },
                     ASTNode::If(data) => {
                         match s.pop(){
                             Some(Value::Boolean(b)) => {
 								let branches = [&data.if_false, &data.if_true];
+								let offsets: [usize; 2] = [data.if_token_count + 1, 1];
 								let branch_res = 
-								run_program(branches[b as usize], s, h, vars, fns);
+								run_program(branches[b as usize], s, h, 
+								vars, fns, file, token_index + offsets[b as usize]);
 
                                 match branch_res{
-                                    Ok(_) => (),
+                                    Ok(_) => {
+										token_index += 
+										data.if_token_count + data.else_token_count;
+									}
                                     Err(e) => {err_break!{e}}
                                 }
                             },
-                            Some(v) => {
-                                err_break!{format!("If statement error! \
-                                    Top of stack needs to be type Boolean \
-                                    for effective branching to occur! \
-                                    Attempted value: {}", v)}
-                            },
+                            Some(v) => { err_break!{invalid_stack_top_for_if(v)} },
                             None => {err_break!{needs_n_args_only_n_provided("if", "One", "none")}}
                         }
                     },
-                    ASTNode::While(bod) => {
+                    ASTNode::While(data) => {
                         loop {
                             match s.pop(){
                                 Some(Value::Boolean(b)) => {
                                     if b{
 										let body_res = 
-										run_program(&bod, s, h, vars, fns);
+										run_program(&data.body, s, h, vars, fns, file, token_index + 1);
 
 										match body_res{
-											Ok(RetCode::Normal) => (),
-											Ok(RetCode::LeavingScopeEarly) => {
+											Ok((RetCode::Normal, _)) => (),
+											Ok((RetCode::LeavingScopeEarly, _)) => {
 												break;	
 											},
 											Err(e) => {err_break!{e}},
@@ -325,41 +362,39 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                         break;
                                     }
                                 },
-                                Some(v) => {
-                                    err_break!{format!("While loop error! Top of stack needs \
-                                        to be of type Boolean to determine if loop needs \
-                                        to run/run again! Attempted value: {}", v)}
-                                },
+                                Some(v) => { err_break!{invalid_top_of_stack_for_loop(v)} },
                                 None => {err_break!{needs_n_args_only_n_provided("while", "One", "none")}},
                             }
                         }
 						//If the loop had an error, break out of the main loop.
 						if let Err(_) = res {break;}
+					
+						token_index += data.token_count;
                     },
                     ASTNode::Function(data) => {
                         match data.cmd{
                             FunCmd::Define => {
 								let name = data.name.as_str();
-								let body = Rc::clone(&data.bod);
-								if !fns.func_def(name, body){
-									err_break!{format!("Function definition (func def) error!\
-									 Function \"{}\" is already defined!", name)}
+								if !fns.func_def(name, data.clone()){
+									err_break!{func_already_defined(name)}
 								}
+								token_index = token_index + 2 + data.body_token_count;		
                             },
                             FunCmd::Call => {
 								let name = data.name.as_str();
-                                let func_body = match fns.get_body(name){
-                                    Some(b) => b,
-                                    None => {
-                                        err_break!{format!("Function call (func call) error! \
-                                            Function \"{}\" is not defined! \
-                                            Try defining it using func def !", name)}
-                                    }, 
+                                let call_data = match fns.get_data(name){
+                                    Some(d) => d,
+                                    None => { err_break!{func_not_defined(name)} }, 
                                 };
 								let bod_res = 
-								run_program(&func_body, s, h, vars, fns);
+								run_program(
+									&call_data.bod, s, h, 
+									vars, fns, &call_data.f_file_info, call_data.start_token_index);
 
-								if let Err(e) = bod_res{err_break!{e}}
+								match bod_res{
+									Ok(_) => token_index += 3,
+									Err(e) => {err_break!{e}}
+								}
                             },
 							_ => {err_break!{should_never_get_here_for_func("function")}}
                         }
@@ -408,40 +443,46 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
                                     },
                                 }
                             },
-                            _ => {
-                                err_break!{"Local Variable (loc) error! Unrecognized local variable command! Valid: mak, get, mut".to_string()}
-                            },
+                            _ => { err_break!{invalid_loc_cmd()} },
                         }
+						token_index += 3;
                     },
                     ASTNode::AttErr(data) => {
 						let att_res = 
-						run_program(&data.att, s, h, vars, fns);
+						run_program(&data.att, s, h, vars, fns, file, token_index + 1);
 
 						match att_res{
-							Ok(_) => (),
+							Ok(_) => {
+								token_index += 
+								data.att_token_count + data.err_token_count
+							},
 							Err(e1) => {
-								s.push(h.insert_to_heap(HeapValue::String(e1)));
+								s.push(h.insert_to_heap(HeapValue::String(*e1)));
 								
 								let err_res = 
-								run_program(&data.err, s, h, vars, fns);
+								run_program(&data.err, s, h, vars, fns,
+								file, token_index + 1 + data.att_token_count);
 
 								match err_res{
-									Ok(_) => (),
+									Ok(_) => {
+										token_index += 
+										data.att_token_count + data.err_token_count
+									},
 									Err(e2) => {
-										res = Err(e2);
-										break;
+										err_break!{e2}
 									},
 								}
 									
 							},
 						}
                     },
-                    ASTNode::Defer(body) => {
+                    ASTNode::Defer(data) => {
                         if let Some(def) = &mut deferred{
-                            def.push(Rc::clone(body));
+                            def.push(Rc::clone(data));
                         }else{
-                            deferred = Some(vec![Rc::clone(body)]);
+                            deferred = Some(vec![Rc::clone(data)]);
                         }
+						token_index += data.token_count;
                     },
                     ASTNode::CastTo(data_type) => {
 						match cast_fan_op(s, h, *data_type)
@@ -449,37 +490,51 @@ vars: &mut Variables, fns: &mut Functions) -> Result<RetCode, String>
 							Ok(_) => (),
 							Err(e) => {err_break!{e}},
 						}
+						token_index += 2;
+					},
+					ASTNode::File(f_data) => {
+						match run_program(&f_data.program, s, h, vars, 
+						fns, &f_data.file, 0){
+							Ok(_) => (),
+							Err(e) => {err_break!{e}},
+						}
 					},
                     _ => {},
                 }
+				token_index += 1;
             }
         },
-        _ => {res = Err("Should never get to this point in running!".to_string())},
+        _ => {res = Err(Box::new("Should never get to this point in running!".to_string()))},
     }
-
+	
 	if let (Some(def), Ok(_)) = (deferred, &res){
 		for expr in def.iter().rev(){
 			let expr_res = 
-			run_program(expr, s, h, vars, fns);
+			run_program(&expr.body, s, h, vars, fns, 
+			file, expr.start_token_index + 1);
 			
-			match expr_res{
-				Ok(_) => (),
-				Err(e) => {err_break!{e}}
-			}	
+			if let Err(e) = expr_res{
+				res = Err(bformat!("{}", file.err_str_tok(&e, expr.start_token_index)));
+				break;
+			}
 		}
 	}	
 
 	vars.remove_frame();
-	res
+	if let Ok(code_and_idx) = res{
+		Ok((code_and_idx.0, token_index))
+	}else{
+		res
+	}
 }
 
 //Given an input program string and args, 
 // parses and runs the entire program!
 // It returns either the state generated by the program or an error string.
-fn run_prog_from_str(argv: &Vec<String>, argc: usize, program_string: String,
+fn run_prog_from_str(argv: &Vec<String>, program_string: String,
 prev_state: Option<(Stack, Heap, Variables, Functions)>
 ) -> 
-(Result<RetCode, String>, Stack, Heap, Variables, Functions)
+(Result<(RetCode, usize), Box<String>>, Stack, Heap, Variables, Functions)
 {
 	//Clones previous state to be used in run_program, or makes new one.
 	let (mut s, mut h, mut vs, mut fs);
@@ -494,12 +549,18 @@ prev_state: Option<(Stack, Heap, Variables, Functions)>
 	
 	//Kicks back a parse error with the state 
 	// or runs the program and updates the state.
-	match parse_string_to_ast(&argv, argc, program_string){
+	match parse_string_to_ast(&argv, program_string){
 		Ok(ast) => {
-			let res = run_program(&ast, &mut s, &mut h, &mut vs, &mut fs);
-			(res, s, h, vs, fs)
+			if let ASTNode::File(data) = ast{
+				let res = run_program(&data.program, &mut s, &mut h, 
+				&mut vs, &mut fs, &data.file, 0);
+				(res, s, h, vs, fs)
+			}else{
+				let e = Err(bformat!("Parsing error! Top level of AST must be type File! Received node: {}", ast));
+				(e, s, h, vs, fs)
+			}
 		},
-		Err(e) => (Err(e), s, h, vs, fs)
+		Err(e) => (Err(bformat!("{}", e)), s, h, vs, fs)
 	}
 }
 
@@ -530,7 +591,7 @@ fn main(){
 			}
 
 			let (res, _, _, _, _) = 
-			run_prog_from_str(&argv, argc, file_string, None);
+			run_prog_from_str(&argv, file_string, None);
 
 			match res{
 				Ok(_) => (),
@@ -567,12 +628,12 @@ fn main(){
 				if command_str == "RUN"{
 					let mut source_string = String::new();
 					for kv in source_code.iter(){
-						source_string.push_str(&format!("{}\n", kv.1));
+						source_string.push_str(&format!("{}", kv.1));
 					}
 
 					println!("\n{}\nProgram result:\n", sep_str);
 					let (res, mut s, mut h, _, _) = 
-					run_prog_from_str(&argv, argc, source_string, None);
+					run_prog_from_str(&argv, source_string, None);
 					match res{
 						Ok(_) => {
 							if print_stack{
@@ -753,13 +814,13 @@ fn main(){
 				if source_included{
 					let mut code_with_include = String::new();
 					for kv in source_code.iter(){
-						code_with_include.push_str(&format!("{}\n", kv.1));
+						code_with_include.push_str(&format!("{}", kv.1));
 					}	
 					code_with_include.push_str(&single_line_prog_str);
 					single_line_prog_str = code_with_include;
 				}
 				let (res, mut s, mut h, _, _) = 
-				run_prog_from_str(&argv, argc, single_line_prog_str.clone(), None);
+				run_prog_from_str(&argv, single_line_prog_str.clone(), None);
 
 				match res{
 					Ok(_) => {
@@ -783,7 +844,7 @@ fn main(){
         println!("\n{}\nProgram result:\n", sep_str);
 
 		let (res, _, _, _, _) = 
-		run_prog_from_str(&argv, argc, program_string, None);
+		run_prog_from_str(&argv, program_string, None);
 
 		match res{
 			Ok(_) => (),

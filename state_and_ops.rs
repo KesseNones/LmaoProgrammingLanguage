@@ -205,7 +205,7 @@ impl Heap{
 						(Some(&mut left[num1].0), Some(&right[0].0))
 					}else{
 						let (left, right) = self.heap.split_at_mut(num1);
-						(Some(&mut left[0].0), Some(&right[num2].0))
+						(Some(&mut right[0].0), Some(&left[num2].0))
 					}
 				}
 			},
@@ -348,7 +348,7 @@ impl Variables{
 
 #[derive(Clone)]
 pub struct Functions{
-	fns: HashMap<String, Rc<ASTNode>>
+	fns: HashMap<String, Rc<FuncData>>
 }
 impl Functions{
 	pub fn new() -> Self{
@@ -358,16 +358,16 @@ impl Functions{
 	//Attempts to define a function. 
 	// true -> it worked.
 	// false -> it's already defined.
-	pub fn func_def(&mut self, name: &str, body: Rc<ASTNode>) -> bool{
+	pub fn func_def(&mut self, name: &str, data: Rc<FuncData>) -> bool{
 		if !self.fns.contains_key(name)	{
-			self.fns.insert(name.to_string(), Rc::clone(&body));
+			self.fns.insert(name.to_string(), Rc::clone(&data));
 			true
 		}else{
 			false
 		}
 	}
 
-	pub fn get_body(&self, name: &str) -> Option<Rc<ASTNode>> {
+	pub fn get_data(&self, name: &str) -> Option<Rc<FuncData>> {
 		self.fns.get(name).cloned()
 	}
 
@@ -1309,10 +1309,12 @@ pub fn list_clear(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 			match h.get_heap_ref_mut(v){
 				Some(HeapValue::String(st)) => {
 					st.clear();
+					s.push(v);
 					Ok(RetCode::Normal)
 				},
 				Some(HeapValue::List(l)) => {
 					l.clear();
+					s.push(v);
 					Ok(RetCode::Normal)
 				},
 				Some(_) => Err(format!("Operator ({}) error! Top of stack must be type StringBox or ListBox! Given: {}", op_name, v)),
