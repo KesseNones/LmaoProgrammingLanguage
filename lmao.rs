@@ -514,7 +514,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 			file, expr.start_token_index + 1);
 			
 			if let Err(e) = expr_res{
-				res = Err(bformat!("{}", e));
+				res = Err(bformat!("{}", file.err_str_tok(&e, expr.start_token_index)));
 				break;
 			}
 		}
