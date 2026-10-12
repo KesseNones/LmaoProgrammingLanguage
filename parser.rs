@@ -999,7 +999,7 @@ pub fn type_to_string(v: Value) -> String{
 
 //Takes in a file string and calls the necessary functions 
 // to build an AST from it.
-pub fn parse_string_to_ast(argv: &Vec<String>, argc: usize, program_string: String) -> Result<ASTNode, String>{
+pub fn parse_string_to_ast(argv: &Vec<String>, program_string: String) -> Result<ASTNode, String>{
 	//Constructs means of checking for duplicate imports.
 	let mut imported_files: HashMap<String, ()> = HashMap::new();
 	
