@@ -503,8 +503,10 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
         },
         _ => {res = Err(Box::new("Should never get to this point in running!".to_string()))},
     }
-
+	
+	let old_idx = token_index;
 	if let (Some(def), Ok(_)) = (deferred, &res){
+		token_index -= 1;
 		for expr in def.iter().rev(){
 			let expr_res = 
 			run_program(&expr.body, s, h, vars, fns, file, expr.start_token_index + 1);
@@ -515,6 +517,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 			}	
 		}
 	}	
+	token_index = old_idx;
 
 	vars.remove_frame();
 	if let Ok(code_and_idx) = res{
