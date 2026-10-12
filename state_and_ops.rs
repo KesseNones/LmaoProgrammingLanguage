@@ -348,7 +348,7 @@ impl Variables{
 
 #[derive(Clone)]
 pub struct Functions{
-	fns: HashMap<String, (Rc<ASTNode>, usize)>
+	fns: HashMap<String, Rc<FuncData>>
 }
 impl Functions{
 	pub fn new() -> Self{
@@ -358,16 +358,16 @@ impl Functions{
 	//Attempts to define a function. 
 	// true -> it worked.
 	// false -> it's already defined.
-	pub fn func_def(&mut self, name: &str, body: Rc<ASTNode>, idx: usize) -> bool{
+	pub fn func_def(&mut self, name: &str, data: Rc<FuncData>) -> bool{
 		if !self.fns.contains_key(name)	{
-			self.fns.insert(name.to_string(), (Rc::clone(&body), idx));
+			self.fns.insert(name.to_string(), Rc::clone(&data));
 			true
 		}else{
 			false
 		}
 	}
 
-	pub fn get_body_and_idx(&self, name: &str) -> Option<(Rc<ASTNode>, usize)> {
+	pub fn get_data(&self, name: &str) -> Option<Rc<FuncData>> {
 		self.fns.get(name).cloned()
 	}
 
