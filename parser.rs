@@ -675,7 +675,7 @@ pub enum Token{
 	Func,
 	Attempt,
 	OnError,
-	File{file: FileInfo, tokens: Vec<Token>},
+	File{file: Rc<FileInfo>, tokens: Vec<Token>},
 	Terminator,
 	Fragment(String),
 	CastTo,
@@ -821,17 +821,20 @@ pub struct FuncData{
 	pub name: String,
 	pub bod: ASTNode,
 	pub body_token_count: usize,
-	pub start_token_index: usize
+	pub start_token_index: usize,
+	pub f_file_info: Rc<FileInfo>
 }
 
 impl FuncData{
-	pub fn new(c: FunCmd, n: &str, b: ASTNode, start: usize, size: usize) -> Rc<Self>{
+	pub fn new(c: FunCmd, n: &str, b: ASTNode, 
+	start: usize, size: usize, fi: Rc<FileInfo>) -> Rc<Self>{
 		Rc::new(FuncData{
 			cmd: c,
 			name: n.to_string(),
 			bod: b,
 			body_token_count: size,
-			start_token_index: start
+			start_token_index: start,
+			f_file_info: fi
 		})
 	}
 }
@@ -889,8 +892,8 @@ pub struct FileData{
 	pub program: ASTNode
 }
 impl FileData{
-	fn new(f: FileInfo, prog: ASTNode) -> Box<Self>{
-		Box::new(FileData{file: Rc::new(f), program: prog})
+	fn new(f: Rc<FileInfo>, prog: ASTNode) -> Box<Self>{
+		Box::new(FileData{file: f, program: prog})
 	}
 }
 
@@ -1176,7 +1179,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 	}
 
 
-	Ok(Token::File{file: file, tokens: tokens})
+	Ok(Token::File{file: Rc::new(file), tokens: tokens})
 }
 
 pub fn throw_parse_error(t: &str, attempted_token: &str) -> String{
@@ -1507,7 +1510,7 @@ fn f_missing_both_args() -> String{
 
 //This function does the heavy-lifting of recursively building the AST.
 pub fn make_ast_prime(
-	file: &FileInfo,
+	file: Rc<FileInfo>,
 	tokens: &Vec<Token>, 
 	mut token_index: usize,
 	fancy_op: Token
@@ -1562,7 +1565,7 @@ pub fn make_ast_prime(
 				},	
 				Token::While =>{
 					match make_ast_prime(
-						file, tokens, token_index + 1, Token::While
+						file.clone(), tokens, token_index + 1, Token::While
 					)
 					{
 						Ok((loop_body, token_idx_prime)) => {
@@ -1577,7 +1580,7 @@ pub fn make_ast_prime(
 				},
 				Token::Defer =>{
 					match make_ast_prime(
-						file, tokens, token_index + 1, Token::Defer
+						file.clone(), tokens, token_index + 1, Token::Defer
 					)
 					{
 						Ok((def_bod, token_idx_prime)) => {
@@ -1592,7 +1595,7 @@ pub fn make_ast_prime(
 				},
 				Token::If => {
 					match make_ast_prime(
-						file, tokens, token_index + 1, Token::If
+						file.clone(), tokens, token_index + 1, Token::If
 					)
 					{
 						Ok((if_body, token_idx_prime)) => {
@@ -1606,7 +1609,7 @@ pub fn make_ast_prime(
 							match tokens[token_index]{
 								Token::Else => {
 									match make_ast_prime(
-										file, tokens, token_index + 1, Token::Else
+										file.clone(), tokens, token_index + 1, Token::Else
 									)
 									{
 										Ok((bod, tok_idx_prime_prime)) => {
@@ -1652,12 +1655,12 @@ pub fn make_ast_prime(
 				},
 				Token::Attempt => {
 					match make_ast_prime(
-						file, tokens, token_index + 1, Token::Attempt
+						file.clone(), tokens, token_index + 1, Token::Attempt
 					)
 					{
 						Ok((att_body, token_idx_prime)) => {
 							match make_ast_prime(
-								file, tokens, token_idx_prime + 1, Token::OnError
+								file.clone(), tokens, token_idx_prime + 1, Token::OnError
 							)
 							{
 								Ok((err_bod, tok_idx_prime_prime)) => {
@@ -1826,14 +1829,15 @@ pub fn make_ast_prime(
 							match FunCmd::new(c){
 								FunCmd::Define => {
 									match make_ast_prime(
-										file, tokens, token_index + 3, Token::Func
+										file.clone(), tokens, token_index + 3, Token::Func
 									)
 									{
 										Ok((f_bod, token_index_prime)) => {
 											let f_data = FuncData::new(
 												FunCmd::Define, name, 
 												f_bod.into(), token_index + 3, 
-												token_index_prime - (token_index + 2));
+												token_index_prime - (token_index + 2),
+												file.clone());
 											already_parsed.push(ASTNode::Function(f_data));
 											token_index = token_index_prime;
 										},
@@ -1845,9 +1849,10 @@ pub fn make_ast_prime(
 									// it checks for a terminator and that's it.
 									match tokens.get(token_index + 3){
 										Some(Token::Terminator) => {
+											let nil_file = Rc::new(FileInfo::new("", ""));
 											let f_data = FuncData::new(
 												FunCmd::Call, name, 
-												Vec::new().into(), 0, 0);
+												Vec::new().into(), 0, 0, nil_file);
 											already_parsed.push(ASTNode::Function(f_data));
 
 											token_index += 3;
@@ -1884,9 +1889,9 @@ pub fn make_ast_prime(
 					}
 				},
 				Token::File{file: f, tokens: toks} => {
-					match make_ast_prime(&f, &toks, 0, Token::NOTHING) {
+					match make_ast_prime(Rc::clone(f), &toks, 0, Token::NOTHING) {
 						Ok((file_body, _)) => {
-							let f_data = FileData::new(f.clone(), file_body.into());
+							let f_data = FileData::new(Rc::clone(&f), file_body.into());
 							already_parsed.push(ASTNode::File(f_data));
 						},
 						Err(e) => return Err(file.err_str_tok(&e, token_index))
@@ -1902,7 +1907,7 @@ pub fn make_ast_prime(
 // Consumes a file Token and creates an AST based on it.
 pub fn make_ast(tokens: Token) -> Result<ASTNode, String>{
 	if let Token::File{file: f, tokens: toks} = tokens{
-		match make_ast_prime(&f, &toks, 0, Token::NOTHING){
+		match make_ast_prime(Rc::clone(&f), &toks, 0, Token::NOTHING){
 			Ok((ast_vec, _)) => {
 				let ast_data = FileData::new(f, ast_vec.into());
 				Ok(ASTNode::File(ast_data))
