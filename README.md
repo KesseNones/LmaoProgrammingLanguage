@@ -1,9 +1,6 @@
 # The Lmao Programming Language - The Spiritual Successor of EcksDee
 ## By Jesse A. Jones (KesseNones)
 
-# **BE AWARE** 
-This documentation may be "complete" but still requires proofreading and revisions. New features will also add more information to this documentation in the first place. Once I'm satisfied with the state of this documentation, this warning will leave.
-
 # <a name = "toc"></a> Table of Contents
 - [0 Introduction](#intro)
 - [1 Using a Stack-Based Approach](#stack-based)
@@ -47,7 +44,29 @@ This documentation may be "complete" but still requires proofreading and revisio
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
 
-Welcome to Lmao, the spiritual successor of the EcksDee programming language! This language was made using the general layout of EcksDee as a base but built in Rust instead of Haskell. This resulted in a notably faster language since Rust allows mutable state and has a lot of constant time data structures to take advantage of. Overall, this language aims to do what EcksDee did but better, with more sensible and consistent behavior on the stack with each operator and an overall greater performance.
+Welcome to Lmao, the successor of the EcksDee programming language! This language was made using the general layout of [EcksDee](https://github.com/KesseNones/EcksDee-Programming-Language), as a base but built in Rust instead of Haskell. This resulted in a notably faster language since Rust allows mutable state and has a lot of constant time data structures to take advantage of. On top of Lmao's interpreter will soon be a compiler to utilize as well.
+
+But what is EcksDee? Why should I care? Good questions! Let me explain. 
+
+EcksDee came off of the final project we did for CS 355 at WSUV back in Spring of 2023. It was just a crude interpreter for an obscure language known as Forth, a post-fix language. Because EcksDee was based on this little interpreter, it utilized a stack-based approach for its parsing system. In other words, it followed a post-fix format for its grammar, sometimes also known as reverse polish notation. This means that while normal languages have something like the expression `2 + 3`, EcksDee would express it in a postfix system of `2 3 +`. This pushes `2` and `3` onto the stack and `+` pops both to add them together and then push `5`. Thus, it all revolves around the central data structure of the stack having operands pushed to it and operators taking values from the stack and pushing new ones or mutating state.  
+
+EcksDee did this but had inconsistencies in what operators would consume their operands and what wouldn't. It also had heap-allocated data sitting directly on the stack, leading to inefficiencies. EcksDee was a good start for a stack-based language but it hit several speed bottlenecks I wasn't able to rectify. That combined with my annoyances with Haskell compelled a switch.
+
+Lmao is much like EcksDee in its postfix grammar and overall syntax but has several key optimizations that EcksDee doesn't. For one, Lmao has only primitives on its stack, making for a far more efficient system with stack items being able to be easily duplicated with bitwise copies. Lmao also just uses more efficient data structures behind the scenes that allow for many O(1) operations where it was logorithmic or worse before in EcksDee, as well as far fewer allocations. 
+
+Initially, I created an interpreter and a transpliler. The interpreter could take raw source code and run it directly while the transpliler turned it into Rust and had rustc handle turning it into machine code. This system worked and the interpreter became pretty good with further optimizations to its code. However, I was dissatisfied. I wanted to go deeper.
+
+So, I decided to replace the old transpliler with a true compiler for my master's project. This involves taking the AST made by Lmao's parser and switching to emitting LLVM IR instead of Rust, then calling LLVM's API to turn it into machine code. 
+
+So, why do all this? What's the point of not only building a giant interpreter for this silly little language but also a compiler for it? Why?
+
+The why: because it's cool. I enjoy watching a novel programming language come to life. The process of building a parser to recognize all the syntax and then translating that into actually running the language is just a thrilling process for me. Beyond the interpreter, the notion of working directly with LLVM to make low level IR output and build low-level versions of data structures is already a very enjoyable idea to me. Plus, there just aren't very many postfix languages that are used. I wanted to add one more that can be explored and played with. 
+
+Granted "because it's cool" is a valid enough reason on its own for a hobby project but there need to be practical reasons too for this to be a serious project beyond just a quirkly little language. 
+
+The academic reasons for building this are: demonstration of skill and construction of a professional-grade pipeline. Even just building the interpreter showed off plenty of what I can already do: working with efficient data structures, considering algorithmic runtimes, and implementing language functionalities while leveraging Rust's powerful features. The real gain in showcasing skills is building the LLVM IR compiler. While emitting LLVM IR and having LLVM handle it seems like an extension of the transpliler I previously canned, it's not. Clang, rustc, and Zig, all handle compilation in the exact same manner. LLVM is a valid foundation for modern compilation due to increased portability and built in backend optimizations. This would expand Lmao's portability greatly, as opposed to targetting merely one CPU architecture, and provide huge speed optimizations over the base interpreter already in existence. Implementing this form of compiler would require deep low-level knowledge of data structures and compilation techniques to properly translate Lmao's stack-based system into IR instructions. Overall, I am building a compiler because it shows the sheer bredth of knowledge I have on the topic, and my low-level understanding of software, potentially opening up compiler and embedded job opportunities upon its completion and showcasing in 2027. 
+
+In short, I built the Lmao interpreter because it's cool, and am building a true compiler for Lmao because it's cool, practical, showcases my knowledge, and may open up future career opportunities. 
 
 ## <a name = "stack-based"></a>1 Using a Stack-Based Approach
 ### [**Return to Table of Contents**](#toc)
