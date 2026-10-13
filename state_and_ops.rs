@@ -587,7 +587,7 @@ pub fn modulo(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, String>{
 					let v1 = Value::$var(a);
 					let v2 = Value::$var(b);
 					if b != 0{
-						Ok(Value::$var(a / b))	
+						Ok(Value::$var(a % b))	
 					}else{
 						Err(modulo_by_zero_error(v1, v2))	
 					}
