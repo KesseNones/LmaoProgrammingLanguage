@@ -56,7 +56,7 @@ Lmao is much like EcksDee in its postfix grammar and overall syntax but has seve
 
 Initially, I created an interpreter and a transpliler. The interpreter could take raw source code and run it directly while the transpliler turned it into Rust and had rustc handle turning it into machine code. This system worked and the interpreter became pretty good with further optimizations to its code. However, I was dissatisfied. I wanted to go deeper.
 
-So, I decided to replace the old transpliler with a true compiler for my master's project. This involves taking the AST made by Lmao's parser and switching to emitting LLVM IR instead of Rust, then calling LLVM's API to turn it into machine code. 
+So, I decided to replace the old transpliler with a true compiler for my master's project. This involves taking the AST made by Lmao's parser and switching to emitting LLVM IR (intermediate representation) instead of Rust, then calling LLVM's API to turn it into machine code. 
 
 So, why do all this? What's the point of not only building a giant interpreter for this silly little language but also a compiler for it? Why?
 
@@ -7891,7 +7891,15 @@ The compiler is a powerful tool in Lmao. It allows for `.lmao` files to be direc
 
 Compilation of a Lmao program involves using `lmaoc`, the Lmao compiler. 
 
-Under the hood, `lmaoc` merely translates a `.lmao` file into Rust, then uses rustc at high optimization to compile it to machine code. It's a little cheap but it works.
+At present, the old `lmaoc` that did exist isn't here. It will be implemented again soon though.
+
+When `lmaoc` is re-implemented, it will take a Lmao program, turn it into an AST, emit LLVM IR based on the AST, and run LLVM to turn it into machine code optimal for the user's CPU architecture. 
+
+More specifically, the stack will become the stack itself, as in the stack used to allocate stack data in assembly. Pushing will involve moving the stack pointer down and writing to registers. Heap-allocated data will still be pointed to by Box values on the stack but now the heap will be my own custom heap made of blocks of a fixed size. 
+
+But what is LLVM? What's IR? LLVM doesn't actually stand for anything anymore but it's a foundational backend for modern compilers. Rust, Clang, and Zig all make use of it. It provides many free optimizatons on the backend, as well as offering far greater portability than if I just targeted x86 or ARM. IR is short for intermediate representation, the stuff that you kick out in the middle of compilation at an *intermediate* stage. An AST (abstract syntax tree) would also be IR, just higher level. 
+
+Once re-implemented, the instructions on running it below will still be valid.
 
 To run `lmaoc`, the syntax is as follows:
 ```
@@ -7899,55 +7907,8 @@ To run `lmaoc`, the syntax is as follows:
 ``` 
 Where `[LMAO_FILE_TO_COMPILE]` is the file you want turned into machine code. Unlike `lmao`, if nothing is given to `lmaoc`, an error is thrown.
 
-For the example of compilation, we'll return to the example of greeting each input argument with the program `helloArgs.lmao`.
-
-Example Directory:
-```
-drwxr-xr-x 2 janJesi users    4096 Jun 25 15:31 .
-drwxr-xr-x 8 janJesi users    4096 Jun 25 15:31 ..
--rw-r--r-- 1 janJesi users     495 Jun 25 15:31 helloArgs.lmao
--rwxr-xr-x 1 janJesi users 1140152 Jun 25 15:31 lmaoc
-``` 
-
-Example Terminal:
-```
-$ ./lmaoc helloArgs.lmao
-Opening helloArgs.lmao
-Reading in helloArgs.lmao
-Tokenizing file String
-Lexing file tokens
-Building Abstract Syntax Tree
-Creating and opening helloArgs.rs
-Writing to Rust file helloArgs.rs
-Compiling helloArgs.rs
-Compilation complete!
-$ 
-```
-
-Directory following running `lmaoc`:
-```
-drwxr-xr-x 2 janJesi users    4096 Jun 25 15:39 .
-drwxr-xr-x 8 janJesi users    4096 Jun 25 15:31 ..
--rwxr-xr-x 1 janJesi users  545168 Jun 25 15:39 helloArgs
--rw-r--r-- 1 janJesi users     495 Jun 25 15:31 helloArgs.lmao
--rw-r--r-- 1 janJesi users  188689 Jun 25 15:39 helloArgs.rs
--rwxr-xr-x 1 janJesi users 1140152 Jun 25 15:31 lmaoc
-```
-
-Example Terminal 2:
-```
-$ ./helloArgs foo bar baz
-Hello, ./helloArgs!
-Hello, foo!
-Hello, bar!
-Hello, baz!
-$ 
-```
-
-As can be seen, `helloArgs` functions the same way as `helloArgs.lmao` except that it can be run on its own.
-
-One may ask why anyone would want to compile Lmao programs. The main answer is speed. When compiling a Lmao program into machine code, the speed boost allows it to surpass Python in some cases! Also, it's handy being able to build a Lmao program and have it become its own stand-alone executable that doesn't need the interpreter, making it more portable.
+One may ask why anyone would want to compile Lmao programs. The main answer is speed. When compiling a Lmao program into machine code, the efficient stack-based system can be optimized into direct stack utilizations and register operations, which makes for a far faster runtime! The other reason is portability. Compiling a Lmao program turns it into its own executable, omitting the need for having an interpreter for Lmao installed once built. The executable can be executed anywhere with the same processor architecture and OS.
 
 ## <a name = "conclusion"></a> 7 Conclusion 
 ### [**Return to Table of Contents**](#toc)
-Lmao is quite the neat programming language. From its usage of a stack for operands to its static typing, Lmao has many practical features included. In time, more features will come, including optimizations to make Lmao even faster. It's been very fun making all this documentation describing how Lmao works and all its features. Beyond docs, it's also been fun building this language from the ground-up, watching as more features come into the fray. In time, I hope to even build a bootstrapped compiler, allowing Lmao a degree of independence from Rust, though that will be tricky to pull off. I hope you have as much fun messing around with this language as I have! 
+Lmao is quite the neat programming language. From its usage of a stack for operands to its static typing, Lmao has many practical features included. In time, more features will come, including optimizations to make Lmao even faster, such as the true compiler. It's been very fun making all this documentation describing how Lmao works and all its features. Beyond docs, it's also been fun building this language from the ground-up, watching as more features come into the fold. In time, I hope to even build a bootstrapped compiler, allowing Lmao a degree of independence from Rust, though that will be tricky to pull off, as my compiler will have to be built in Lmao and compiled directly. I hope you have as much fun messing around with this language as I have! 
