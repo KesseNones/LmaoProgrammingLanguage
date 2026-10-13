@@ -1212,6 +1212,11 @@ pub fn list_front_pop(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 	}
 }
 
+fn out_of_range_error(v: Value, i: usize, size: usize) -> String{
+	format!("Indexing error! Index {} is out \
+of range for {} of size {}!", i, v, size)
+}
+
 //Indexes into a list or string, 
 // pushing the indexed item to the stack.
 pub fn index(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
@@ -1220,13 +1225,13 @@ pub fn index(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 		(Some(Value::ListBox(bn)), Some(Value::UIntSize(i))) => {
 			let lsbx = Value::ListBox(bn);
 			if let Some(HeapValue::List(ls)) = h.get_heap_ref(lsbx){
-				if i < ls.len(){
-					s.push(ls[i]);
-					Ok(RetCode::Normal)
-				}else{
-					Err(format!("Operator (index) error! \
-						Index {} is out of range of List of size {}", i, ls.len()))
-				}
+				match ls.get(i){
+					Some(el) => {
+						s.push(*el);
+						Ok(RetCode::Normal)
+					},
+					None => Err(out_of_range_error(lsbx, i, ls.len())),
+				}				
 			}else{
 				Err(bad_box_error(op_name, lsbx, NULL, false))
 			}
@@ -1234,12 +1239,12 @@ pub fn index(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 		(Some(Value::StringBox(bn)), Some(Value::UIntSize(i))) => {
 			let sbx = Value::StringBox(bn);
 			if let Some(HeapValue::String(st)) = h.get_heap_ref(sbx){
-				if i < st.len(){
-					s.push(Value::Char(st.chars().nth(i).unwrap()));
-					Ok(RetCode::Normal)
-				}else{
-					Err(format!("Operator (index) error! \
-						Index {} is out of range of String of size {}", i, st.len()))
+				match st.chars().nth(i){
+					Some(c) => {
+						s.push(Value::Char(c));
+						Ok(RetCode::Normal)
+					}
+					None => Err(out_of_range_error(sbx, i, st.chars().count()))
 				}
 			}else{
 				Err(bad_box_error(op_name, sbx, NULL, false))
