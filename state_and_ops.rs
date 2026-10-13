@@ -1269,7 +1269,7 @@ pub fn length(s: &mut Stack, h: &mut Heap ) -> Result<RetCode, String>{
 		Some(v) => {
 			match h.get_heap_ref(v){
 				Some(HeapValue::String(st)) => {
-					s.push(Value::UIntSize(st.len())); 
+					s.push(Value::UIntSize(st.chars().count())); 
 					Ok(RetCode::Normal)
 				},
 				Some(HeapValue::List(l)) => {
