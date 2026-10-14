@@ -7602,12 +7602,15 @@ The `import()` decorator is used to import code from other files, acting much li
 
 The general syntax for import is this:
 ```
-import(path/to/file.lmao)
+import("path/to/file.lmao")
 ```
 Where `path/to/file.lmao` is a code file to import to a given program to run.
 
-Under the hood, the given file's code is copy-pasted into the program file before the program
-runs or is compiled, allowing for things like libraries to exist. Light checking also exists to prevent the user from importing the program file into itself or importing the same file more than once. This is also recursive so imports of imported files are covered and so on.
+Under the hood, Lmao checks to see if that file was already imported. If not, it parses the code and builds an AST out of it before wrapping it into its own file node. This way, every file is modular and contained in its own node. In the node is included a FileInfo struct that is used to generate errors with actual lines, which is quite handy.
+
+It doesn't allow self-importing directly, though it can be cheesed with using `..` and similar movements, this will likely just result in errors if any variables or functions are defined there. 
+
+The provided path in `import` is relative by default, though an absolute path can be specified. This would allow something like `import("/lib/lmao/math.lmao")`.
 
 Example Current Directory:
 ```
@@ -7645,7 +7648,7 @@ func def lcg
 
 `foo.lmao`:
 ```
-import(rand.lmao)
+import("rand.lmao")
 
 //Prints 10 random numbers using rand.lmao's lcg function.
 func def print10Random 
