@@ -40,7 +40,8 @@
 	- [6.1 Running Lmao Interpreter](#running-interp)
 	- [6.2 Running Lmao REPL](#running-repl)
 	- [6.3 Running Lmao Compiler](#running-compile)
-- [7 Conclusion](#conclusion)
+- [7 Errors](#errs)
+- [8 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
 
@@ -7861,6 +7862,88 @@ Where `[LMAO_FILE_TO_COMPILE]` is the file you want turned into machine code. Un
 
 One may ask why anyone would want to compile Lmao programs. The main answer is speed. When compiling a Lmao program into machine code, the efficient stack-based system can be optimized into direct stack utilizations and register operations, which makes for a far faster runtime! The other reason is portability. Compiling a Lmao program turns it into its own executable, omitting the need for having an interpreter for Lmao installed once built. The executable can be executed anywhere with the same processor architecture and OS.
 
-## <a name = "conclusion"></a> 7 Conclusion 
+## <a name = "errs"></a> 7 Errors     
+### [**Return to Table of Contents**](#toc)
+In the process of running Lmao, errors will likely happen. 
+
+Errors follow the format of a stack-trace, with errors being set off in sequence.
+
+The deeper the error, the deeper the stack trace. 
+
+This allows the user to not only know where the original error happened, but also what parts had it happen and what parts are affected by the error.
+
+Example Program (foo.lmao):
+```
+import("bar.lmao")
+
+func def main 
+	"This is the start!" printLine
+	func call blarg ;
+;
+
+func call main ;
+```
+
+Example Program (bar.lmao):
+```
+0 
+true
+while
+	1 + dup 3000000 < 
+;
+
+debugPrintStack
+
+func def blarg 
+	2 3 +
+
+	3.2 3.0 pow
+
+	true 
+	while
+		true
+		if 
+			"This is a bogus error!"
+			throwCustomError
+		;
+		false
+	;
+;
+```
+
+Example Program Output:
+```
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+isize 3000000
+--------------------------------
+STACK LENGTH: 1
+--------------------------------
+END STACK PRINT
+--------------------------------
+This is the start!
+Error in "foo.lmao" at line 8:
+func call main ;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error in "foo.lmao" at line 5:
+        func call blarg ;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error in "bar.lmao" at line 15:
+        while
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error in "bar.lmao" at line 17:
+                if
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error in "bar.lmao" at line 19:
+                        throwCustomError
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This is a bogus error!
+
+```
+
+As can be seen, the error started in main before going to `blarg`, then `while`, then `if`, then `throwCustomError` at last. This provides a natural stack trace of what went wrong. Note also that the file name changed once it entered `blarg` as `blarg` is defined in `bar.lmao`.
+
+## <a name = "conclusion"></a> 8 Conclusion 
 ### [**Return to Table of Contents**](#toc)
 Lmao is quite the neat programming language. From its usage of a stack for operands to its static typing, Lmao has many practical features included. In time, more features will come, including optimizations to make Lmao even faster, such as the true compiler. It's been very fun making all this documentation describing how Lmao works and all its features. Beyond docs, it's also been fun building this language from the ground-up, watching as more features come into the fold. In time, I hope to even build a bootstrapped compiler, allowing Lmao a degree of independence from Rust, though that will be tricky to pull off, as my compiler will have to be built in Lmao and compiled directly. I hope you have as much fun messing around with this language as I have! 
