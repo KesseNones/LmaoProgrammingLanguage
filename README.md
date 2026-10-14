@@ -1,9 +1,6 @@
 # The Lmao Programming Language - The Spiritual Successor of EcksDee
 ## By Jesse A. Jones (KesseNones)
 
-# **BE AWARE** 
-This documentation may be "complete" but still requires proofreading and revisions. New features will also add more information to this documentation in the first place. Once I'm satisfied with the state of this documentation, this warning will leave.
-
 # <a name = "toc"></a> Table of Contents
 - [0 Introduction](#intro)
 - [1 Using a Stack-Based Approach](#stack-based)
@@ -43,11 +40,34 @@ This documentation may be "complete" but still requires proofreading and revisio
 	- [6.1 Running Lmao Interpreter](#running-interp)
 	- [6.2 Running Lmao REPL](#running-repl)
 	- [6.3 Running Lmao Compiler](#running-compile)
-- [7 Conclusion](#conclusion)
+- [7 Errors](#errs)
+- [8 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
 
-Welcome to Lmao, the spiritual successor of the EcksDee programming language! This language was made using the general layout of EcksDee as a base but built in Rust instead of Haskell. This resulted in a notably faster language since Rust allows mutable state and has a lot of constant time data structures to take advantage of. Overall, this language aims to do what EcksDee did but better, with more sensible and consistent behavior on the stack with each operator and an overall greater performance.
+Welcome to Lmao, the successor of the EcksDee programming language! This language was made using the general layout of [EcksDee](https://github.com/KesseNones/EcksDee-Programming-Language), as a base but built in Rust instead of Haskell. This resulted in a notably faster language since Rust allows mutable state and has a lot of constant time data structures to take advantage of. On top of Lmao's interpreter will soon be a compiler to utilize as well.
+
+But what is EcksDee? Why should I care? Good questions! Let me explain. 
+
+EcksDee came off of the final project we did for CS 355 at WSUV back in Spring of 2023. It was just a crude interpreter for an obscure language known as Forth, a post-fix language. Because EcksDee was based on this little interpreter, it utilized a stack-based approach for its parsing system. In other words, it followed a post-fix format for its grammar, sometimes also known as reverse polish notation. This means that while normal languages have something like the expression `2 + 3`, EcksDee would express it in a postfix system of `2 3 +`. This pushes `2` and `3` onto the stack and `+` pops both to add them together and then push `5`. Thus, it all revolves around the central data structure of the stack having operands pushed to it and operators taking values from the stack and pushing new ones or mutating state.  
+
+EcksDee did this but had inconsistencies in what operators would consume their operands and what wouldn't. It also had heap-allocated data sitting directly on the stack, leading to inefficiencies. EcksDee was a good start for a stack-based language but it hit several speed bottlenecks I wasn't able to rectify. That combined with my annoyances with Haskell compelled a switch.
+
+Lmao is much like EcksDee in its postfix grammar and overall syntax but has several key optimizations that EcksDee doesn't. For one, Lmao has only primitives on its stack, making for a far more efficient system with stack items being able to be easily duplicated with bitwise copies. Lmao also just uses more efficient data structures behind the scenes that allow for many O(1) operations where it was logorithmic or worse before in EcksDee, as well as far fewer allocations. 
+
+Initially, I created an interpreter and a transpliler. The interpreter could take raw source code and run it directly while the transpliler turned it into Rust and had rustc handle turning it into machine code. This system worked and the interpreter became pretty good with further optimizations to its code. However, I was dissatisfied. I wanted to go deeper.
+
+So, I decided to replace the old transpliler with a true compiler for my master's project. This involves taking the AST made by Lmao's parser and switching to emitting LLVM IR (intermediate representation) instead of Rust, then calling LLVM's API to turn it into machine code. 
+
+So, why do all this? What's the point of not only building a giant interpreter for this silly little language but also a compiler for it? Why?
+
+The why: because it's cool. I enjoy watching a novel programming language come to life. The process of building a parser to recognize all the syntax and then translating that into actually running the language is just a thrilling process for me. Beyond the interpreter, the notion of working directly with LLVM to make low level IR output and build low-level versions of data structures is already a very enjoyable idea to me. Plus, there just aren't very many postfix languages that are used. I wanted to add one more that can be explored and played with. 
+
+Granted "because it's cool" is a valid enough reason on its own for a hobby project but there need to be practical reasons too for this to be a serious project beyond just a quirkly little language. 
+
+The academic reasons for building this are: demonstration of skill and construction of a professional-grade pipeline. Even just building the interpreter showed off plenty of what I can already do: working with efficient data structures, considering algorithmic runtimes, and implementing language functionalities while leveraging Rust's powerful features. The real gain in showcasing skills is building the LLVM IR compiler. While emitting LLVM IR and having LLVM handle it seems like an extension of the transpliler I previously canned, it's not. Clang, rustc, and Zig, all handle compilation in the exact same manner. LLVM is a valid foundation for modern compilation due to increased portability and built in backend optimizations. This would expand Lmao's portability greatly, as opposed to targetting merely one CPU architecture, and provide huge speed optimizations over the base interpreter already in existence. Implementing this form of compiler would require deep low-level knowledge of data structures and compilation techniques to properly translate Lmao's stack-based system into IR instructions. Overall, I am building a compiler because it shows the sheer bredth of knowledge I have on the topic, and my low-level understanding of software, potentially opening up compiler and embedded job opportunities upon its completion and showcasing in 2027. 
+
+In short, I built the Lmao interpreter because it's cool, and am building a true compiler for Lmao because it's cool, practical, showcases my knowledge, and may open up future career opportunities. 
 
 ## <a name = "stack-based"></a>1 Using a Stack-Based Approach
 ### [**Return to Table of Contents**](#toc)
@@ -78,7 +98,7 @@ Here are all of them:
 Signed Integers:
 - isize
 	- A signed integer optimized to the word size of the given machine's CPU architecture. On most modern machines, isize would be a signed 64 bit integer but earlier systems might have it be a signed 32 bit integer. 
-	- Thus, on modern systems, isize ranges from -2^31 to 2^31 - 1 or `-9223372036854775808` to `9223372036854775807`.
+	- Thus, on modern systems, isize ranges from -2^63 to 2^63 - 1 or `-9223372036854775808` to `9223372036854775807`.
 	- To push an isize to the stack, simply type a positive or negative whole number (integer) in the given range. This is also the default type for integers so you can just type the number alone and it will read it in as an integer. Example `42` is read as an isize. If you want to guarantee that the given number is an isize, you can push it like so: `42isize` which explicitly states that the value pushed is of type isize.  
 - i8
 	- A signed eight bit integer.  
@@ -96,16 +116,11 @@ Signed Integers:
 	- A signed sixty four bit integer.
 	- Ranges from -2^63 to 2^63 - 1 or `-9223372036854775808` to `9223372036854775807`. 
 	- To push an i64 to the stack, type out an integer and concatenate its data type like so: `29998559671349i64`.
-- i128
-	- A signed one hundred and twenty eight bit integer.
-	- Ranges from -2^127 to 2^127 - 1 or `-170141183460469231731687303715884105728` to `170141183460469231731687303715884105727`. 
-	- To push an i128 to the stack, type out an integer and concatenate its data type like so: `999888777666555444333222111000i128`.
-	- Such a colossal number is rarely needed but it's nice to have. 
 
 Unsigned Integers:
 - usize
 	- An unsigned integer optimized to the word size of the given machine's CPU architecture. On most modern machines, usize would be an unsigned 64 bit integer but earlier systems might have it be an unsigned 32 bit integer. 
-	- Thus, on modern systems, usize ranges from 0 to 2^32 - 1 or `0` to `18446744073709551615`.
+	- Thus, on modern systems, usize ranges from 0 to 2^64 - 1 or `0` to `18446744073709551615`.
 	- To push a usize to the stack, simply type a positive whole number (integer) in the given range like so: `2319usize`. Unlike isize, usize is not the default integer to be interpreted so you have to explicitly say that the value being pushed is a usize, as demonstrated.
 - u8
 	- An unsigned eight bit integer.  
@@ -123,11 +138,6 @@ Unsigned Integers:
 	- An unsigned sixty four bit integer.
 	- Ranges from 0 to 2^64 - 1 or `0` to `18446744073709551615`. 
 	- To push a u64 to the stack, type out an integer and concatenate its data type like so: `5040u64`.
-- u128
-	- An unsigned one hundred and twenty eight bit integer.
-	- Ranges from 0 to 2^128 - 1 or `0` to `340282366920938463463374607431768211455`. 
-	- To push an i128 to the stack, type out an integer and concatenate its data type like so: `999888777666555444333222111000i128`.
-	- Such a colossal number is rarely needed but it's nice to have. 
 
 Floating Points:
 - f32
@@ -479,14 +489,12 @@ These are the operators involved:
 	i16Max
 	i32Max
 	i64Max
-	i128Max
 	
 	usizeMax
 	u8Max
 	u16Max
 	u32Max
 	u64Max
-	u128Max
 
 	debugPrintStack
 	```
@@ -501,15 +509,13 @@ These are the operators involved:
 	i16 32767
 	i32 2147483647
 	i64 9223372036854775807
-	i128 170141183460469231731687303715884105727
 	usize 18446744073709551615
 	u8 255
 	u16 65535
 	u32 4294967295
 	u64 18446744073709551615
-	u128 340282366920938463463374607431768211455
 	--------------------------------
-	STACK LENGTH: 12
+	STACK LENGTH: 10
 	--------------------------------
 	END STACK PRINT
 	--------------------------------
@@ -990,26 +996,21 @@ These are all of them:
 
 - `deepDup` 
 	- Performance: 
-		- O(1) for stack data types and `NULLBox`
-		- O(n) for valid box data types
+		- O(n) for valid Box data types
 	- Given one item at the top of the stack, pops the item, duplicates it, and pushes both the original and clone to the stack. 
 	- General form: 
-		- Stack value or `NULLBox`: stack `x` after `deepDup` becomes stack `x x'` where `x'` is the same as `x`.
 		- Valid box value: stack `x` after `deepDup` becomes stack `x y` where `y` holds new memory allocated on the heap that is identical to `x`'s contents.
 	- If you try to use `deepDup` on an invalid box, it throws an error since it can't copy the underlying data the box holds.
 	- Example Program:
 
 		```
-		//Same as dup for regular values.
-		'x' debugPrintStack
-		deepDup debugPrintStack
-		
-		//Same as dup for NULLBox
-		box null ; debugPrintStack
-		deepDup debugPrintStack
+		"foo" debugPrintStack
+
+		//Regular dup just copies value.
+		dup
+		debugPrintStack
 		
 		//Memory duplication.
-		"foo" debugPrintStack
 		deepDup debugPrintStack
 		//Shows off heap.
 		debugPrintHeap
@@ -1021,7 +1022,7 @@ These are all of them:
 		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		Char 'x'
+		StringBox 0 
 		--------------------------------
 		STACK LENGTH: 1
 		--------------------------------
@@ -1030,8 +1031,8 @@ These are all of them:
 		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		Char 'x'
-		Char 'x'
+		StringBox 0 
+		StringBox 0 
 		--------------------------------
 		STACK LENGTH: 2
 		--------------------------------
@@ -1040,60 +1041,21 @@ These are all of them:
 		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		Char 'x'
-		Char 'x'
-		NULLBox
+		StringBox 0 
+		StringBox 0 
+		StringBox 1 
 		--------------------------------
 		STACK LENGTH: 3
-		--------------------------------
-		END STACK PRINT
-		--------------------------------
-		--------------------------------
-		BEGIN STACK PRINT
-		--------------------------------
-		Char 'x'
-		Char 'x'
-		NULLBox
-		NULLBox
-		--------------------------------
-		STACK LENGTH: 4
-		--------------------------------
-		END STACK PRINT
-		--------------------------------
-		--------------------------------
-		BEGIN STACK PRINT
-		--------------------------------
-		Char 'x'
-		Char 'x'
-		NULLBox
-		NULLBox
-		StringBox 0
-		--------------------------------
-		STACK LENGTH: 5
-		--------------------------------
-		END STACK PRINT
-		--------------------------------
-		--------------------------------
-		BEGIN STACK PRINT
-		--------------------------------
-		Char 'x'
-		Char 'x'
-		NULLBox
-		NULLBox
-		StringBox 0
-		StringBox 1
-		--------------------------------
-		STACK LENGTH: 6
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
 		////////////////////////////////
 		BEGIN HEAP PRINT
 		////////////////////////////////
-		StringBox 0:
-		        String "foo"
-		StringBox 1:
-		        String "foo"
+		StringBox 0 :
+			String "foo"
+		StringBox 1 :
+			String "foo"
 		////////////////////////////////
 		FREE'D BOX NUMBERS: []
 		////////////////////////////////
@@ -3113,7 +3075,7 @@ These are all of the operators associated with this category:
 	- Strings:
 		- Given a stack where the second-to-top element is a valid StringBox and the top is a usize, pops both items from the stack, uses the usize to index into the String held by the StringBox, and pushes the Char held at the usize index to the stack.
 		- General Form: Given stack `s` `i` where `s` is type `StringBox` with at least one `Char` in it and `i` is type `usize` and is a value smaller than the length of `s`, applying `index` yields stack `c` where `c` is a `Char` held in the `String` held by `StringBox` `s` at position `i`. 
-	- **Be aware!** The index must be within the value range 0 to length of the List/String inclusive, or else an error is thrown.
+	- **Be aware!** The index must be within the value range 0 to (length - 1) of the List/String inclusive, or else an error is thrown.
 	- The performance difference between Lists and Strings is due to the fact that a List just directly indexes at the given index, which is constant time, while the String needs to travel to that Char using an iterator approach, since the String is a Vec of u8 under the hood. 
 	- The index itself is a usize instead of an isize, to ensure that it is at least a non-negative integer. 
 	- Example Program:
@@ -3251,7 +3213,7 @@ These are all of the operators associated with this category:
 		```
 
 - `length` or `len`
-	- Performance: O(1)
+	- Performance: O(1) for Lists and O(n) for Strings
 	- Given a stack with the top being either a valid ListBox or a valid StringBox, consumes the ListBox or StringBox and pushes a usize to the stack representing the length of the List/String held by the ListBox/StringBox. 
 	- General form: given a stack 'v' where `v` is either a valid `ListBox` or a valid `StringBox`, applying `length` results in stack `l` where `l` is a `usize` representing the number of items/`Char`s in `v`.
 	- Example Program:
@@ -3844,6 +3806,7 @@ These are all of the operators associated with this category:
 	- Given a stack with two matching valid ListBoxes or StringBoxes, consumes both of them, copies the contents of the top List/String to the second-to-top List/String, and pushes the StringBox/ListBox holding the mutated collection to the stack.
 	- General form: given stack `x y` where `x` and `y` are type `t` which is either type `ListBox` or `StringBox` and is valid, applying `++` results in stack `x'` where `x` is type `t` and holds a mutated collection that is the result of appending the contents of `y`'s collection to `x`'s collection.
 	- Be aware that `y`'s contents aren't freed, merely copied and appended to `x`. If you don't need `y` anymore, be sure to have it saved elsewhere before using `++` and then free `y` afterwards.
+	- Be aware also that `x` and `y` must not be the same box! This results in self-mutation and doesn't work.
 	- Example Program:
 
 		```
@@ -4572,10 +4535,10 @@ These are the operators:
 Bitwise operators are used to make alterations to the bits of integers directly. These are useful in complex hashing algorithms, flipping the value of a number quickly, checking for particular bitwise flags, etc. 
 
 These are the operators employed below:
-- `bitOr`
+- `bitOr` or `|`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise OR operation on them, pushing the result to the stack. A bitwise OR involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. As long as at least one of the bits is a 1, the result is 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
-	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitOr` results in stack `z` where `z` is also type `t` and is the result of a bitwise OR between `x` and `y`.
+	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitOr` results in stack `z` where `z` is also type `t` and is the result of a bitwise OR between `x` and `y`.
 	- Example Program:
 
 		```
@@ -4603,10 +4566,10 @@ These are the operators employed below:
 		--------------------------------
 		```
 
-- `bitAnd`
+- `bitAnd` or `&`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise AND operation on them, pushing the result to the stack. A bitwise AND involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. For a bitwise AND, both bits have to be 1 for the resulting bit to be 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
-	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitAnd` results in stack `z` where `z` is also type `t` and is the result of a bitwise AND between `x` and `y`.
+	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitAnd` results in stack `z` where `z` is also type `t` and is the result of a bitwise AND between `x` and `y`.
 	- Example Program:
 
 		```
@@ -4636,10 +4599,10 @@ These are the operators employed below:
 		--------------------------------
 		```
 
-- `bitXor`
+- `bitXor` or `^`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise XOR operation on them, pushing the result to the stack. A bitwise XOR involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. For a bitwise XOR, exactly one bit has to be 1 and one has to be 0 for the result to be 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
-	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitXor` results in stack `z` where `z` is also type `t` and is the result of a bitwise XOR between `x` and `y`.
+	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitXor` results in stack `z` where `z` is also type `t` and is the result of a bitwise XOR between `x` and `y`.
 	- Example Program:
 
 		```
@@ -4648,7 +4611,7 @@ These are the operators employed below:
 		23u8 64u8 bitXor
 		64usize 1usize bitXor
 		259 3 bitXor
-		15i128 14i128 bitXor
+		15i16 14i16 bitXor
 		debugPrintStack
 		```
 
@@ -4663,7 +4626,7 @@ These are the operators employed below:
 		u8 87
 		usize 65
 		isize 256
-		i128 1
+		i16 1
 		--------------------------------
 		STACK LENGTH: 6
 		--------------------------------
@@ -4674,7 +4637,7 @@ These are the operators employed below:
 - `bitNot`
 	- Performance: O(1)
 	- Given a stack with the top being an integer type, consumes the item, pushing a version with the bitwise NOT operation applied to it. The bitwise NOT operation simply inverts the bits of a given integer when creating the new integer. 
-	- General form: given stack `x` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitNot` results in stack `y` where `y` is the same data type as `x` but with inverted bits thanks to bitwise NOT.
+	- General form: given stack `x` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitNot` results in stack `y` where `y` is the same data type as `x` but with inverted bits thanks to bitwise NOT.
 	- When combined with one of the max operators such as `usizeMax`, `bitNot` can be used to find the minimum value of the various kinds of integers.
 	- Example Program:
 
@@ -4685,7 +4648,6 @@ These are the operators employed below:
 		i16Max dup bitNot
 		i32Max dup bitNot
 		i64Max dup bitNot
-		i128Max dup bitNot
 		
 		//Unsigned maxes paired with their mins.
 		usizeMax dup bitNot
@@ -4693,7 +4655,6 @@ These are the operators employed below:
 		u16Max dup bitNot
 		u32Max dup bitNot
 		u64Max dup bitNot
-		u128Max dup bitNot
 		
 		//Other examples
 		64 dup bitNot
@@ -4719,8 +4680,6 @@ These are the operators employed below:
 		i32 -2147483648
 		i64 9223372036854775807
 		i64 -9223372036854775808
-		i128 170141183460469231731687303715884105727
-		i128 -170141183460469231731687303715884105728
 		usize 18446744073709551615
 		usize 0
 		u8 255
@@ -4731,14 +4690,12 @@ These are the operators employed below:
 		u32 0
 		u64 18446744073709551615
 		u64 0
-		u128 340282366920938463463374607431768211455
-		u128 0
 		isize 64
 		isize -65
 		u8 0
 		u8 255
 		--------------------------------
-		STACK LENGTH: 28
+		STACK LENGTH: 24
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
@@ -4747,7 +4704,7 @@ These are the operators employed below:
 - `bitShift`
 	- Performance: O(1)
 	- Given a stack where the second to top item is an integer and the top item is an isize, consumes the two items and pushes an integer based on the original integer shifted by n bits forward or backwards based on the isize.
-	- General form: given stack `x` `y` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, and `y` is type `isize`, applying `bitShift` results in stack `z` where `z` is the same data type as `x` but is shifted by `y` bits forward or backward.
+	- General form: given stack `x` `y` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, and `y` is type `isize`, applying `bitShift` results in stack `z` where `z` is the same data type as `x` but is shifted by `y` bits forward or backward.
 	- The sign of the shift argument determines which direction the number is bit-shifted:
 		- A positive number shifts the number to the left by n bits, making it bigger by some number of factors of two.
 		- Zero does nothing to the number, pushing a number unchanged, effectively acting as a no-op.
@@ -4775,8 +4732,8 @@ These are the operators employed below:
 		// to integers within bigger integers.
 		//In this case, it's a display 
 		// of the 32 bit signed integer limit, 
-		// contained inside a signed 128 bit integer.
-		1i128 31 bitShift 1i128 -
+		// contained inside a signed 64 bit integer.
+		1i64 31 bitShift 1i64 -
 		
 		//Of course, there are many more fun ways to use this.
 		
@@ -4790,17 +4747,18 @@ These are the operators employed below:
 		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		isize 24
-		isize 5040
-		isize 1012
-		isize 0
-		usize 0
-		i128 2147483647
+		isize 24 
+		isize 5040 
+		isize 1012 
+		isize 0 
+		usize 0 
+		i64 2147483647 
 		--------------------------------
 		STACK LENGTH: 6
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
+
 		```
 
 ### <a name = "io-ops"></a> 3.10 IO Operators
@@ -5059,7 +5017,7 @@ Below are the operators that fall into this category:
 		debugPrintStack
 		
 		//Can print a stack with anything else!
-		1 2usize 3i8 5040i128 3.14 6.28e23f64 'a' false 
+		1 2usize 3i8 5040i64 3.14 6.28e23f64 'a' false 
 		"foo" [] {} box null ;
 		debugPrintStack
 		```
@@ -5081,7 +5039,7 @@ Below are the operators that fall into this category:
 		isize 1
 		usize 2
 		i8 3
-		i128 5040
+		i64 5040
 		f32 3.14
 		f64 6.28e23
 		Char 'a'
@@ -5494,14 +5452,12 @@ Below are all operators of this category:
 		5040i16 dup queryType dup printLine
 		2025i32 dup queryType dup printLine
 		8000000000i64 dup queryType dup printLine
-		i128Max dup queryType dup printLine
 		
 		//Unsigned integers
 		215u8 dup queryType dup printLine
 		52375u16 dup queryType dup printLine
 		3000000000u32 dup queryType dup printLine
 		89u64 dup queryType dup printLine
-		999999999999999999999999999999999u128 dup queryType dup printLine
 		
 		//Floats
 		3.14 dup queryType dup printLine
@@ -5534,12 +5490,10 @@ Below are all operators of this category:
 		i16
 		i32
 		i64
-		i128
 		u8
 		u16
 		u32
 		u64
-		u128
 		f32
 		f64
 		Char
@@ -5550,120 +5504,112 @@ Below are all operators of this category:
 		MiscBox
 		NULLBox
 		--------------------------------
-		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		isize 2319
-		StringBox 0
-		usize 666
-		StringBox 1
-		i8 42
-		StringBox 2
-		i16 5040
-		StringBox 3
-		i32 2025
-		StringBox 4
-		i64 8000000000
-		StringBox 5
-		i128 170141183460469231731687303715884105727
-		StringBox 6
-		u8 215
-		StringBox 7
-		u16 52375
-		StringBox 8
-		u32 3000000000
-		StringBox 9
-		u64 89
-		StringBox 10
-		u128 999999999999999999999999999999999
-		StringBox 11
-		f32 3.14
-		StringBox 12
-		f64 6.02e23
-		StringBox 13
-		Char 'A'
-		StringBox 14
-		Boolean false
-		StringBox 15
-		StringBox 16
-		StringBox 17
-		ListBox 18
-		StringBox 19
-		ObjectBox 20
-		StringBox 21
-		MiscBox 22
-		StringBox 23
-		NULLBox
-		StringBox 24
+		isize 2319 
+		StringBox 0 
+		usize 666 
+		StringBox 1 
+		i8 42 
+		StringBox 2 
+		i16 5040 
+		StringBox 3 
+		i32 2025 
+		StringBox 4 
+		i64 8000000000 
+		StringBox 5 
+		u8 215 
+		StringBox 6 
+		u16 52375 
+		StringBox 7 
+		u32 3000000000 
+		StringBox 8 
+		u64 89 
+		StringBox 9 
+		f32 3.14 
+		StringBox 10 
+		f64 6.02e23 
+		StringBox 11 
+		Char 'A' 
+		StringBox 12 
+		Boolean false 
+		StringBox 13 
+		StringBox 14 
+		StringBox 15 
+		ListBox 16 
+		StringBox 17 
+		ObjectBox 18 
+		StringBox 19 
+		MiscBox 20 
+		StringBox 21 
+		NULLBox 
+		StringBox 22 
 		--------------------------------
-		STACK LENGTH: 42
+		STACK LENGTH: 38
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
 		////////////////////////////////
 		BEGIN HEAP PRINT
 		////////////////////////////////
-		StringBox 0:
-				String "isize"
-		StringBox 1:
-				String "usize"
-		StringBox 2:
-				String "i8"
-		StringBox 3:
-				String "i16"
-		StringBox 4:
-				String "i32"
-		StringBox 5:
-		        String "i64"
-		StringBox 6:
-				String "i128"
-		StringBox 7:
-				String "u8"
-		StringBox 8:
-				String "u16"
-		StringBox 9:
-				String "u32"
-		StringBox 10:
-				String "u64"
-		StringBox 11:
-				String "u128"
-		StringBox 12:
-				String "f32"
-		StringBox 13:
-				String "f64"
-		StringBox 14:
-				String "Char"
-		StringBox 15:
-				String "Boolean"
-		StringBox 16:
-		        String "This is some text!"
-		StringBox 17:
-				String "StringBox"
-		ListBox 18:
-				List []
-		StringBox 19:
-				String "ListBox"
-		ObjectBox 20:
-				Object {}
-		StringBox 21:
-				String "ObjectBox"
-		MiscBox 22:
-				isize 35235
-		StringBox 23:
-				String "MiscBox"
-		StringBox 24:
-				String "NULLBox"
+		StringBox 0 :
+			String "isize"
+		StringBox 1 :
+			String "usize"
+		StringBox 2 :
+			String "i8"
+		StringBox 3 :
+			String "i16"
+		StringBox 4 :
+			String "i32"
+		StringBox 5 :
+			String "i64"
+		StringBox 6 :
+			String "u8"
+		StringBox 7 :
+			String "u16"
+		StringBox 8 :
+			String "u32"
+		StringBox 9 :
+			String "u64"
+		StringBox 10 :
+			String "f32"
+		StringBox 11 :
+			String "f64"
+		StringBox 12 :
+			String "Char"
+		StringBox 13 :
+			String "Boolean"
+		StringBox 14 :
+			String "This is some text!"
+		StringBox 15 :
+			String "StringBox"
+		ListBox 16 :
+			List []
+		StringBox 17 :
+			String "ListBox"
+		ObjectBox 18 :
+			Object {}
+		StringBox 19 :
+			String "ObjectBox"
+		MiscBox 20 :
+			isize 35235
+		StringBox 21 :
+			String "MiscBox"
+		StringBox 22 :
+			String "NULLBox"
 		////////////////////////////////
 		FREE'D BOX NUMBERS: []
 		////////////////////////////////
 		FREE'D BOX COUNT: 0
 		////////////////////////////////
-		TOTAL HEAP ITEM COUNT: 25
+		TOTAL HEAP ITEM COUNT: 23
 		////////////////////////////////
 		PERCENT OF HEAP FREE'D: 0.00
 		////////////////////////////////
 		END HEAP PRINT
 		////////////////////////////////
+
 		```
 
 - `cast`
@@ -5789,10 +5735,17 @@ These operators are ones that break the control flow of a program, causing the p
 	- Obviously, this operator always throws errors, even if used correctly. These errors thus can be let free to stop the program or caught by an `attempt` `onError` fancy operator. 
 	- This operator is largely useful for things akin to asserts in other languages, deliberately throwing an error if some condition is not met. It can also just be used for a more violent form of print debugging.
 	- The error being printed itself works like `printLine` where it adds a `\n` character at the end of the String automatically. 
-	- Example Program:
+	- Example Program (foo.lmao):
 
 		```
-		"ERROR! Something broke! AAAHHHGHH!" throwCustomError
+		"This String prints!" printLine
+
+		"This one too!" printLine
+			
+		"ERROR! Something broke! AAAHHHGHH!" 
+
+		//Stops program right here!
+		throwCustomError
 		
 		"This shouldn't print if there's an error!" printLine
 		"Other thing that shouldn't print!" printLine
@@ -5801,6 +5754,11 @@ These operators are ones that break the control flow of a program, causing the p
 	- Program Output:
 
 		```
+		This String prints!
+		This one too!
+		Error in "foo.lmao" at line 8:
+				throwCustomError
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		ERROR! Something broke! AAAHHHGHH!
 		```
 
@@ -7419,18 +7377,21 @@ Example Program Input and Output:
 --------------------------------
 BEGIN STACK PRINT
 --------------------------------
-isize 0
-isize 42
+isize 0 
+isize 42 
 --------------------------------
 STACK LENGTH: 2
 --------------------------------
 END STACK PRINT
 --------------------------------
-Operator (/) error! Division by zero occuring between two operands of type isize!
+Error in "foo.lmao" at line 24:
+	666 0 /
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Operator (/) error! Division by zero error between isize 666 and isize 0!
 --------------------------------
 BEGIN STACK PRINT
 --------------------------------
-isize 840
+isize 840 
 --------------------------------
 STACK LENGTH: 1
 --------------------------------
@@ -7442,8 +7403,8 @@ Enter your age: -8
 -8 is not a valid age! Try something in range 0-255
 Enter your age: cheese
 cheese is not a valid age! Try something in range 0-255
-Enter your age: 24
-You are 24 years old!
+Enter your age: 25
+You are 25 years old!
 ``` 
 
 ### <a name = "defer-fan-op"></a>4.8 Defer Fancy Operator
@@ -7459,6 +7420,8 @@ defer
 Where `[CODE_TO_RUN]` is code that will be run in its own scope at the end of the scope `defer` is called in.
 
 `defer` also behaves like a stack, where multiple defers push to a stack that results in the most recently `defer`red code being run.
+
+Be aware that deferred code only runs if no errors happened before it! This is to prevent side effects and make it even clearer something is wrong.
 
 Example Program:
 ```
@@ -7614,12 +7577,15 @@ The `import()` decorator is used to import code from other files, acting much li
 
 The general syntax for import is this:
 ```
-import(path/to/file.lmao)
+import("path/to/file.lmao")
 ```
 Where `path/to/file.lmao` is a code file to import to a given program to run.
 
-Under the hood, the given file's code is copy-pasted into the program file before the program
-runs or is compiled, allowing for things like libraries to exist. Light checking also exists to prevent the user from importing the program file into itself or importing the same file more than once. This is also recursive so imports of imported files are covered and so on.
+Under the hood, Lmao checks to see if that file was already imported. If not, it parses the code and builds an AST out of it before wrapping it into its own file node. This way, every file is modular and contained in its own node. In the node is included a FileInfo struct that is used to generate errors with actual lines, which is quite handy.
+
+It doesn't allow self-importing directly, though it can be cheesed with using `..` and similar movements, this will likely just result in errors if any variables or functions are defined there. 
+
+The provided path in `import` is relative by default, though an absolute path can be specified. This would allow something like `import("/lib/lmao/math.lmao")`.
 
 Example Current Directory:
 ```
@@ -7657,7 +7623,7 @@ func def lcg
 
 `foo.lmao`:
 ```
-import(rand.lmao)
+import("rand.lmao")
 
 //Prints 10 random numbers using rand.lmao's lcg function.
 func def print10Random 
@@ -7861,6 +7827,15 @@ The REPL has several commands to chose from:
 	- This way, you could write functions and define variables that you then use in your one-liner.
 	- This is disabled by default so you can do one-liner calculations without unfinished source code messing with things.
 	- This also means that the `RUN` command isn't needed. Enter can just be mashed repeatedly.
+- `NEW`
+	- Resets the state of the REPL.
+	- Stack set back to true and include to false.
+	- Program in memory cleared.
+- `SAVE`
+	- Saves program in memory to a desired input file.
+- `LOAD`
+	- Loads program into memory from desired input file.
+
 
 The REPL itself is initiated using the command:
 
@@ -7872,7 +7847,15 @@ The compiler is a powerful tool in Lmao. It allows for `.lmao` files to be direc
 
 Compilation of a Lmao program involves using `lmaoc`, the Lmao compiler. 
 
-Under the hood, `lmaoc` merely translates a `.lmao` file into Rust, then uses rustc at high optimization to compile it to machine code. It's a little cheap but it works.
+At present, the old `lmaoc` that did exist isn't here. It will be implemented again soon though.
+
+When `lmaoc` is re-implemented, it will take a Lmao program, turn it into an AST, emit LLVM IR based on the AST, and run LLVM to turn it into machine code optimal for the user's CPU architecture. 
+
+More specifically, the stack will become the stack itself, as in the stack used to allocate stack data in assembly. Pushing will involve moving the stack pointer down and writing to registers. Heap-allocated data will still be pointed to by Box values on the stack but now the heap will be my own custom heap made of blocks of a fixed size. 
+
+But what is LLVM? What's IR? LLVM doesn't actually stand for anything anymore but it's a foundational backend for modern compilers. Rust, Clang, and Zig all make use of it. It provides many free optimizatons on the backend, as well as offering far greater portability than if I just targeted x86 or ARM. IR is short for intermediate representation, the stuff that you kick out in the middle of compilation at an *intermediate* stage. An AST (abstract syntax tree) would also be IR, just higher level. 
+
+Once re-implemented, the instructions on running it below will still be valid.
 
 To run `lmaoc`, the syntax is as follows:
 ```
@@ -7880,55 +7863,90 @@ To run `lmaoc`, the syntax is as follows:
 ``` 
 Where `[LMAO_FILE_TO_COMPILE]` is the file you want turned into machine code. Unlike `lmao`, if nothing is given to `lmaoc`, an error is thrown.
 
-For the example of compilation, we'll return to the example of greeting each input argument with the program `helloArgs.lmao`.
+One may ask why anyone would want to compile Lmao programs. The main answer is speed. When compiling a Lmao program into machine code, the efficient stack-based system can be optimized into direct stack utilizations and register operations, which makes for a far faster runtime! The other reason is portability. Compiling a Lmao program turns it into its own executable, omitting the need for having an interpreter for Lmao installed once built. The executable can be executed anywhere with the same processor architecture and OS.
 
-Example Directory:
-```
-drwxr-xr-x 2 janJesi users    4096 Jun 25 15:31 .
-drwxr-xr-x 8 janJesi users    4096 Jun 25 15:31 ..
--rw-r--r-- 1 janJesi users     495 Jun 25 15:31 helloArgs.lmao
--rwxr-xr-x 1 janJesi users 1140152 Jun 25 15:31 lmaoc
-``` 
-
-Example Terminal:
-```
-$ ./lmaoc helloArgs.lmao
-Opening helloArgs.lmao
-Reading in helloArgs.lmao
-Tokenizing file String
-Lexing file tokens
-Building Abstract Syntax Tree
-Creating and opening helloArgs.rs
-Writing to Rust file helloArgs.rs
-Compiling helloArgs.rs
-Compilation complete!
-$ 
-```
-
-Directory following running `lmaoc`:
-```
-drwxr-xr-x 2 janJesi users    4096 Jun 25 15:39 .
-drwxr-xr-x 8 janJesi users    4096 Jun 25 15:31 ..
--rwxr-xr-x 1 janJesi users  545168 Jun 25 15:39 helloArgs
--rw-r--r-- 1 janJesi users     495 Jun 25 15:31 helloArgs.lmao
--rw-r--r-- 1 janJesi users  188689 Jun 25 15:39 helloArgs.rs
--rwxr-xr-x 1 janJesi users 1140152 Jun 25 15:31 lmaoc
-```
-
-Example Terminal 2:
-```
-$ ./helloArgs foo bar baz
-Hello, ./helloArgs!
-Hello, foo!
-Hello, bar!
-Hello, baz!
-$ 
-```
-
-As can be seen, `helloArgs` functions the same way as `helloArgs.lmao` except that it can be run on its own.
-
-One may ask why anyone would want to compile Lmao programs. The main answer is speed. When compiling a Lmao program into machine code, the speed boost allows it to surpass Python in some cases! Also, it's handy being able to build a Lmao program and have it become its own stand-alone executable that doesn't need the interpreter, making it more portable.
-
-## <a name = "conclusion"></a> 7 Conclusion 
+## <a name = "errs"></a> 7 Errors     
 ### [**Return to Table of Contents**](#toc)
-Lmao is quite the neat programming language. From its usage of a stack for operands to its static typing, Lmao has many practical features included. In time, more features will come, including optimizations to make Lmao even faster. It's been very fun making all this documentation describing how Lmao works and all its features. Beyond docs, it's also been fun building this language from the ground-up, watching as more features come into the fray. In time, I hope to even build a bootstrapped compiler, allowing Lmao a degree of independence from Rust, though that will be tricky to pull off. I hope you have as much fun messing around with this language as I have! 
+In the process of running Lmao, errors will likely happen. 
+
+Errors follow the format of a stack-trace, with errors being set off in sequence.
+
+The deeper the error, the deeper the stack trace. 
+
+This allows the user to not only know where the original error happened, but also what parts had it happen and what parts are affected by the error.
+
+Example Program (foo.lmao):
+```
+import("bar.lmao")
+
+func def main 
+	"This is the start!" printLine
+	func call blarg ;
+;
+
+func call main ;
+```
+
+Example Program (bar.lmao):
+```
+0 
+true
+while
+	1 + dup 3000000 < 
+;
+
+debugPrintStack
+
+func def blarg 
+	2 3 +
+
+	3.2 3.0 pow
+
+	true 
+	while
+		true
+		if 
+			"This is a bogus error!"
+			throwCustomError
+		;
+		false
+	;
+;
+```
+
+Example Program Output:
+```
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+isize 3000000
+--------------------------------
+STACK LENGTH: 1
+--------------------------------
+END STACK PRINT
+--------------------------------
+This is the start!
+Error in "foo.lmao" at line 8:
+func call main ;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error in "foo.lmao" at line 5:
+        func call blarg ;
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error in "bar.lmao" at line 15:
+        while
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error in "bar.lmao" at line 17:
+                if
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Error in "bar.lmao" at line 19:
+                        throwCustomError
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+This is a bogus error!
+
+```
+
+As can be seen, the error started in main before going to `blarg`, then `while`, then `if`, then `throwCustomError` at last. This provides a natural stack trace of what went wrong. Note also that the file name changed once it entered `blarg` as `blarg` is defined in `bar.lmao`.
+
+## <a name = "conclusion"></a> 8 Conclusion 
+### [**Return to Table of Contents**](#toc)
+Lmao is quite the neat programming language. From its usage of a stack for operands to its static typing, Lmao has many practical features included. In time, more features will come, including optimizations to make Lmao even faster, such as the true compiler. It's been very fun making all this documentation describing how Lmao works and all its features. Beyond docs, it's also been fun building this language from the ground-up, watching as more features come into the fold. In time, I hope to even build a bootstrapped compiler, allowing Lmao a degree of independence from Rust, though that will be tricky to pull off, as my compiler will have to be built in Lmao and compiled directly. I hope you have as much fun messing around with this language as I have! 

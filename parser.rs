@@ -370,6 +370,7 @@ impl TryCast<bool> for SuperValue{
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
 
+			Size, IntSize, isize,
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
@@ -401,6 +402,7 @@ impl TryCast<char> for SuperValue{
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
 
+			Size, IntSize, isize,
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
@@ -451,6 +453,7 @@ impl TryCast<&String> for SuperValue{
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
 
+			Size, IntSize, isize,
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
@@ -1002,8 +1005,19 @@ pub fn type_to_string(v: Value) -> String{
 pub fn parse_string_to_ast(argv: &Vec<String>, program_string: String) -> Result<ASTNode, String>{
 	//Constructs means of checking for duplicate imports.
 	let mut imported_files: HashMap<String, ()> = HashMap::new();
+
+	//Handles empty argv.
+	let top_file_name: &str;
+	if argv.len() > 1{
+		top_file_name = &argv[1];
+	}else{
+		top_file_name = "";
+	}
+
+	//Prevents self-importing.
+	imported_files.insert(top_file_name.to_string(), ());
 	
-	let top_file = FileInfo::new(&argv[1], &program_string);
+	let top_file = FileInfo::new(top_file_name, &program_string);
 	match tokenize(top_file, &mut imported_files){
 		Ok(token) => {
 			match make_ast(token){
