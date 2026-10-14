@@ -3806,6 +3806,7 @@ These are all of the operators associated with this category:
 	- Given a stack with two matching valid ListBoxes or StringBoxes, consumes both of them, copies the contents of the top List/String to the second-to-top List/String, and pushes the StringBox/ListBox holding the mutated collection to the stack.
 	- General form: given stack `x y` where `x` and `y` are type `t` which is either type `ListBox` or `StringBox` and is valid, applying `++` results in stack `x'` where `x` is type `t` and holds a mutated collection that is the result of appending the contents of `y`'s collection to `x`'s collection.
 	- Be aware that `y`'s contents aren't freed, merely copied and appended to `x`. If you don't need `y` anymore, be sure to have it saved elsewhere before using `++` and then free `y` afterwards.
+	- Be aware also that `x` and `y` must not be the same box! This results in self-mutation and doesn't work.
 	- Example Program:
 
 		```
