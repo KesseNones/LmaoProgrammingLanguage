@@ -97,7 +97,7 @@ Here are all of them:
 Signed Integers:
 - isize
 	- A signed integer optimized to the word size of the given machine's CPU architecture. On most modern machines, isize would be a signed 64 bit integer but earlier systems might have it be a signed 32 bit integer. 
-	- Thus, on modern systems, isize ranges from -2^31 to 2^31 - 1 or `-9223372036854775808` to `9223372036854775807`.
+	- Thus, on modern systems, isize ranges from -2^63 to 2^63 - 1 or `-9223372036854775808` to `9223372036854775807`.
 	- To push an isize to the stack, simply type a positive or negative whole number (integer) in the given range. This is also the default type for integers so you can just type the number alone and it will read it in as an integer. Example `42` is read as an isize. If you want to guarantee that the given number is an isize, you can push it like so: `42isize` which explicitly states that the value pushed is of type isize.  
 - i8
 	- A signed eight bit integer.  
@@ -115,16 +115,11 @@ Signed Integers:
 	- A signed sixty four bit integer.
 	- Ranges from -2^63 to 2^63 - 1 or `-9223372036854775808` to `9223372036854775807`. 
 	- To push an i64 to the stack, type out an integer and concatenate its data type like so: `29998559671349i64`.
-- i128
-	- A signed one hundred and twenty eight bit integer.
-	- Ranges from -2^127 to 2^127 - 1 or `-170141183460469231731687303715884105728` to `170141183460469231731687303715884105727`. 
-	- To push an i128 to the stack, type out an integer and concatenate its data type like so: `999888777666555444333222111000i128`.
-	- Such a colossal number is rarely needed but it's nice to have. 
 
 Unsigned Integers:
 - usize
 	- An unsigned integer optimized to the word size of the given machine's CPU architecture. On most modern machines, usize would be an unsigned 64 bit integer but earlier systems might have it be an unsigned 32 bit integer. 
-	- Thus, on modern systems, usize ranges from 0 to 2^32 - 1 or `0` to `18446744073709551615`.
+	- Thus, on modern systems, usize ranges from 0 to 2^64 - 1 or `0` to `18446744073709551615`.
 	- To push a usize to the stack, simply type a positive whole number (integer) in the given range like so: `2319usize`. Unlike isize, usize is not the default integer to be interpreted so you have to explicitly say that the value being pushed is a usize, as demonstrated.
 - u8
 	- An unsigned eight bit integer.  
@@ -142,11 +137,6 @@ Unsigned Integers:
 	- An unsigned sixty four bit integer.
 	- Ranges from 0 to 2^64 - 1 or `0` to `18446744073709551615`. 
 	- To push a u64 to the stack, type out an integer and concatenate its data type like so: `5040u64`.
-- u128
-	- An unsigned one hundred and twenty eight bit integer.
-	- Ranges from 0 to 2^128 - 1 or `0` to `340282366920938463463374607431768211455`. 
-	- To push an i128 to the stack, type out an integer and concatenate its data type like so: `999888777666555444333222111000i128`.
-	- Such a colossal number is rarely needed but it's nice to have. 
 
 Floating Points:
 - f32
