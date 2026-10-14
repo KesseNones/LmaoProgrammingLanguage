@@ -1002,8 +1002,16 @@ pub fn type_to_string(v: Value) -> String{
 pub fn parse_string_to_ast(argv: &Vec<String>, program_string: String) -> Result<ASTNode, String>{
 	//Constructs means of checking for duplicate imports.
 	let mut imported_files: HashMap<String, ()> = HashMap::new();
+
+	//Handles empty argv.
+	let top_file_name: &str;
+	if argv.len() > 1{
+		top_file_name = &argv[1];
+	}else{
+		top_file_name = "";
+	}
 	
-	let top_file = FileInfo::new(&argv[1], &program_string);
+	let top_file = FileInfo::new(top_file_name, &program_string);
 	match tokenize(top_file, &mut imported_files){
 		Ok(token) => {
 			match make_ast(token){
