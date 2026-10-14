@@ -370,6 +370,7 @@ impl TryCast<bool> for SuperValue{
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
 
+			Size, IntSize, isize,
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
@@ -401,6 +402,7 @@ impl TryCast<char> for SuperValue{
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
 
+			Size, IntSize, isize,
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
@@ -451,6 +453,7 @@ impl TryCast<&String> for SuperValue{
 			Uint32, UInt32, u32,	
 			Uint64, UInt64, u64,	
 
+			Size, IntSize, isize,
 			Int8, Int8, i8,	
 			Int16, Int16, i16,	
 			Int32, Int32, i32,	
