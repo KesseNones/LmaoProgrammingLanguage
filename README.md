@@ -7421,6 +7421,8 @@ Where `[CODE_TO_RUN]` is code that will be run in its own scope at the end of th
 
 `defer` also behaves like a stack, where multiple defers push to a stack that results in the most recently `defer`red code being run.
 
+Be aware that deferred code only runs if no errors happened before it! This is to prevent side effects and make it even clearer something is wrong.
+
 Example Program:
 ```
 func def alphaFun
