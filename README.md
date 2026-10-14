@@ -995,26 +995,21 @@ These are all of them:
 
 - `deepDup` 
 	- Performance: 
-		- O(1) for stack data types and `NULLBox`
-		- O(n) for valid box data types
+		- O(n) for valid Box data types
 	- Given one item at the top of the stack, pops the item, duplicates it, and pushes both the original and clone to the stack. 
 	- General form: 
-		- Stack value or `NULLBox`: stack `x` after `deepDup` becomes stack `x x'` where `x'` is the same as `x`.
 		- Valid box value: stack `x` after `deepDup` becomes stack `x y` where `y` holds new memory allocated on the heap that is identical to `x`'s contents.
 	- If you try to use `deepDup` on an invalid box, it throws an error since it can't copy the underlying data the box holds.
 	- Example Program:
 
 		```
-		//Same as dup for regular values.
-		'x' debugPrintStack
-		deepDup debugPrintStack
-		
-		//Same as dup for NULLBox
-		box null ; debugPrintStack
-		deepDup debugPrintStack
+		"foo" debugPrintStack
+
+		//Regular dup just copies value.
+		dup
+		debugPrintStack
 		
 		//Memory duplication.
-		"foo" debugPrintStack
 		deepDup debugPrintStack
 		//Shows off heap.
 		debugPrintHeap
@@ -1026,7 +1021,7 @@ These are all of them:
 		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		Char 'x'
+		StringBox 0 
 		--------------------------------
 		STACK LENGTH: 1
 		--------------------------------
@@ -1035,8 +1030,8 @@ These are all of them:
 		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		Char 'x'
-		Char 'x'
+		StringBox 0 
+		StringBox 0 
 		--------------------------------
 		STACK LENGTH: 2
 		--------------------------------
@@ -1045,60 +1040,21 @@ These are all of them:
 		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		Char 'x'
-		Char 'x'
-		NULLBox
+		StringBox 0 
+		StringBox 0 
+		StringBox 1 
 		--------------------------------
 		STACK LENGTH: 3
-		--------------------------------
-		END STACK PRINT
-		--------------------------------
-		--------------------------------
-		BEGIN STACK PRINT
-		--------------------------------
-		Char 'x'
-		Char 'x'
-		NULLBox
-		NULLBox
-		--------------------------------
-		STACK LENGTH: 4
-		--------------------------------
-		END STACK PRINT
-		--------------------------------
-		--------------------------------
-		BEGIN STACK PRINT
-		--------------------------------
-		Char 'x'
-		Char 'x'
-		NULLBox
-		NULLBox
-		StringBox 0
-		--------------------------------
-		STACK LENGTH: 5
-		--------------------------------
-		END STACK PRINT
-		--------------------------------
-		--------------------------------
-		BEGIN STACK PRINT
-		--------------------------------
-		Char 'x'
-		Char 'x'
-		NULLBox
-		NULLBox
-		StringBox 0
-		StringBox 1
-		--------------------------------
-		STACK LENGTH: 6
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
 		////////////////////////////////
 		BEGIN HEAP PRINT
 		////////////////////////////////
-		StringBox 0:
-		        String "foo"
-		StringBox 1:
-		        String "foo"
+		StringBox 0 :
+			String "foo"
+		StringBox 1 :
+			String "foo"
 		////////////////////////////////
 		FREE'D BOX NUMBERS: []
 		////////////////////////////////
