@@ -5777,10 +5777,17 @@ These operators are ones that break the control flow of a program, causing the p
 	- Obviously, this operator always throws errors, even if used correctly. These errors thus can be let free to stop the program or caught by an `attempt` `onError` fancy operator. 
 	- This operator is largely useful for things akin to asserts in other languages, deliberately throwing an error if some condition is not met. It can also just be used for a more violent form of print debugging.
 	- The error being printed itself works like `printLine` where it adds a `\n` character at the end of the String automatically. 
-	- Example Program:
+	- Example Program (foo.lmao):
 
 		```
-		"ERROR! Something broke! AAAHHHGHH!" throwCustomError
+		"This String prints!" printLine
+
+		"This one too!" printLine
+			
+		"ERROR! Something broke! AAAHHHGHH!" 
+
+		//Stops program right here!
+		throwCustomError
 		
 		"This shouldn't print if there's an error!" printLine
 		"Other thing that shouldn't print!" printLine
@@ -5789,6 +5796,11 @@ These operators are ones that break the control flow of a program, causing the p
 	- Program Output:
 
 		```
+		This String prints!
+		This one too!
+		Error in "foo.lmao" at line 8:
+				throwCustomError
+		~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 		ERROR! Something broke! AAAHHHGHH!
 		```
 
