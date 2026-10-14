@@ -7823,6 +7823,15 @@ The REPL has several commands to chose from:
 	- This way, you could write functions and define variables that you then use in your one-liner.
 	- This is disabled by default so you can do one-liner calculations without unfinished source code messing with things.
 	- This also means that the `RUN` command isn't needed. Enter can just be mashed repeatedly.
+- `NEW`
+	- Resets the state of the REPL.
+	- Stack set back to true and include to false.
+	- Program in memory cleared.
+- `SAVE`
+	- Saves program in memory to a desired input file.
+- `LOAD`
+	- Loads program into memory from desired input file.
+
 
 The REPL itself is initiated using the command:
 
