@@ -488,14 +488,12 @@ These are the operators involved:
 	i16Max
 	i32Max
 	i64Max
-	i128Max
 	
 	usizeMax
 	u8Max
 	u16Max
 	u32Max
 	u64Max
-	u128Max
 
 	debugPrintStack
 	```
@@ -510,15 +508,13 @@ These are the operators involved:
 	i16 32767
 	i32 2147483647
 	i64 9223372036854775807
-	i128 170141183460469231731687303715884105727
 	usize 18446744073709551615
 	u8 255
 	u16 65535
 	u32 4294967295
 	u64 18446744073709551615
-	u128 340282366920938463463374607431768211455
 	--------------------------------
-	STACK LENGTH: 12
+	STACK LENGTH: 10
 	--------------------------------
 	END STACK PRINT
 	--------------------------------
@@ -3260,7 +3256,7 @@ These are all of the operators associated with this category:
 		```
 
 - `length` or `len`
-	- Performance: O(1)
+	- Performance: O(1) for Lists and O(n) for Strings
 	- Given a stack with the top being either a valid ListBox or a valid StringBox, consumes the ListBox or StringBox and pushes a usize to the stack representing the length of the List/String held by the ListBox/StringBox. 
 	- General form: given a stack 'v' where `v` is either a valid `ListBox` or a valid `StringBox`, applying `length` results in stack `l` where `l` is a `usize` representing the number of items/`Char`s in `v`.
 	- Example Program:
@@ -4584,7 +4580,7 @@ These are the operators employed below:
 - `bitOr`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise OR operation on them, pushing the result to the stack. A bitwise OR involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. As long as at least one of the bits is a 1, the result is 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
-	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitOr` results in stack `z` where `z` is also type `t` and is the result of a bitwise OR between `x` and `y`.
+	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitOr` results in stack `z` where `z` is also type `t` and is the result of a bitwise OR between `x` and `y`.
 	- Example Program:
 
 		```
@@ -4615,7 +4611,7 @@ These are the operators employed below:
 - `bitAnd`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise AND operation on them, pushing the result to the stack. A bitwise AND involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. For a bitwise AND, both bits have to be 1 for the resulting bit to be 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
-	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitAnd` results in stack `z` where `z` is also type `t` and is the result of a bitwise AND between `x` and `y`.
+	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitAnd` results in stack `z` where `z` is also type `t` and is the result of a bitwise AND between `x` and `y`.
 	- Example Program:
 
 		```
@@ -4648,7 +4644,7 @@ These are the operators employed below:
 - `bitXor`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise XOR operation on them, pushing the result to the stack. A bitwise XOR involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. For a bitwise XOR, exactly one bit has to be 1 and one has to be 0 for the result to be 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
-	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitXor` results in stack `z` where `z` is also type `t` and is the result of a bitwise XOR between `x` and `y`.
+	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitXor` results in stack `z` where `z` is also type `t` and is the result of a bitwise XOR between `x` and `y`.
 	- Example Program:
 
 		```
@@ -4657,7 +4653,7 @@ These are the operators employed below:
 		23u8 64u8 bitXor
 		64usize 1usize bitXor
 		259 3 bitXor
-		15i128 14i128 bitXor
+		15i16 14i16 bitXor
 		debugPrintStack
 		```
 
@@ -4672,7 +4668,7 @@ These are the operators employed below:
 		u8 87
 		usize 65
 		isize 256
-		i128 1
+		i16 1
 		--------------------------------
 		STACK LENGTH: 6
 		--------------------------------
@@ -4683,7 +4679,7 @@ These are the operators employed below:
 - `bitNot`
 	- Performance: O(1)
 	- Given a stack with the top being an integer type, consumes the item, pushing a version with the bitwise NOT operation applied to it. The bitwise NOT operation simply inverts the bits of a given integer when creating the new integer. 
-	- General form: given stack `x` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, applying `bitNot` results in stack `y` where `y` is the same data type as `x` but with inverted bits thanks to bitwise NOT.
+	- General form: given stack `x` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitNot` results in stack `y` where `y` is the same data type as `x` but with inverted bits thanks to bitwise NOT.
 	- When combined with one of the max operators such as `usizeMax`, `bitNot` can be used to find the minimum value of the various kinds of integers.
 	- Example Program:
 
@@ -4694,7 +4690,6 @@ These are the operators employed below:
 		i16Max dup bitNot
 		i32Max dup bitNot
 		i64Max dup bitNot
-		i128Max dup bitNot
 		
 		//Unsigned maxes paired with their mins.
 		usizeMax dup bitNot
@@ -4702,7 +4697,6 @@ These are the operators employed below:
 		u16Max dup bitNot
 		u32Max dup bitNot
 		u64Max dup bitNot
-		u128Max dup bitNot
 		
 		//Other examples
 		64 dup bitNot
@@ -4728,8 +4722,6 @@ These are the operators employed below:
 		i32 -2147483648
 		i64 9223372036854775807
 		i64 -9223372036854775808
-		i128 170141183460469231731687303715884105727
-		i128 -170141183460469231731687303715884105728
 		usize 18446744073709551615
 		usize 0
 		u8 255
@@ -4740,14 +4732,12 @@ These are the operators employed below:
 		u32 0
 		u64 18446744073709551615
 		u64 0
-		u128 340282366920938463463374607431768211455
-		u128 0
 		isize 64
 		isize -65
 		u8 0
 		u8 255
 		--------------------------------
-		STACK LENGTH: 28
+		STACK LENGTH: 24
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
@@ -4756,7 +4746,7 @@ These are the operators employed below:
 - `bitShift`
 	- Performance: O(1)
 	- Given a stack where the second to top item is an integer and the top item is an isize, consumes the two items and pushes an integer based on the original integer shifted by n bits forward or backwards based on the isize.
-	- General form: given stack `x` `y` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `i128`, `u8`, `u16`, `u32`, `u64`, or `u128`, and `y` is type `isize`, applying `bitShift` results in stack `z` where `z` is the same data type as `x` but is shifted by `y` bits forward or backward.
+	- General form: given stack `x` `y` where `x` is type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, and `y` is type `isize`, applying `bitShift` results in stack `z` where `z` is the same data type as `x` but is shifted by `y` bits forward or backward.
 	- The sign of the shift argument determines which direction the number is bit-shifted:
 		- A positive number shifts the number to the left by n bits, making it bigger by some number of factors of two.
 		- Zero does nothing to the number, pushing a number unchanged, effectively acting as a no-op.
@@ -4784,8 +4774,8 @@ These are the operators employed below:
 		// to integers within bigger integers.
 		//In this case, it's a display 
 		// of the 32 bit signed integer limit, 
-		// contained inside a signed 128 bit integer.
-		1i128 31 bitShift 1i128 -
+		// contained inside a signed 64 bit integer.
+		1i64 31 bitShift 1i64 -
 		
 		//Of course, there are many more fun ways to use this.
 		
@@ -4799,17 +4789,18 @@ These are the operators employed below:
 		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		isize 24
-		isize 5040
-		isize 1012
-		isize 0
-		usize 0
-		i128 2147483647
+		isize 24 
+		isize 5040 
+		isize 1012 
+		isize 0 
+		usize 0 
+		i64 2147483647 
 		--------------------------------
 		STACK LENGTH: 6
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
+
 		```
 
 ### <a name = "io-ops"></a> 3.10 IO Operators
@@ -5503,14 +5494,12 @@ Below are all operators of this category:
 		5040i16 dup queryType dup printLine
 		2025i32 dup queryType dup printLine
 		8000000000i64 dup queryType dup printLine
-		i128Max dup queryType dup printLine
 		
 		//Unsigned integers
 		215u8 dup queryType dup printLine
 		52375u16 dup queryType dup printLine
 		3000000000u32 dup queryType dup printLine
 		89u64 dup queryType dup printLine
-		999999999999999999999999999999999u128 dup queryType dup printLine
 		
 		//Floats
 		3.14 dup queryType dup printLine
@@ -5543,12 +5532,10 @@ Below are all operators of this category:
 		i16
 		i32
 		i64
-		i128
 		u8
 		u16
 		u32
 		u64
-		u128
 		f32
 		f64
 		Char
@@ -5559,120 +5546,112 @@ Below are all operators of this category:
 		MiscBox
 		NULLBox
 		--------------------------------
-		--------------------------------
 		BEGIN STACK PRINT
 		--------------------------------
-		isize 2319
-		StringBox 0
-		usize 666
-		StringBox 1
-		i8 42
-		StringBox 2
-		i16 5040
-		StringBox 3
-		i32 2025
-		StringBox 4
-		i64 8000000000
-		StringBox 5
-		i128 170141183460469231731687303715884105727
-		StringBox 6
-		u8 215
-		StringBox 7
-		u16 52375
-		StringBox 8
-		u32 3000000000
-		StringBox 9
-		u64 89
-		StringBox 10
-		u128 999999999999999999999999999999999
-		StringBox 11
-		f32 3.14
-		StringBox 12
-		f64 6.02e23
-		StringBox 13
-		Char 'A'
-		StringBox 14
-		Boolean false
-		StringBox 15
-		StringBox 16
-		StringBox 17
-		ListBox 18
-		StringBox 19
-		ObjectBox 20
-		StringBox 21
-		MiscBox 22
-		StringBox 23
-		NULLBox
-		StringBox 24
+		isize 2319 
+		StringBox 0 
+		usize 666 
+		StringBox 1 
+		i8 42 
+		StringBox 2 
+		i16 5040 
+		StringBox 3 
+		i32 2025 
+		StringBox 4 
+		i64 8000000000 
+		StringBox 5 
+		u8 215 
+		StringBox 6 
+		u16 52375 
+		StringBox 7 
+		u32 3000000000 
+		StringBox 8 
+		u64 89 
+		StringBox 9 
+		f32 3.14 
+		StringBox 10 
+		f64 6.02e23 
+		StringBox 11 
+		Char 'A' 
+		StringBox 12 
+		Boolean false 
+		StringBox 13 
+		StringBox 14 
+		StringBox 15 
+		ListBox 16 
+		StringBox 17 
+		ObjectBox 18 
+		StringBox 19 
+		MiscBox 20 
+		StringBox 21 
+		NULLBox 
+		StringBox 22 
 		--------------------------------
-		STACK LENGTH: 42
+		STACK LENGTH: 38
 		--------------------------------
 		END STACK PRINT
 		--------------------------------
 		////////////////////////////////
 		BEGIN HEAP PRINT
 		////////////////////////////////
-		StringBox 0:
-				String "isize"
-		StringBox 1:
-				String "usize"
-		StringBox 2:
-				String "i8"
-		StringBox 3:
-				String "i16"
-		StringBox 4:
-				String "i32"
-		StringBox 5:
-		        String "i64"
-		StringBox 6:
-				String "i128"
-		StringBox 7:
-				String "u8"
-		StringBox 8:
-				String "u16"
-		StringBox 9:
-				String "u32"
-		StringBox 10:
-				String "u64"
-		StringBox 11:
-				String "u128"
-		StringBox 12:
-				String "f32"
-		StringBox 13:
-				String "f64"
-		StringBox 14:
-				String "Char"
-		StringBox 15:
-				String "Boolean"
-		StringBox 16:
-		        String "This is some text!"
-		StringBox 17:
-				String "StringBox"
-		ListBox 18:
-				List []
-		StringBox 19:
-				String "ListBox"
-		ObjectBox 20:
-				Object {}
-		StringBox 21:
-				String "ObjectBox"
-		MiscBox 22:
-				isize 35235
-		StringBox 23:
-				String "MiscBox"
-		StringBox 24:
-				String "NULLBox"
+		StringBox 0 :
+			String "isize"
+		StringBox 1 :
+			String "usize"
+		StringBox 2 :
+			String "i8"
+		StringBox 3 :
+			String "i16"
+		StringBox 4 :
+			String "i32"
+		StringBox 5 :
+			String "i64"
+		StringBox 6 :
+			String "u8"
+		StringBox 7 :
+			String "u16"
+		StringBox 8 :
+			String "u32"
+		StringBox 9 :
+			String "u64"
+		StringBox 10 :
+			String "f32"
+		StringBox 11 :
+			String "f64"
+		StringBox 12 :
+			String "Char"
+		StringBox 13 :
+			String "Boolean"
+		StringBox 14 :
+			String "This is some text!"
+		StringBox 15 :
+			String "StringBox"
+		ListBox 16 :
+			List []
+		StringBox 17 :
+			String "ListBox"
+		ObjectBox 18 :
+			Object {}
+		StringBox 19 :
+			String "ObjectBox"
+		MiscBox 20 :
+			isize 35235
+		StringBox 21 :
+			String "MiscBox"
+		StringBox 22 :
+			String "NULLBox"
 		////////////////////////////////
 		FREE'D BOX NUMBERS: []
 		////////////////////////////////
 		FREE'D BOX COUNT: 0
 		////////////////////////////////
-		TOTAL HEAP ITEM COUNT: 25
+		TOTAL HEAP ITEM COUNT: 23
 		////////////////////////////////
 		PERCENT OF HEAP FREE'D: 0.00
 		////////////////////////////////
 		END HEAP PRINT
 		////////////////////////////////
+
 		```
 
 - `cast`
