@@ -7419,18 +7419,21 @@ Example Program Input and Output:
 --------------------------------
 BEGIN STACK PRINT
 --------------------------------
-isize 0
-isize 42
+isize 0 
+isize 42 
 --------------------------------
 STACK LENGTH: 2
 --------------------------------
 END STACK PRINT
 --------------------------------
-Operator (/) error! Division by zero occuring between two operands of type isize!
+Error in "foo.lmao" at line 24:
+	666 0 /
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Operator (/) error! Division by zero error between isize 666 and isize 0!
 --------------------------------
 BEGIN STACK PRINT
 --------------------------------
-isize 840
+isize 840 
 --------------------------------
 STACK LENGTH: 1
 --------------------------------
@@ -7442,8 +7445,8 @@ Enter your age: -8
 -8 is not a valid age! Try something in range 0-255
 Enter your age: cheese
 cheese is not a valid age! Try something in range 0-255
-Enter your age: 24
-You are 24 years old!
+Enter your age: 25
+You are 25 years old!
 ``` 
 
 ### <a name = "defer-fan-op"></a>4.8 Defer Fancy Operator
