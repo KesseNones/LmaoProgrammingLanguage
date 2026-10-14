@@ -3075,7 +3075,7 @@ These are all of the operators associated with this category:
 	- Strings:
 		- Given a stack where the second-to-top element is a valid StringBox and the top is a usize, pops both items from the stack, uses the usize to index into the String held by the StringBox, and pushes the Char held at the usize index to the stack.
 		- General Form: Given stack `s` `i` where `s` is type `StringBox` with at least one `Char` in it and `i` is type `usize` and is a value smaller than the length of `s`, applying `index` yields stack `c` where `c` is a `Char` held in the `String` held by `StringBox` `s` at position `i`. 
-	- **Be aware!** The index must be within the value range 0 to length of the List/String inclusive, or else an error is thrown.
+	- **Be aware!** The index must be within the value range 0 to (length - 1) of the List/String inclusive, or else an error is thrown.
 	- The performance difference between Lists and Strings is due to the fact that a List just directly indexes at the given index, which is constant time, while the String needs to travel to that Char using an iterator approach, since the String is a Vec of u8 under the hood. 
 	- The index itself is a usize instead of an isize, to ensure that it is at least a non-negative integer. 
 	- Example Program:
