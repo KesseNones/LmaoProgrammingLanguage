@@ -897,9 +897,9 @@ pub fn is_less_than_equal_to(s: &mut Stack, _: &mut Heap ) -> Result<RetCode, St
 //Creates error string for when a box involved is invalid.
 pub fn bad_box_error(op_name: &str, b1: Value, b2: Value, is_two_boxes: bool) -> String{
 	if !is_two_boxes{
-		format!("Operator ({}) error! {} is not a valid Box/Box type!", op_name, b1)
+		format!("Operator ({}) error! {} is not a valid Box type!", op_name, b1)
 	}else{
-		format!("Operator ({}) error! {} and {} are not valid Boxes/Box types!", op_name, b1, b2)
+		format!("Operator ({}) error! {} and {} are not valid Box types!", op_name, b1, b2)
 	}
 }
 
