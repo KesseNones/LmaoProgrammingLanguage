@@ -4533,7 +4533,7 @@ These are the operators:
 Bitwise operators are used to make alterations to the bits of integers directly. These are useful in complex hashing algorithms, flipping the value of a number quickly, checking for particular bitwise flags, etc. 
 
 These are the operators employed below:
-- `bitOr`
+- `bitOr` or `|`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise OR operation on them, pushing the result to the stack. A bitwise OR involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. As long as at least one of the bits is a 1, the result is 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
 	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitOr` results in stack `z` where `z` is also type `t` and is the result of a bitwise OR between `x` and `y`.
@@ -4564,7 +4564,7 @@ These are the operators employed below:
 		--------------------------------
 		```
 
-- `bitAnd`
+- `bitAnd` or `&`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise AND operation on them, pushing the result to the stack. A bitwise AND involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. For a bitwise AND, both bits have to be 1 for the resulting bit to be 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
 	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitAnd` results in stack `z` where `z` is also type `t` and is the result of a bitwise AND between `x` and `y`.
@@ -4597,7 +4597,7 @@ These are the operators employed below:
 		--------------------------------
 		```
 
-- `bitXor`
+- `bitXor` or `^`
 	- Performance: O(1)
 	- Given a stack where the top two elements are matching integer types, consumes both of them and performs a bitwise XOR operation on them, pushing the result to the stack. A bitwise XOR involves comparing each of the bits between two integers which determines the bit at the same position in the new integer. For a bitwise XOR, exactly one bit has to be 1 and one has to be 0 for the result to be 1, otherwise it's 0. Because this operation is practically a CPU instruction and it's done on fixed-width integers, it's constant time.
 	- General form: given stack `x` `y` where `x` and `y` are both type `t` which can be type `isize`, `usize`, `i8`, `i16`. `i32`, `i64`, `u8`, `u16`, `u32`, or `u64`, applying `bitXor` results in stack `z` where `z` is also type `t` and is the result of a bitwise XOR between `x` and `y`.
