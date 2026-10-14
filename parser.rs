@@ -1010,6 +1010,9 @@ pub fn parse_string_to_ast(argv: &Vec<String>, program_string: String) -> Result
 	}else{
 		top_file_name = "";
 	}
+
+	//Prevents self-importing.
+	imported_files.insert(top_file_name.to_string(), ());
 	
 	let top_file = FileInfo::new(top_file_name, &program_string);
 	match tokenize(top_file, &mut imported_files){
