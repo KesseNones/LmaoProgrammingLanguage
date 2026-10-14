@@ -5017,7 +5017,7 @@ Below are the operators that fall into this category:
 		debugPrintStack
 		
 		//Can print a stack with anything else!
-		1 2usize 3i8 5040i128 3.14 6.28e23f64 'a' false 
+		1 2usize 3i8 5040i64 3.14 6.28e23f64 'a' false 
 		"foo" [] {} box null ;
 		debugPrintStack
 		```
@@ -5039,7 +5039,7 @@ Below are the operators that fall into this category:
 		isize 1
 		usize 2
 		i8 3
-		i128 5040
+		i64 5040
 		f32 3.14
 		f64 6.28e23
 		Char 'a'
