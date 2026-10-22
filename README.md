@@ -79,7 +79,7 @@ Like EcksDee, Lmao operates in a similar manner to Forth, with a stack and opera
 
 The stack works like this: data types are pushed to the stack and operators consume those data and push new data to the stack after successfully completing the operation. 
 
-In terms of syntax, operands are contiguous text of non-whitespace characters. Some exceptions exist there with Strings allowing whitespace but contained by `"` characters for their boundaries. Fancy operators are whitespace seperated as well with the `;` character acting as the terminator. Broadly, tokens in Lmao are seperated based on whitespace with exceptions for Strings. Operands are data pushed to the stack and operators operate on that data.
+In terms of syntax, operands are contiguous text of non-whitespace characters. Some exceptions exist there with Strings allowing whitespace but contained by `"` characters for their boundaries. Fancy operators are whitespace seperated as well with the `;` character acting as the terminator. Chars also allow whitespace such as `' '`, which is the space character. 
 
 Example:
 ```
