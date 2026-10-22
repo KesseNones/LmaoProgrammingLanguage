@@ -77,13 +77,15 @@ Like EcksDee, Lmao operates in a similar manner to Forth, with a stack and opera
 
 The stack works like this: data types are pushed to the stack and operators consume those data and push new data to the stack after successfully completing the operation. 
 
-For example:
+In terms of syntax, operands are contiguous text of non-whitespace characters. Some exceptions exist there with Strings allowing whitespace but contained by `"` characters for their boundaries. Fancy operators are whitespace seperated as well with the `;` character acting as the terminator. Broadly, tokens in Lmao are seperated based on whitespace with exceptions for Strings. Operands are data pushed to the stack and operators operate on that data.
+
+Example:
 ```
 2 3 +
 ```
 This code pushes `isize 2` and `isize 3` to the stack and then uses the `+` operator which consumes the two values on the stack and pushes a new `isize 5` that is the result of adding the two values of compatible types together. 
 
-What's an `isize`? What are operators? All in good time. The point is that the programming language works by using operators that take values pushed to the stack which then potentially produce new values.
+What's an `isize`? What are operators? All in good time. The point is that the programming language works by using operators that take values pushed to the stack which then typically produce new values.
 
 ## <a name = "data-types"></a> 2 Data Types Used
 ### [**Return to Table of Contents**](#toc)
