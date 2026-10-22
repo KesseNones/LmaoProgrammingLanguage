@@ -41,7 +41,8 @@
 	- [6.2 Running Lmao REPL](#running-repl)
 	- [6.3 Running Lmao Compiler](#running-compile)
 - [7 Errors](#errs)
-- [8 Conclusion](#conclusion)
+- [8 Comments](#cmts)
+- [9 Conclusion](#conclusion)
 ## <a name = "intro"></a>0 Introduction
 ### [**Return to Table of Contents**](#toc)
 
@@ -7947,6 +7948,68 @@ This is a bogus error!
 
 As can be seen, the error started in main before going to `blarg`, then `while`, then `if`, then `throwCustomError` at last. This provides a natural stack trace of what went wrong. Note also that the file name changed once it entered `blarg` as `blarg` is defined in `bar.lmao`.
 
-## <a name = "conclusion"></a> 8 Conclusion 
+## <a name = "cmts"></a> 8 Comments 
+### [**Return to Table of Contents**](#toc)
+Comments in Lmao are pretty simple. 
+
+The syntax for comments is:
+`//[TEXT][NEWLINE]`
+
+Where `[TEXT]` is any text that's contained on one line and `[NEWLINE]` is a newline that ends the comment.
+
+Anything following the `//` and preceding the `[NEWLINE]` is ignored by Lmao.
+
+There are only single line comments in Lmao. If you want more than one line, use multiple single-line comments. This is built for easy parsing and to minimize excessive comments.
+
+Example Program:
+```
+//This is a comment! Stuff in here is ignored!
+2 3 + 355.0 113.0 / 
+
+// 42 "I would run if not commented!" printLine
+
+debugPrintStack
+```
+Example Program Output:
+```
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+isize 5
+f32 3.141593
+--------------------------------
+STACK LENGTH: 2
+--------------------------------
+END STACK PRINT
+--------------------------------
+```
+
+Example Program Without Commented Code:
+```
+//This is a comment! Stuff in here is ignored!
+2 3 + 355.0 113.0 / 
+
+42 "I would run if not commented!" printLine
+
+debugPrintStack
+```
+
+Example Program Without Commented Code Output:
+```
+I would run if not commented!
+--------------------------------
+BEGIN STACK PRINT
+--------------------------------
+isize 5
+f32 3.141593
+isize 42
+--------------------------------
+STACK LENGTH: 3
+--------------------------------
+END STACK PRINT
+--------------------------------
+```
+
+## <a name = "conclusion"></a> 9 Conclusion 
 ### [**Return to Table of Contents**](#toc)
 Lmao is quite the neat programming language. From its usage of a stack for operands to its static typing, Lmao has many practical features included. In time, more features will come, including optimizations to make Lmao even faster, such as the true compiler. It's been very fun making all this documentation describing how Lmao works and all its features. Beyond docs, it's also been fun building this language from the ground-up, watching as more features come into the fold. In time, I hope to even build a bootstrapped compiler, allowing Lmao a degree of independence from Rust, though that will be tricky to pull off, as my compiler will have to be built in Lmao and compiled directly. I hope you have as much fun messing around with this language as I have! 
