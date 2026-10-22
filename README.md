@@ -70,6 +70,8 @@ The academic reasons for building this are: demonstration of skill and construct
 
 In short, I built the Lmao interpreter because it's cool, and am building a true compiler for Lmao because it's cool, practical, showcases my knowledge, and may open up future career opportunities. 
 
+For a quick start to Lmao, follow [6 Running Lmao](#running) to set it up and [6.1 Running Lmao Interpreter](#running-interp) to run its interpreter. Then, you can run the "Hello, World!" program: `"Hello, World!" printLine`.
+
 ## <a name = "stack-based"></a>1 Using a Stack-Based Approach
 ### [**Return to Table of Contents**](#toc)
 
