@@ -7139,7 +7139,7 @@ END STACK PRINT
 --------------------------------
 ```
 
-As you can notice, `box free ;` is used a lot. If you add `debugPrintHeap` to the example program, you can see clearly that all of the heap is freed. This practice of freeing allocated memory is a **very** good idea for functions as they can be called many times over which allows for the memory to be re-used and the heap to stay small. Eventually, I'll talk about the `defer` fancy operator, which makes a lot of memory maintenance much easier.
+As you can notice, `box free ;` is used a lot. If you add `debugPrintHeap` to the example program, you can see clearly that all of the heap is freed. This practice of freeing allocated memory is a **very** good idea for functions as they can be called many times over which allows for the memory to be re-used and the heap to stay small. To see how handling memory maintenance can be made much easier, refer to [4.8 Defer](#defer-fan-op) to see how the `defer` fancy operator is useful for automatic memory cleanup. 
 
 ### <a name = "loc-fan-ops"></a>4.6 Local Variable Fancy Operator
 #### [**Return to Table of Contents**](#toc)
