@@ -6539,7 +6539,7 @@ these variables don't adhere to scope. These variables simply exist until delete
 Below are all the valid operators associated with variables:
 - `var mak [NAME] ;`
 	- Performance: O(1)
-	- Given a stack with anything on top, consumes that item and saves it in variables with the given name `[NAME]`.
+	- Given a stack with anything on top, consumes that item and saves it in variables with the given name `[NAME]`, where `[NAME]` is a series of non-whitespace characters that don't match an existing operator or fancy operator keyword. 
 	- General form: given stack `v`, applying `var mak x ;` results in stack ` ` where `v` is stored in a variable by name of `x`.
 	- Be aware that `[NAME]` can only exist once with an error being thrown if the variable is already created.
 	- Example Program:
@@ -6937,6 +6937,8 @@ func call [FUNCTION_NAME] ;
 ```
 This calls `[FUNCTION_NAME]` which then runs `[FUNCTION_CODE]` contained by the function. 
 
+`[FUNCTION_NAME]` must be a contiguous block of non-whitespace characters that doesn't match existing operators or other keywords.
+
 Since the stack is transcendent of scope, the stack is what's used for any function inputs and any outputs of the function. For instance, a function that displays formatted output may take input on the stack to put in the formatted String for output.
 
 Example Program:
@@ -7155,7 +7157,7 @@ The general syntax is thus:
 loc [CMD] [NAME] ;
 ```
 The keyword `loc` stands for `loc`al variable, like how `var` is short for `var`iable in the Variable Fancy Operator.
-`[CMD]` is one of the three valid command keywords of `mak`, `get`, and `mut`. Notice how `del` is not featured since local variables are cleaned up at the end of their scope! `[NAME]` is just the name of the local variable.
+`[CMD]` is one of the three valid command keywords of `mak`, `get`, and `mut`. Notice how `del` is not featured since local variables are cleaned up at the end of their scope! `[NAME]` is just the name of the local variable and follows the same rules as Var: it must be a series of non-whitespace characters that match no language keywords.
 
 Example Program:
 ```
@@ -7854,7 +7856,7 @@ Compilation of a Lmao program involves using `lmaoc`, the Lmao compiler.
 
 At present, the old `lmaoc` that did exist isn't here. It will be implemented again soon though.
 
-When `lmaoc` is re-implemented, it will take a Lmao program, turn it into an AST, emit LLVM IR based on the AST, and run LLVM to turn it into machine code optimal for the user's CPU architecture. 
+When `lmaoc` is re-implemented, it will take a Lmao program, turn it into an AST using the code in `parser.rs`, emit LLVM IR based on the AST, and run LLVM to turn it into machine code optimal for the user's CPU architecture. 
 
 More specifically, the stack will become the stack itself, as in the stack used to allocate stack data in assembly. Pushing will involve moving the stack pointer down and writing to registers. Heap-allocated data will still be pointed to by Box values on the stack but now the heap will be my own custom heap made of blocks of a fixed size. 
 
