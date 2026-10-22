@@ -171,7 +171,7 @@ Floating Points:
 	- An unsigned 32 bit integer encoded into a specific Unicode character value. 
 	- Though an integer under the hood, it looks like a single character when pushed to and shown on the stack. 
 	- To push a Char to the stack, you encase a valid character inside two apostrophes like so: `'9'`.
-	- To push whitespace Chars, the escape character "\" can be used like so: `'\n'` `'\t'` `'\r'` `'\0'`, and more.
+	- To push whitespace Chars, the escape character "\" can be used like so: `'\n'` `'\t'` `'\r'` `'\0'`, and more. The full list of valid escape chars: `'\n'` `'\t'` `'\r'` `'\0'` `'\b'` `'\f'` `'\\'` `'\''` `'\"'`
 	- Since Char supports full Unicode, non-ascii symbols can also be in characters like emojis, foreign characters, etc. For example: `'😄'` `'十'`, etc.
 - Boolean
 	- An unsinged eight bit integer under the hood but only occupies two possible values of `true` or `false`. 
