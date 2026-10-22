@@ -7674,14 +7674,14 @@ Getting Lmao working on most computers is a pretty simple matter. The steps belo
 
 Here's how to get Lmao working:
 
-1. Have `rustc` installed which can be managed through installing Rust itself using your system's package manager or installing it in a more manual fashion like on Windows. 
+1. Have `Cargo` installed which can be installed through your system's package manager. If on Windows, use the setup exe. 
 2. Clone this repository in a directory of your chosing: `git clone https://github.com/KesseNones/LmaoProgrammingLanguage`.
 3. Run `make`.
 	- This will call Cargo to build the project for release.
 
 If you want to install it:
 - Run `sudo make install`.
-- This will build the programs and copy the appropriate binaries into `/usr/bin/`.
+- This will build the program and copy the appropriate binary into `/usr/bin/`.
 - If on a different OS, just run `make` and then copy the binaries to where you want.
 
 ### <a name = "running-interp"></a>6.1 Running Lmao Interpreter
