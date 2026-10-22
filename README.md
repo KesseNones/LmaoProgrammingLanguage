@@ -7528,7 +7528,7 @@ END HEAP PRINT
 ////////////////////////////////
 ```
 
-Given this example and how Defer works in general, can you refactor previous code examples to utilize Defer for more effective memory cleanup? 
+If you want, try refactoring the earlier examples to use Defer for better memory cleanup.
 
 ### <a name = "cast-fan-op"></a>4.9 Cast to Fancy Operator
 #### [**Return to Table of Contents**](#toc)
