@@ -60,6 +60,8 @@ Initially, I created an interpreter and a transpliler. The interpreter could tak
 
 So, I decided to replace the old transpliler with a true compiler for my master's project. This involves taking the AST made by Lmao's parser and switching to emitting LLVM IR (intermediate representation) instead of Rust, then calling LLVM's API to turn it into machine code. 
 
+The compiler architecture in LLVM will feature using the stack itself for the stack, as they're the same idea. Pushing involves moving the stack pointer down and setting a value from a register. Operators move values to registers and operate on them before moving the stack pointer back up. Heap-allocated values will be tricky and likely will involve building my own arena-like heap to handle. Much of the work before building the backend will involve a frontend that can omit as many runtime errors as possible. Once a complete AST exists stringwise LLVM IR emissions will be sent to a string buffer before writing it to a file and calling LLVM on it to turn it into machine code. 
+
 So, why do all this? What's the point of not only building a giant interpreter for this silly little language but also a compiler for it? Why?
 
 The why: because it's cool. I enjoy watching a novel programming language come to life. The process of building a parser to recognize all the syntax and then translating that into actually running the language is just a thrilling process for me. Beyond the interpreter, the notion of working directly with LLVM to make low level IR output and build low-level versions of data structures is already a very enjoyable idea to me. Plus, there just aren't very many postfix languages that are used. I wanted to add one more that can be explored and played with. 
