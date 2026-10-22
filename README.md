@@ -190,6 +190,7 @@ These are all the heap data types:
 	- Used in reading and writing user input, and reading and writing files.
 	- To allocate a string to be used, type out a set of text in double-quotes like so: `"Hello, world!"`
 	- Be aware that to type double quotes inside a string, you have to use the backslash escape character to make it work.
+	- Escape characters beyond `'\"'` work the same way as with the Char data type.
 	- Following pushing such a string, the stack will be holding a StringBox pointing to the String on the heap. 
 - List
 	- A collection of stack data types and box data types stored contiguously. 
