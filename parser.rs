@@ -820,7 +820,6 @@ impl fmt::Display for FunCmd{
 
 #[derive(Clone)]
 pub struct FuncData{
-	pub cmd: FunCmd,
 	pub name: String,
 	pub bod: ASTNode,
 	pub body_token_count: usize,
@@ -829,10 +828,9 @@ pub struct FuncData{
 }
 
 impl FuncData{
-	pub fn new(c: FunCmd, n: &str, b: ASTNode, 
+	pub fn new(n: &str, b: ASTNode, 
 	start: usize, size: usize, fi: Rc<FileInfo>) -> Rc<Self>{
 		Rc::new(FuncData{
-			cmd: c,
 			name: n.to_string(),
 			bod: b,
 			body_token_count: size,
@@ -936,7 +934,8 @@ pub enum ASTNode{
 	If(Box<IfData>),
 	While(Box<WhileData>),
 	Expression(Box<Vec<ASTNode>>),
-	Function(Rc<FuncData>),
+	FunctionDefine(Rc<FuncData>),
+	FunctionCall(Box<String>),
 	Variable(Box<VarData>),
 	LocVar(Box<VarData>),
 	BoxOp(BoxCmd),
@@ -971,8 +970,11 @@ impl fmt::Display for ASTNode{
 				let strs: Vec<String> = vec.iter().map(|n| format!("{}", n)).collect();
 				write!(f, "Expression [{}]", strs.join(", "))
 			},
-			ASTNode::Function(data) => {
-				write!(f, "Function [cmd: {}, name: {}, body: {}]", data.cmd, data.name, data.bod)
+			ASTNode::FunctionDefine(data) => {
+				write!(f, "Function Define [name: {}, body: {}]", data.name, data.bod)
+			},
+			ASTNode::FunctionCall(name) => {
+				write!(f, "Function Call [name: {}]", name)	
 			},
 			ASTNode::Variable(data) => write!(f, "Variable [name: {}, cmd: {}]", data.name, data.cmd),
 			ASTNode::LocVar(data) => write!(f, "Local Variable [name: {}, cmd: {}]", data.name, data.cmd),
@@ -1848,11 +1850,10 @@ pub fn make_ast_prime(
 									{
 										Ok((f_bod, token_index_prime)) => {
 											let f_data = FuncData::new(
-												FunCmd::Define, name, 
-												f_bod.into(), token_index + 3, 
+												name, f_bod.into(), token_index + 3, 
 												token_index_prime - (token_index + 2),
 												file.clone());
-											already_parsed.push(ASTNode::Function(f_data));
+											already_parsed.push(ASTNode::FunctionDefine(f_data));
 											token_index = token_index_prime;
 										},
 										Err(e) => return Err(file.err_str_tok(&e, token_index)),
@@ -1863,11 +1864,10 @@ pub fn make_ast_prime(
 									// it checks for a terminator and that's it.
 									match tokens.get(token_index + 3){
 										Some(Token::Terminator) => {
-											let nil_file = Rc::new(FileInfo::new("", ""));
-											let f_data = FuncData::new(
-												FunCmd::Call, name, 
-												Vec::new().into(), 0, 0, nil_file);
-											already_parsed.push(ASTNode::Function(f_data));
+											let name_cpy = Box::new(name.clone());
+											already_parsed.push(
+												ASTNode::FunctionCall(name_cpy)
+											);
 
 											token_index += 3;
 										},

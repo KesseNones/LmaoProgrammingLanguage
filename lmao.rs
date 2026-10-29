@@ -371,34 +371,30 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 					
 						token_index += data.token_count;
                     },
-                    ASTNode::Function(data) => {
-                        match data.cmd{
-                            FunCmd::Define => {
-								let name = data.name.as_str();
-								if !fns.func_def(name, data.clone()){
-									err_break!{func_already_defined(name)}
-								}
-								token_index = token_index + 2 + data.body_token_count;		
-                            },
-                            FunCmd::Call => {
-								let name = data.name.as_str();
-                                let call_data = match fns.get_data(name){
-                                    Some(d) => d,
-                                    None => { err_break!{func_not_defined(name)} }, 
-                                };
-								let bod_res = 
-								run_program(
+					ASTNode::FunctionDefine(data) => {
+						let name = data.name.as_str();
+						if !fns.func_def(name, data.clone()){
+							err_break!{func_already_defined(name)}
+						}
+						token_index = token_index + 2 + data.body_token_count;		
+					},
+					ASTNode::FunctionCall(name) => {
+						match fns.get_data(name){
+							Some(call_data) => {
+								let bod_res = run_program(
 									&call_data.bod, s, h, 
-									vars, fns, &call_data.f_file_info, call_data.start_token_index);
+									vars, fns, &call_data.f_file_info, 
+									call_data.start_token_index
+								);
 
 								match bod_res{
 									Ok(_) => token_index += 3,
 									Err(e) => {err_break!{e}}
 								}
-                            },
-							_ => {err_break!{should_never_get_here_for_func("function")}}
-                        }
-                    },
+							},
+							None => { err_break!{func_not_defined(name)} }, 
+						};
+					},
                     ASTNode::LocVar(data) => {
                         match data.cmd{
                             VarCmd::Make => {
