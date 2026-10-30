@@ -504,7 +504,7 @@ pub enum StackOperator{
 
 	BitOr, BitAnd, BitXor, BitNot, BitShift, 
 
-	PrintChar, ReadChar, DebugPrintStack, 
+	PrintChar, ReadChar, 
 
 	LeaveScopeIfTrue, 
 	TimeUnixNow, TimeWait, 
@@ -546,7 +546,6 @@ macro_rules! match_call{
 			("bitShift", BitShift), 
 
 			("printChar", PrintChar), ("readChar", ReadChar), 
-			("debugPrintStack", DebugPrintStack), 
 
 			("leaveScopeIfTrue", LeaveScopeIfTrue), 
 			("timeUnixNow", TimeUnixNow), 
@@ -594,7 +593,7 @@ pub enum HeapOperator{
 	Cast,
 
 	PrintLine, ReadLine, Print, Read, 
-	DebugPrintHeap,
+	DebugPrintHeap, DebugPrintStack,
 
 	FileWrite, FileRead, FileCreate, FileRemove, FileExists,
 
@@ -628,6 +627,7 @@ macro_rules! match_call{
 
 			("printLine", PrintLine), ("readLine", ReadLine), 
 			("print", Print), ("read", Read),  
+			("debugPrintStack", DebugPrintStack),
 			("debugPrintHeap", DebugPrintHeap),
 
 			("fileWrite", FileWrite), ("fileRead", FileRead), 

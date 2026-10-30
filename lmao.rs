@@ -55,13 +55,13 @@ fn invalid_mutation_error(op_name: &str, v1: Value, v2: Value) -> String{
 	format!("Operator ({}) error! Unable to mutate {} to {}, as it is an invalid mutation!", op_name, v1, v2)
 }
 
-fn run_stack_op(op: StackOperator, s: &mut Stack, h: &mut Heap) -> 
+fn run_stack_op(op: StackOperator, s: &mut Stack) -> 
 Result<RetCode, String>
 {
 	macro_rules! op_match{
 		($(($var:ident, $func:ident)),* $(,)?) => {
 			match op{
-				$(StackOperator::$var => $func(s, h),)*			
+				$(StackOperator::$var => $func(s),)*			
 				//Should never reach this!
 				StackOperator::Unknown => Err(should_never_get_here_for_func("run_stack_op")),
 			}	
@@ -98,7 +98,6 @@ Result<RetCode, String>
 		(BitShift, bit_shift), 
 
 		(PrintChar, print_char), (ReadChar, read_char), 
-		(DebugPrintStack, debug_stack_print), 
 
 		(LeaveScopeIfTrue, leave_scope_if_true), 
 		(TimeUnixNow, time_unix_now), 
@@ -135,6 +134,7 @@ Result<RetCode, String>
 		(PrintLine, print_line), (ReadLine, read_line_from_in), 
 		(Print, print_string), (Read, read_from_in), 
 		(DebugPrintHeap, debug_heap_print),
+		(DebugPrintStack, debug_stack_print), 
 
 		(FileWrite, write_data_to_file), 
 		(FileRead, read_data_from_file), 
@@ -199,7 +199,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 					ASTNode::Val(v) => s.push(*v),
 					ASTNode::HeapVal(hv) => s.push(h.insert_to_heap(*hv.clone())),
 					ASTNode::Sop(id) => {
-						match run_stack_op(*id, s, h){
+						match run_stack_op(*id, s){
 							Ok(RetCode::Normal) => (),
 							Ok(RetCode::LeavingScopeEarly) => {
 								res = Ok((RetCode::LeavingScopeEarly, token_index));
