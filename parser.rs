@@ -850,7 +850,8 @@ impl FileInfo{
 #[derive(PartialEq, Eq, Clone)]
 pub enum Token{
 	Val(SuperValue),
-	Op(Operator),
+	Sop(StackOperator),
+	Hop(HeapOperator),
 	If,
 	Else,
 	While,
@@ -878,7 +879,8 @@ impl fmt::Display for Token{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self {
 			Token::Val(v) => write!(f, "Value: {}", v),
-			Token::Op(o) => write!(f, "Op: {}", o.stringify()),
+			Token::Sop(o) => write!(f, "Sop: {}", o.stringify()),
+			Token::Hop(o) => write!(f, "Hop: {}", o.stringify()),
 			Token::If => write!(f, "If"),
 			Token::Else => write!(f, "Else"),
 			Token::While => write!(f, "While"),
@@ -1110,7 +1112,8 @@ impl DeferData{
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
-	Op(Operator),
+	Sop(StackOperator),
+	Hop(HeapOperator),
 	Val(Value),	
 	HeapVal(Box<HeapValue>),
 	If(Box<IfData>),
@@ -1143,7 +1146,8 @@ impl Default for ASTNode{
 impl fmt::Display for ASTNode{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self{
-			ASTNode::Op(id) => write!(f, "Operator {}", id.stringify()),
+			ASTNode::Sop(id) => write!(f, "Stack Operator {}", id.stringify()),
+			ASTNode::Hop(id) => write!(f, "Heap Operator {}", id.stringify()),
 			ASTNode::Val(v) => write!(f, "{}", v),
 			ASTNode::HeapVal(hv) => write!(f, "{}", hv),
 			ASTNode::If(data) => write!(f, "If [true_branch: {}, false_branch: {}]", data.if_true, data.if_false),
@@ -1511,22 +1515,23 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 				"else" => Ok(Token::Else),
 				//General catch-all case mostly meant for operators.
 				t => {
-					//If valid operator, kick that back.
-					let op_val = Operator::new(&t);
-					if op_val != Operator::Unknown{
-						return Ok(Token::Op(op_val));
+					match (StackOperator::new(&t), HeapOperator::new(&t)) {
+						(StackOperator::Unknown, HeapOperator::Unknown) => {
+							//If alphanumeric only, kick back as fragment.
+							for c in t.chars(){
+								if c.is_whitespace(){
+									return Err(
+										format!(
+									"Token: \"{}\" is not a valid Token!", t)
+									);
+								}
+							}	
+							Ok(Token::Fragment(t.to_string()))	
+						},
+						(StackOperator::Unknown, hop) => Ok(Token::Hop(hop)),
+						(sop, HeapOperator::Unknown) => Ok(Token::Sop(sop)),
+						(_, _) => Err("SHOULD NEVER GET HERE FOR OP PARSING!".to_string()),
 					}
-
-					//If alphanumeric only, kick back as fragment.
-					for c in t.chars(){
-						if c.is_whitespace(){
-							return Err(
-								format!(
-							"Token: \"{}\" is not a valid Token!", t)
-							);
-						}
-					}	
-					Ok(Token::Fragment(t.to_string()))
 				}, 
 			}	
 		};
@@ -1755,7 +1760,8 @@ pub fn make_ast_prime(
 					}				
 				},
 				//Basically a direct translation.
-				Token::Op(o) => already_parsed.push(ASTNode::Op(*o)),
+				Token::Sop(o) => already_parsed.push(ASTNode::Sop(*o)),
+				Token::Hop(o) => already_parsed.push(ASTNode::Hop(*o)),
 				//If you see a rogue fragment like this, error out!
 				Token::Fragment(f) => {
 					let e = rogue_fragment_err(f);

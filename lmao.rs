@@ -55,6 +55,99 @@ fn invalid_mutation_error(op_name: &str, v1: Value, v2: Value) -> String{
 	format!("Operator ({}) error! Unable to mutate {} to {}, as it is an invalid mutation!", op_name, v1, v2)
 }
 
+fn run_stack_op(op: StackOperator, s: &mut Stack, h: &mut Heap) -> 
+Result<RetCode, String>
+{
+	macro_rules! op_match{
+		($(($var:ident, $func:ident)),* $(,)?) => {
+			match op{
+				$(StackOperator::$var => $func(s, h),)*			
+				//Should never reach this!
+				StackOperator::Unknown => Err(should_never_get_here_for_func("run_stack_op")),
+			}	
+		};
+	}
+	op_match!{
+		(Add, add), (Sub, sub), (Mul, mult), (Div, div), 
+		(Mod, modulo), (Pow, power),
+
+		(IsizeMax, max_isize), (UsizeMax, max_usize),
+
+		(I8Max, max_i8), (I16Max, max_i16), (I32Max, max_i32), 
+		(I64Max, max_i64), 
+
+		(U8Max, max_u8), (U16Max, max_u16), (U32Max, max_u32), 
+		(U64Max, max_u64), 
+
+		(Swap, swap), (Drop, drop), (DropStack, drop_stack), 
+		(Rot, rot), (Dup, dup),  
+
+		(Equal, is_equal), (NotEqual, is_not_equal), 
+		(GreaterThan, is_greater_than), (LessThan, is_less_than), 
+		(GreaterThanEqualTo, is_greater_than_equal_to), 
+		(LessThanEqualTo, is_less_than_equal_to), 
+
+		(And, and), (Or, or), (Xor, xor), (Not, not),
+
+		(IsWhitespaceChar, whitespace_detect), 
+		(IsAlphaChar, alpha_char_detect), 
+		(IsNumChar, num_char_detect),
+
+		(BitOr, bit_or), (BitAnd, bit_and), 
+		(BitXor, bit_xor), (BitNot, bit_not), 
+		(BitShift, bit_shift), 
+
+		(PrintChar, print_char), (ReadChar, read_char), 
+		(DebugPrintStack, debug_stack_print), 
+
+		(LeaveScopeIfTrue, leave_scope_if_true), 
+		(TimeUnixNow, time_unix_now), 
+		(TimeWait, time_wait),
+	}
+}
+
+fn run_heap_op(op: HeapOperator, s: &mut Stack, h: &mut Heap) -> 
+Result<RetCode, String>
+{
+	macro_rules! op_match{
+		($(($var:ident, $func:ident)),* $(,)?) => {
+			match op{
+				$(HeapOperator::$var => $func(s, h),)*			
+				//Should never reach this!
+				HeapOperator::Unknown => Err(should_never_get_here_for_func("run_heap_op")),
+			}	
+		};
+	}
+	op_match!{
+		(DeepDup, deep_dup), (Cast, cast_op),
+
+		(StringCompare, string_compare), (Concat, concat),
+
+		(Push, list_push), (Pop, list_pop), (Fpush, list_front_push), 
+		(Fpop, list_front_pop), (Index, index), (Length, length),
+
+		(IsEmpty, is_empty), (Clear, list_clear), 
+		(Contains, list_contains), (ChangeItemAt, change_item_at),
+
+		(ObjAddField, add_field), (ObjGetField, get_field), 
+		(ObjMutField, mut_field), (ObjRemField, remove_field),
+
+		(PrintLine, print_line), (ReadLine, read_line_from_in), 
+		(Print, print_string), (Read, read_from_in), 
+		(DebugPrintHeap, debug_heap_print),
+
+		(FileWrite, write_data_to_file), 
+		(FileRead, read_data_from_file), 
+		(FileCreate, create_file_based_on_string), 
+		(FileRemove, delete_file_based_on_string), 
+		(FileExists, file_exists),
+
+		(QueryType, query_type), 
+		(ThrowCustomError, throw_custom_error), (GetArgs, get_args), 
+		(IsValidBox, is_valid_box), 
+	}
+}
+
 fn run_operator(op: Operator, s: &mut Stack, h: &mut Heap) -> 
 Result<RetCode, String>
 {
@@ -176,8 +269,8 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                 match node{
 					ASTNode::Val(v) => s.push(*v),
 					ASTNode::HeapVal(hv) => s.push(h.insert_to_heap(*hv.clone())),
-					ASTNode::Op(id) => {
-						match run_operator(*id, s, h){
+					ASTNode::Sop(id) => {
+						match run_stack_op(*id, s, h){
 							Ok(RetCode::Normal) => (),
 							Ok(RetCode::LeavingScopeEarly) => {
 								res = Ok((RetCode::LeavingScopeEarly, token_index));
@@ -185,6 +278,11 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 							},
 							Err(e) => {err_break!{e}},
 						}									
+					},
+					ASTNode::Hop(id) => {
+						if let Err(e) = run_heap_op(*id, s, h){
+							err_break!{e}
+						}
 					},
                     ASTNode::Variable(data) => {
 						let name = &data.name;
