@@ -486,6 +486,188 @@ impl TryCast<&HashMap<String, Value>> for SuperValue{
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
+pub enum StackOperator{
+	Add, Sub, Mul, Div, 
+	Mod, Pow, 
+
+	UsizeMax, U8Max, U16Max, U32Max, U64Max,  
+	IsizeMax, I8Max, I16Max, I32Max, I64Max, 
+
+	Swap, Drop, DropStack, Rot, Dup, 
+
+	Equal, NotEqual, GreaterThan, LessThan, GreaterThanEqualTo,
+	LessThanEqualTo, 
+
+	And, Or, Xor, Not,
+
+	IsWhitespaceChar, IsAlphaChar, IsNumChar,
+
+	BitOr, BitAnd, BitXor, BitNot, BitShift, 
+
+	PrintChar, ReadChar, DebugPrintStack, 
+
+	LeaveScopeIfTrue, 
+	TimeUnixNow, TimeWait, 
+
+	Unknown
+}
+
+impl Default for StackOperator{
+	fn default() -> Self{StackOperator::Unknown}
+}
+macro_rules! match_call{
+	($mac:ident) => {
+		$mac!{
+			("+", Add), ("-", Sub), ("*", Mul), ("/", Div), 
+			("mod", Mod), ("%", Mod), ("pow", Pow),
+
+			("isizeMax", IsizeMax), ("usizeMax", UsizeMax),
+
+			("i8Max", I8Max), ("i16Max", I16Max), ("i32Max", I32Max), 
+			("i64Max", I64Max),
+
+			("u8Max", U8Max), ("u16Max", U16Max), ("u32Max", U32Max),
+			("u64Max", U64Max),
+
+			("swap", Swap),	("drop", Drop),	("dropStack", DropStack),	
+			("rot", Rot), ("dup", Dup),		
+
+			("==", Equal), ("!=", NotEqual), (">", GreaterThan), ("<", LessThan), 
+			(">=", GreaterThanEqualTo), ("<=", LessThanEqualTo), 
+
+			("and", And), ("&&", And), ("or", Or), ("||", Or), 
+			("xor", Xor), ("not", Not), ("!", Not),
+
+			("isWhitespaceChar", IsWhitespaceChar), ("isAlphaChar", IsAlphaChar), 
+			("isNumChar", IsNumChar),
+
+			("bitOr", BitOr), ("|", BitOr), ("bitAnd", BitAnd), 
+			("&", BitAnd), ("bitXor", BitXor), ("^", BitXor), ("bitNot", BitNot), 
+			("bitShift", BitShift), 
+
+			("printChar", PrintChar), ("readChar", ReadChar), 
+			("debugPrintStack", DebugPrintStack), 
+
+			("leaveScopeIfTrue", LeaveScopeIfTrue), 
+			("timeUnixNow", TimeUnixNow), 
+			("timeWait", TimeWait),
+		}
+	};
+}
+
+impl StackOperator{
+	fn new(op_name: &str) -> Self{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match op_name{
+					$($name => StackOperator::$var,)*			
+					_ => StackOperator::Unknown,
+				}	
+			};
+		}	
+		match_call!{op_match}	
+	}
+	pub fn stringify(&self) -> String{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				#[allow(unreachable_patterns)]
+				match self{
+					$(StackOperator::$var => $name.to_string(),)*			
+					_ => "Unknown".to_string(),
+				}	
+			};
+		}
+		match_call!{op_match}
+	}
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum HeapOperator{
+	DeepDup, Concat, StringCompare,
+
+	Push, Pop, Fpush, Fpop, Index, Length,
+
+	IsEmpty, Clear, Contains, ChangeItemAt,
+	
+	ObjAddField, ObjGetField, ObjMutField, ObjRemField,
+
+	Cast,
+
+	PrintLine, ReadLine, Print, Read, 
+	DebugPrintHeap,
+
+	FileWrite, FileRead, FileCreate, FileRemove, FileExists,
+
+	QueryType, ThrowCustomError, GetArgs, 
+	IsValidBox,  
+
+	Unknown
+}
+
+impl Default for HeapOperator{
+	fn default() -> Self{HeapOperator::Unknown}
+}
+macro_rules! match_call{
+	($mac:ident) => {
+		$mac!{
+			("deepDup", DeepDup),	
+
+			("stringCompare", StringCompare), ("++", Concat),
+
+			("push", Push), ("p", Push), ("pop", Pop), ("po", Pop), 
+			("fpush", Fpush), ("fp", Fpush), ("fpop", Fpop), ("fpo", Fpop), 
+			("index", Index), ("length", Length), ("len", Length),
+
+			("isEmpty", IsEmpty), ("clear", Clear), 
+			("contains", Contains), ("changeItemAt", ChangeItemAt),
+
+			("objAddField", ObjAddField), ("objGetField", ObjGetField), 
+			("objMutField", ObjMutField), ("objRemField", ObjRemField),
+
+			("cast", Cast),
+
+			("printLine", PrintLine), ("readLine", ReadLine), 
+			("print", Print), ("read", Read),  
+			("debugPrintHeap", DebugPrintHeap),
+
+			("fileWrite", FileWrite), ("fileRead", FileRead), 
+			("fileCreate", FileCreate), ("fileRemove", FileRemove), 
+			("fileExists", FileExists),
+
+			("queryType", QueryType), 
+			("throwCustomError", ThrowCustomError), ("getArgs", GetArgs), 
+			("isValidBox", IsValidBox),  
+		}
+	};
+}
+
+impl HeapOperator{
+	fn new(op_name: &str) -> Self{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match op_name{
+					$($name => HeapOperator::$var,)*			
+					_ => HeapOperator::Unknown,
+				}	
+			};
+		}	
+		match_call!{op_match}	
+	}
+	pub fn stringify(&self) -> String{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				#[allow(unreachable_patterns)]
+				match self{
+					$(HeapOperator::$var => $name.to_string(),)*			
+					_ => "Unknown".to_string(),
+				}	
+			};
+		}
+		match_call!{op_match}
+	}
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
 pub enum Operator{
 	Add, Sub, Mul, Div, 
 	Mod, Pow, 
