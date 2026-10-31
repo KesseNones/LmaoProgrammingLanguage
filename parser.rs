@@ -1003,7 +1003,11 @@ pub enum ASTNode{
 	LocVarMak(Box<VarData>),
 	LocVarGet(Box<VarData>),
 	LocVarMut(Box<VarData>),
-	BoxOp(BoxCmd),
+	BoxMake,
+	BoxOpen,
+	BoxAlter,
+	BoxFree,
+	BoxNull,
 	AttErr(Box<AttErrData>),
 	Defer(Rc<DeferData>),
 	CastTo(CastType),
@@ -1049,7 +1053,11 @@ impl fmt::Display for ASTNode{
 			ASTNode::LocVarMak(data) => write!(f, "Local Variable Make [name: {}]", data.name),
 			ASTNode::LocVarGet(data) => write!(f, "Local Variable Get [name: {}]", data.name),
 			ASTNode::LocVarMut(data) => write!(f, "Local Variable Mut [name: {}]", data.name),
-			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
+			ASTNode::BoxMake => write!(f, "Box Make"),
+			ASTNode::BoxOpen => write!(f, "Box Open"),
+			ASTNode::BoxFree => write!(f, "Box Free"),
+			ASTNode::BoxNull => write!(f, "Box Null"),
+			ASTNode::BoxAlter => write!(f, "Box Alter"),
 			ASTNode::AttErr(data) => write!(f, "AttErr [attempt: {}, err: {}]", data.att, data.err),
 			ASTNode::Defer(data) => write!(f, "Defer [{}]", data.body),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
@@ -1881,12 +1889,18 @@ pub fn make_ast_prime(
 				Token::Box => {
 					match (tokens.get(token_index + 1), tokens.get(token_index + 2)){
 						(Some(Token::Fragment(f)), Some(Token::Terminator)) => {
-							let cmd = BoxCmd::new(f);
-							if cmd == BoxCmd::Unknown{
-								let e = invalid_box_command(f);
-								return Err(file.err_str_tok(&e, token_index));
-							}
-							already_parsed.push(ASTNode::BoxOp(cmd));	
+							let box_node = match BoxCmd::new(f){
+								BoxCmd::Make => ASTNode::BoxMake,
+								BoxCmd::Open => ASTNode::BoxOpen,
+								BoxCmd::Alter => ASTNode::BoxAlter,
+								BoxCmd::Free => ASTNode::BoxFree,
+								BoxCmd::Null => ASTNode::BoxNull,
+								BoxCmd::Unknown => {
+									let e = invalid_box_command(f);
+									return Err(file.err_str_tok(&e, token_index));
+								},
+							};
+							already_parsed.push(box_node);
 							token_index += 2;
 						},
 						(Some(a), Some(b)) => {

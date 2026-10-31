@@ -253,88 +253,81 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 						}
 						token_index += 3;
 					},
-                    ASTNode::BoxOp(box_op) => {
-                        match box_op{
-                            BoxCmd::Free => {
-                                match s.pop(){
-                                    Some(v) => {
-										if !h.free_heap_cell(v){
-											err_break!{box_free_error(v)}
-										}
-                                    },
-                                    None => {
-                                        err_break!{needs_n_args_only_n_provided("box free", "One", "none")}
-                                    },
-                                }
-                            },
-                            BoxCmd::Null => {
-                                s.push(Value::NULLBox);
-                            },
-                            BoxCmd::Make => {
-                                match s.pop(){
-                                    Some(v) => {
-										let prim = HeapValue::Primitive(v);
-										s.push(h.insert_to_heap(prim));
-                                    },
-                                    None => {
-										err_break!{needs_n_args_only_n_provided("box make", "One", "none")}
-									}
-                                }
-                            },
-                            BoxCmd::Open => {
-                                match s.pop(){
-                                    Some(Value::MiscBox(bn)) => {
-										let mbx = Value::MiscBox(bn);
-										if let Some(HeapValue::Primitive(v)) = 
-										h.get_heap_ref(mbx)
-										{
-											s.push(*v);	
-										}else{
-											err_break!{bad_box_error("box open", mbx, Value::NULLBox, false)}
-										}						
-                                    },
-                                    Some(v) => {
-                                        err_break!{format!("Box open error!\
-                                             Top of stack must be type MiscBox! \
-                                            Attempted value: {}", v)}
-                                    },
-                                    None => {
-										err_break!{needs_n_args_only_n_provided("box open", "One", "none")}
-									}
-                                }
-                            },
-                            BoxCmd::Alter => {
-                                match s.pop2(){
-                                    (Some(Value::MiscBox(bn)), Some(new_v)) => {
-										let mbx = Value::MiscBox(bn);
-										if let Some(HeapValue::Primitive(old_v)) = 
-										h.get_heap_ref_mut(mbx)
-										{
-											if is_valid_mutation(*old_v, new_v){
-												*old_v = new_v;
-											}else{
-												err_break!{invalid_mutation_error("box altr", *old_v, new_v)}
-											}
-										}else{
-											err_break!{bad_box_error("box altr", mbx, Value::NULLBox, false)}
-										}
-                                    },
-                                    (Some(a), Some(b)) => {
-                                        err_break!{box_alter_type_error(a, b)}
-                                    },
-                                    (None, Some(_)) => {
-										err_break!{needs_n_args_only_n_provided("box altr", "Two", "only one")}
-									},
-                                    (None, None) => {
-										err_break!{needs_n_args_only_n_provided("box altr", "Two", "none")}
-									},
-                                    _ => {err_break!{should_never_get_here_for_func("box altr")}},
-                                }
-                            },
-							_ => {err_break!{should_never_get_here_for_func("box altr")}},
-                        }
+					ASTNode::BoxFree => {
+						if let Some(v) = s.pop(){
+							if !h.free_heap_cell(v){
+								err_break!{box_free_error(v)}
+							}
+						}else{
+							err_break!{needs_n_args_only_n_provided("box free", "One", "none")}
+						}
 						token_index += 2;
-                    },
+					},
+					ASTNode::BoxNull => {
+						s.push(Value::NULLBox);
+						token_index += 2;
+					},
+					ASTNode::BoxMake => {
+						if let Some(v) = s.pop(){
+							let prim = HeapValue::Primitive(v);
+							s.push(h.insert_to_heap(prim));
+						}else{
+							err_break!{needs_n_args_only_n_provided("box make", "One", "none")}
+						}
+						token_index += 2;
+					},
+					ASTNode::BoxOpen => {
+						match s.pop(){
+							Some(Value::MiscBox(bn)) => {
+								let mbx = Value::MiscBox(bn);
+								if let Some(HeapValue::Primitive(v)) = 
+								h.get_heap_ref(mbx)
+								{
+									s.push(*v);	
+								}else{
+									err_break!{bad_box_error("box open", mbx, Value::NULLBox, false)}
+								}						
+							},
+							Some(v) => {
+								err_break!{format!("Box open error!\
+									 Top of stack must be type MiscBox! \
+									Attempted value: {}", v)}
+							},
+							None => {
+								err_break!{needs_n_args_only_n_provided("box open", "One", "none")}
+							}
+						}
+						token_index += 2;
+					},
+					ASTNode::BoxAlter => {
+						match s.pop2(){
+							(Some(Value::MiscBox(bn)), Some(new_v)) => {
+								let mbx = Value::MiscBox(bn);
+								if let Some(HeapValue::Primitive(old_v)) = 
+								h.get_heap_ref_mut(mbx)
+								{
+									if is_valid_mutation(*old_v, new_v){
+										*old_v = new_v;
+									}else{
+										err_break!{invalid_mutation_error("box altr", *old_v, new_v)}
+									}
+								}else{
+									err_break!{bad_box_error("box altr", mbx, Value::NULLBox, false)}
+								}
+							},
+							(Some(a), Some(b)) => {
+								err_break!{box_alter_type_error(a, b)}
+							},
+							(None, Some(_)) => {
+								err_break!{needs_n_args_only_n_provided("box altr", "Two", "only one")}
+							},
+							(None, None) => {
+								err_break!{needs_n_args_only_n_provided("box altr", "Two", "none")}
+							},
+							_ => {err_break!{should_never_get_here_for_func("box altr")}},
+						}
+						token_index += 2;
+					},
                     ASTNode::If(data) => {
                         match s.pop(){
                             Some(Value::Boolean(b)) => {
