@@ -170,12 +170,6 @@ fn func_not_defined(name: &str) -> String{
 		Try defining it using func def !", name)
 }
 
-fn invalid_loc_cmd() -> String{
-	"Unrecognized local variable command! \
-Valid: mak, get, mut".to_string()
-}
-
-
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
 vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
@@ -213,60 +207,52 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 							err_break!{e}
 						}
 					},
-                    ASTNode::Variable(data) => {
+					ASTNode::VariableMak(data) => {
 						let name = &data.name;
-                        match data.cmd{
-                            VarCmd::Make => {
-								match s.pop(){
-									Some(v) => {
-										if !vars.mak_var(name, v){
-											err_break!{variable_already_exists_error("var mak", name)}
-										}
-									},
-									None => {
-										err_break!{variable_lack_of_args_error("creation (mak)")}
-									},
-								}
-                            },
-                            VarCmd::Get => {
-								if let Some(v) = vars.get_var(name){
-									s.push(v);
-								}else{
-									err_break!{variable_nonexist_error("var get", name)}
-								}
-                            },
-                            VarCmd::Mutate => {
-								match s.pop(){
-									Some(new_v) => {
-										match vars.mut_var(name, new_v){
-											0 => (),	
-											1 => {
-												err_break!{variable_nonexist_error("var mut", name)}
-											},
-											2 => {
-												let old_v = vars.get_var(name).unwrap();
-												err_break!{invalid_mutation_error("var mut", old_v, new_v)}	
-											},
-											_ => {err_break!{should_never_get_here_for_func("var mut")}}
-										}
-									},
-									None => {
-										err_break!{variable_lack_of_args_error("mutation (mut)")}
-							
-									}
-								}
-                            },
-                            VarCmd::Delete => {
-								if !vars.del_var(name){
-									err_break!{variable_nonexist_error("var del", name)}
-								}
-                            },
-                            VarCmd::Unknown => {
-                                err_break!{"Variable (var) error! Unrecognized variable command! Valid: mak, get, mut, del .".to_string()}
-                            },
-                        }
+						if let Some(v) = s.pop(){
+							if !vars.mak_var(name, v){
+								err_break!{variable_already_exists_error("var mak", name)}
+							}
+						}else{
+							err_break!{variable_lack_of_args_error("creation (mak)")}
+						}
 						token_index += 3;
-                    },
+					}, 
+					ASTNode::VariableGet(data) => {
+						let name = &data.name;
+						if let Some(v) = vars.get_var(name){
+							s.push(v);
+						}else{
+							err_break!{variable_nonexist_error("var get", name)}
+						}
+						token_index += 3;
+					},
+					ASTNode::VariableMut(data) => {
+						let name = &data.name;
+						if let Some(new_v) = s.pop(){
+							match vars.mut_var(name, new_v){
+								0 => (),	
+								1 => {
+									err_break!{variable_nonexist_error("var mut", name)}
+								},
+								2 => {
+									let old_v = vars.get_var(name).unwrap();
+									err_break!{invalid_mutation_error("var mut", old_v, new_v)}	
+								},
+								_ => {err_break!{should_never_get_here_for_func("var mut")}}
+							}
+						}else{
+							err_break!{variable_lack_of_args_error("mutation (mut)")}
+						}
+						token_index += 3;
+					},
+					ASTNode::VariableDel(data) => {
+						let name = &data.name;
+						if !vars.del_var(name){
+							err_break!{variable_nonexist_error("var del", name)}
+						}
+						token_index += 3;
+					},
                     ASTNode::BoxOp(box_op) => {
                         match box_op{
                             BoxCmd::Free => {
@@ -422,54 +408,44 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 							None => { err_break!{func_not_defined(name)} }, 
 						};
 					},
-                    ASTNode::LocVar(data) => {
-                        match data.cmd{
-                            VarCmd::Make => {
-                                match s.pop(){
-                                    Some(v) => {
-										let name = &data.name;
-										if !vars.mak_loc(name, v){
-											err_break!{variable_already_exists_error("loc mak", name)}
-										}
-                                    },
-                                    None => {
-                                        err_break!{local_variable_lack_of_args_error("creation (mak)")}
-                                    },
-                                }
-                            },
-                            VarCmd::Get => {
-								let name = &data.name;
-								if let Some(v) = vars.get_loc(name){
-									s.push(v);
-								}else{
-									err_break!{variable_nonexist_error("loc get", name)}	
-								}
-                            },
-                            VarCmd::Mutate => {
-                                match s.pop(){
-                                    Some(new_v) => {
-										let name = &data.name;
-										match vars.mut_loc(name, new_v){
-											0 => (),
-											1 => {
-												err_break!{variable_nonexist_error("loc mut", name)}
-											},
-											2 => {
-												let old_v = vars.get_loc(name).unwrap();	
-												err_break!{invalid_mutation_error("loc mut", old_v, new_v)}
-											},
-											_ => {err_break!{should_never_get_here_for_func("var mut")}}
-										}	
-                                    },
-                                    None => {
-                                        err_break!{local_variable_lack_of_args_error("mutation (mut)")}
-                                    },
-                                }
-                            },
-                            _ => { err_break!{invalid_loc_cmd()} },
-                        }
+					ASTNode::LocVarMak(data) => {
+						if let Some(v) = s.pop() {
+							let name = &data.name;
+							if !vars.mak_loc(name, v){
+								err_break!{variable_already_exists_error("loc mak", name)}
+							}
+						}else{
+							err_break!{local_variable_lack_of_args_error("creation (mak)")}
+						}
 						token_index += 3;
-                    },
+					},
+					ASTNode::LocVarGet(data) => {
+						let name = &data.name;
+						if let Some(v) = vars.get_loc(name){
+							s.push(v);
+						}else{
+							err_break!{variable_nonexist_error("loc get", name)}	
+						}
+						token_index += 3;
+					},
+					ASTNode::LocVarMut(data) => {
+						if let Some(new_v) = s.pop(){
+							let name = &data.name;
+							match vars.mut_loc(name, new_v){
+								0 => (),
+								1 => {
+									err_break!{variable_nonexist_error("loc mut", name)}
+								},
+								2 => {
+									let old_v = vars.get_loc(name).unwrap();	
+									err_break!{invalid_mutation_error("loc mut", old_v, new_v)}
+								},
+								_ => {err_break!{should_never_get_here_for_func("var mut")}}
+							}	
+						}else{
+							err_break!{local_variable_lack_of_args_error("mutation (mut)")}
+						}
+					},
                     ASTNode::AttErr(data) => {
 						let att_res = 
 						run_program(&data.att, s, h, vars, fns, file, token_index + 1);

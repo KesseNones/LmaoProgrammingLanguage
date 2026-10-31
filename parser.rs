@@ -922,14 +922,12 @@ impl IfData{
 #[derive(Clone)]
 pub struct VarData{
 	pub name: String,
-	pub cmd: VarCmd,
 }
 
 impl VarData{
-	fn new(n: &str, c: VarCmd) -> Box<Self>{
+	fn new(n: &str) -> Box<Self>{
 		Box::new(VarData{
 			name: n.to_string(),
-			cmd: c
 		})
 	}
 }
@@ -998,8 +996,13 @@ pub enum ASTNode{
 	Expression(Box<Vec<ASTNode>>),
 	FunctionDefine(Rc<FuncData>),
 	FunctionCall(Box<String>),
-	Variable(Box<VarData>),
-	LocVar(Box<VarData>),
+	VariableMak(Box<VarData>),
+	VariableGet(Box<VarData>),
+	VariableMut(Box<VarData>),
+	VariableDel(Box<VarData>),
+	LocVarMak(Box<VarData>),
+	LocVarGet(Box<VarData>),
+	LocVarMut(Box<VarData>),
 	BoxOp(BoxCmd),
 	AttErr(Box<AttErrData>),
 	Defer(Rc<DeferData>),
@@ -1039,8 +1042,13 @@ impl fmt::Display for ASTNode{
 			ASTNode::FunctionCall(name) => {
 				write!(f, "Function Call [name: {}]", name)	
 			},
-			ASTNode::Variable(data) => write!(f, "Variable [name: {}, cmd: {}]", data.name, data.cmd),
-			ASTNode::LocVar(data) => write!(f, "Local Variable [name: {}, cmd: {}]", data.name, data.cmd),
+			ASTNode::VariableMak(data) => write!(f, "Variable Make [name: {}]", data.name),
+			ASTNode::VariableGet(data) => write!(f, "Variable Get [name: {}]", data.name),
+			ASTNode::VariableMut(data) => write!(f, "Variable Mutate [name: {}]", data.name),
+			ASTNode::VariableDel(data) => write!(f, "Variable Delete [name: {}]", data.name),
+			ASTNode::LocVarMak(data) => write!(f, "Local Variable Make [name: {}]", data.name),
+			ASTNode::LocVarGet(data) => write!(f, "Local Variable Get [name: {}]", data.name),
+			ASTNode::LocVarMut(data) => write!(f, "Local Variable Mut [name: {}]", data.name),
 			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
 			ASTNode::AttErr(data) => write!(f, "AttErr [attempt: {}, err: {}]", data.att, data.err),
 			ASTNode::Defer(data) => write!(f, "Defer [{}]", data.body),
@@ -1595,8 +1603,13 @@ pub fn make_ast_prime(
 	mut token_index: usize,
 	fancy_op: Token
 ) -> Result<(Vec<ASTNode>, usize), String>{
-
 	let mut already_parsed: Vec<ASTNode> = Vec::new();
+	macro_rules! push_var{
+		($type:ident, $name:ident) => {
+			let vd = VarData::new($name);
+			already_parsed.push(ASTNode::$type(vd));	
+		};
+	}
 
 	//Loops through all tokens in expression.
 	loop{
@@ -1783,15 +1796,24 @@ pub fn make_ast_prime(
 						(Some(Token::Fragment(a)), Some(Token::Fragment(name)), 
 						Some(Token::Terminator)) => 
 						{
-							//Parses command and throws a fit if not known.
-							let command = VarCmd::new(a);
-							if command == VarCmd::Unknown{
-								let e = unknown_var_cmd(a, name, true);
-								return Err(file.err_str_tok(&e, token_index));
+							match VarCmd::new(a) {
+								VarCmd::Make => {
+									push_var!{VariableMak, name}		
+								},
+								VarCmd::Get => {
+									push_var!{VariableGet, name}		
+								},
+								VarCmd::Mutate => {
+									push_var!{VariableMut, name}		
+								},
+								VarCmd::Delete => {
+									push_var!{VariableDel, name}		
+								},
+								VarCmd::Unknown => {
+									let e = unknown_var_cmd(a, name, true);
+									return Err(file.err_str_tok(&e, token_index));
+								},
 							}
-
-							let var_data = VarData::new(name, command);
-							already_parsed.push(ASTNode::Variable(var_data));
 							token_index += 3;
 						},
 						(Some(a), Some(b), Some(c)) => {
@@ -1820,15 +1842,21 @@ pub fn make_ast_prime(
 						(Some(Token::Fragment(a)), Some(Token::Fragment(name)), 
 						Some(Token::Terminator)) => 
 						{
-							//Parses command and throws a fit if not known.
-							let command = VarCmd::new(a);
-							if command == VarCmd::Unknown || command == VarCmd::Delete{
-								let e = unknown_var_cmd(a, name, false);
-								return Err(file.err_str_tok(&e, token_index));
+							match VarCmd::new(a) {
+								VarCmd::Make => {
+									push_var!{LocVarMak, name}		
+								},
+								VarCmd::Get => {
+									push_var!{LocVarGet, name}		
+								},
+								VarCmd::Mutate => {
+									push_var!{LocVarMut, name}		
+								},
+								VarCmd::Unknown | VarCmd::Delete => {
+									let e = unknown_var_cmd(a, name, false);
+									return Err(file.err_str_tok(&e, token_index));
+								},
 							}
-
-							let var_data = VarData::new(name, command);
-							already_parsed.push(ASTNode::LocVar(var_data));
 							token_index += 3;
 						},
 						(Some(a), Some(b), Some(c)) => {
