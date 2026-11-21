@@ -55,15 +55,15 @@ fn invalid_mutation_error(op_name: &str, v1: Value, v2: Value) -> String{
 	format!("Operator ({}) error! Unable to mutate {} to {}, as it is an invalid mutation!", op_name, v1, v2)
 }
 
-fn run_operator(op: Operator, s: &mut Stack, h: &mut Heap) -> 
+fn run_stack_op(op: StackOperator, s: &mut Stack) -> 
 Result<RetCode, String>
 {
 	macro_rules! op_match{
 		($(($var:ident, $func:ident)),* $(,)?) => {
 			match op{
-				$(Operator::$var => $func(s, h),)*			
+				$(StackOperator::$var => $func(s),)*			
 				//Should never reach this!
-				Operator::Unknown => Err(should_never_get_here_for_func("run_operator")),
+				StackOperator::Unknown => Err(should_never_get_here_for_func("run_stack_op")),
 			}	
 		};
 	}
@@ -80,15 +80,47 @@ Result<RetCode, String>
 		(U64Max, max_u64), 
 
 		(Swap, swap), (Drop, drop), (DropStack, drop_stack), 
-		(Rot, rot), (Dup, dup), (DeepDup, deep_dup), 
+		(Rot, rot), (Dup, dup),  
 
 		(Equal, is_equal), (NotEqual, is_not_equal), 
 		(GreaterThan, is_greater_than), (LessThan, is_less_than), 
 		(GreaterThanEqualTo, is_greater_than_equal_to), 
 		(LessThanEqualTo, is_less_than_equal_to), 
-		(StringCompare, string_compare), (Concat, concat),
 
 		(And, and), (Or, or), (Xor, xor), (Not, not),
+
+		(IsWhitespaceChar, whitespace_detect), 
+		(IsAlphaChar, alpha_char_detect), 
+		(IsNumChar, num_char_detect),
+
+		(BitOr, bit_or), (BitAnd, bit_and), 
+		(BitXor, bit_xor), (BitNot, bit_not), 
+		(BitShift, bit_shift), 
+
+		(PrintChar, print_char), (ReadChar, read_char), 
+
+		(LeaveScopeIfTrue, leave_scope_if_true), 
+		(TimeUnixNow, time_unix_now), 
+		(TimeWait, time_wait),
+	}
+}
+
+fn run_heap_op(op: HeapOperator, s: &mut Stack, h: &mut Heap) -> 
+Result<RetCode, String>
+{
+	macro_rules! op_match{
+		($(($var:ident, $func:ident)),* $(,)?) => {
+			match op{
+				$(HeapOperator::$var => $func(s, h),)*			
+				//Should never reach this!
+				HeapOperator::Unknown => Err(should_never_get_here_for_func("run_heap_op")),
+			}	
+		};
+	}
+	op_match!{
+		(DeepDup, deep_dup), (Cast, cast_op),
+
+		(StringCompare, string_compare), (Concat, concat),
 
 		(Push, list_push), (Pop, list_pop), (Fpush, list_front_push), 
 		(Fpop, list_front_pop), (Index, index), (Length, length),
@@ -96,22 +128,13 @@ Result<RetCode, String>
 		(IsEmpty, is_empty), (Clear, list_clear), 
 		(Contains, list_contains), (ChangeItemAt, change_item_at),
 
-		(IsWhitespaceChar, whitespace_detect), 
-		(IsAlphaChar, alpha_char_detect), 
-		(IsNumChar, num_char_detect),
-
 		(ObjAddField, add_field), (ObjGetField, get_field), 
 		(ObjMutField, mut_field), (ObjRemField, remove_field),
 
-		(BitOr, bit_or), (BitAnd, bit_and), 
-		(BitXor, bit_xor), (BitNot, bit_not), 
-		(BitShift, bit_shift), (Cast, cast_op),
-
 		(PrintLine, print_line), (ReadLine, read_line_from_in), 
-		(PrintChar, print_char), (ReadChar, read_char), 
 		(Print, print_string), (Read, read_from_in), 
-		(DebugPrintStack, debug_stack_print), 
 		(DebugPrintHeap, debug_heap_print),
+		(DebugPrintStack, debug_stack_print), 
 
 		(FileWrite, write_data_to_file), 
 		(FileRead, read_data_from_file), 
@@ -119,10 +142,9 @@ Result<RetCode, String>
 		(FileRemove, delete_file_based_on_string), 
 		(FileExists, file_exists),
 
-		(QueryType, query_type), (LeaveScopeIfTrue, leave_scope_if_true), 
+		(QueryType, query_type), 
 		(ThrowCustomError, throw_custom_error), (GetArgs, get_args), 
-		(IsValidBox, is_valid_box), (TimeUnixNow, time_unix_now), 
-		(TimeWait, time_wait),
+		(IsValidBox, is_valid_box), 
 	}
 }
 
@@ -148,12 +170,6 @@ fn func_not_defined(name: &str) -> String{
 		Try defining it using func def !", name)
 }
 
-fn invalid_loc_cmd() -> String{
-	"Unrecognized local variable command! \
-Valid: mak, get, mut".to_string()
-}
-
-
 //Iterates recursively through the AST and effectively runs the program doing so.
 fn run_program(ast: &ASTNode, s: &mut Stack, h: &mut Heap, 
 vars: &mut Variables, fns: &mut Functions, file: &FileInfo, 
@@ -176,8 +192,8 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
                 match node{
 					ASTNode::Val(v) => s.push(*v),
 					ASTNode::HeapVal(hv) => s.push(h.insert_to_heap(*hv.clone())),
-					ASTNode::Op(id) => {
-						match run_operator(*id, s, h){
+					ASTNode::Sop(id) => {
+						match run_stack_op(*id, s){
 							Ok(RetCode::Normal) => (),
 							Ok(RetCode::LeavingScopeEarly) => {
 								res = Ok((RetCode::LeavingScopeEarly, token_index));
@@ -186,142 +202,132 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 							Err(e) => {err_break!{e}},
 						}									
 					},
-                    ASTNode::Variable(data) => {
+					ASTNode::Hop(id) => {
+						if let Err(e) = run_heap_op(*id, s, h){
+							err_break!{e}
+						}
+					},
+					ASTNode::VariableMak(data) => {
 						let name = &data.name;
-                        match data.cmd{
-                            VarCmd::Make => {
-								match s.pop(){
-									Some(v) => {
-										if !vars.mak_var(name, v){
-											err_break!{variable_already_exists_error("var mak", name)}
-										}
-									},
-									None => {
-										err_break!{variable_lack_of_args_error("creation (mak)")}
-									},
-								}
-                            },
-                            VarCmd::Get => {
-								if let Some(v) = vars.get_var(name){
-									s.push(v);
-								}else{
-									err_break!{variable_nonexist_error("var get", name)}
-								}
-                            },
-                            VarCmd::Mutate => {
-								match s.pop(){
-									Some(new_v) => {
-										match vars.mut_var(name, new_v){
-											0 => (),	
-											1 => {
-												err_break!{variable_nonexist_error("var mut", name)}
-											},
-											2 => {
-												let old_v = vars.get_var(name).unwrap();
-												err_break!{invalid_mutation_error("var mut", old_v, new_v)}	
-											},
-											_ => {err_break!{should_never_get_here_for_func("var mut")}}
-										}
-									},
-									None => {
-										err_break!{variable_lack_of_args_error("mutation (mut)")}
-							
-									}
-								}
-                            },
-                            VarCmd::Delete => {
-								if !vars.del_var(name){
-									err_break!{variable_nonexist_error("var del", name)}
-								}
-                            },
-                            VarCmd::Unknown => {
-                                err_break!{"Variable (var) error! Unrecognized variable command! Valid: mak, get, mut, del .".to_string()}
-                            },
-                        }
+						if let Some(v) = s.pop(){
+							if !vars.mak_var(name, v){
+								err_break!{variable_already_exists_error("var mak", name)}
+							}
+						}else{
+							err_break!{variable_lack_of_args_error("creation (mak)")}
+						}
 						token_index += 3;
-                    },
-                    ASTNode::BoxOp(box_op) => {
-                        match box_op{
-                            BoxCmd::Free => {
-                                match s.pop(){
-                                    Some(v) => {
-										if !h.free_heap_cell(v){
-											err_break!{box_free_error(v)}
-										}
-                                    },
-                                    None => {
-                                        err_break!{needs_n_args_only_n_provided("box free", "One", "none")}
-                                    },
-                                }
-                            },
-                            BoxCmd::Null => {
-                                s.push(Value::NULLBox);
-                            },
-                            BoxCmd::Make => {
-                                match s.pop(){
-                                    Some(v) => {
-										let prim = HeapValue::Primitive(v);
-										s.push(h.insert_to_heap(prim));
-                                    },
-                                    None => {
-										err_break!{needs_n_args_only_n_provided("box make", "One", "none")}
-									}
-                                }
-                            },
-                            BoxCmd::Open => {
-                                match s.pop(){
-                                    Some(Value::MiscBox(bn)) => {
-										let mbx = Value::MiscBox(bn);
-										if let Some(HeapValue::Primitive(v)) = 
-										h.get_heap_ref(mbx)
-										{
-											s.push(*v);	
-										}else{
-											err_break!{bad_box_error("box open", mbx, Value::NULLBox, false)}
-										}						
-                                    },
-                                    Some(v) => {
-                                        err_break!{format!("Box open error!\
-                                             Top of stack must be type MiscBox! \
-                                            Attempted value: {}", v)}
-                                    },
-                                    None => {
-										err_break!{needs_n_args_only_n_provided("box open", "One", "none")}
-									}
-                                }
-                            },
-                            BoxCmd::Alter => {
-                                match s.pop2(){
-                                    (Some(Value::MiscBox(bn)), Some(new_v)) => {
-										let mbx = Value::MiscBox(bn);
-										if let Some(HeapValue::Primitive(old_v)) = 
-										h.get_heap_ref_mut(mbx)
-										{
-											if is_valid_mutation(*old_v, new_v){
-												*old_v = new_v;
-											}else{
-												err_break!{invalid_mutation_error("box altr", *old_v, new_v)}
-											}
-										}else{
-											err_break!{bad_box_error("box altr", mbx, Value::NULLBox, false)}
-										}
-                                    },
-                                    (Some(a), Some(b)) => {
-                                        err_break!{box_alter_type_error(a, b)}
-                                    },
-                                    (None, Some(_)) => {
-										err_break!{needs_n_args_only_n_provided("box altr", "Two", "only one")}
-									},
-                                    (None, None) => {
-										err_break!{needs_n_args_only_n_provided("box altr", "Two", "none")}
-									},
-                                    _ => {err_break!{should_never_get_here_for_func("box altr")}},
-                                }
-                            },
-							_ => {err_break!{should_never_get_here_for_func("box altr")}},
-                        }
+					}, 
+					ASTNode::VariableGet(data) => {
+						let name = &data.name;
+						if let Some(v) = vars.get_var(name){
+							s.push(v);
+						}else{
+							err_break!{variable_nonexist_error("var get", name)}
+						}
+						token_index += 3;
+					},
+					ASTNode::VariableMut(data) => {
+						let name = &data.name;
+						if let Some(new_v) = s.pop(){
+							match vars.mut_var(name, new_v){
+								0 => (),	
+								1 => {
+									err_break!{variable_nonexist_error("var mut", name)}
+								},
+								2 => {
+									let old_v = vars.get_var(name).unwrap();
+									err_break!{invalid_mutation_error("var mut", old_v, new_v)}	
+								},
+								_ => {err_break!{should_never_get_here_for_func("var mut")}}
+							}
+						}else{
+							err_break!{variable_lack_of_args_error("mutation (mut)")}
+						}
+						token_index += 3;
+					},
+					ASTNode::VariableDel(data) => {
+						let name = &data.name;
+						if !vars.del_var(name){
+							err_break!{variable_nonexist_error("var del", name)}
+						}
+						token_index += 3;
+					},
+					ASTNode::BoxFree => {
+						if let Some(v) = s.pop(){
+							if !h.free_heap_cell(v){
+								err_break!{box_free_error(v)}
+							}
+						}else{
+							err_break!{needs_n_args_only_n_provided("box free", "One", "none")}
+						}
 						token_index += 2;
-                    },
+					},
+					ASTNode::BoxNull => {
+						s.push(Value::NULLBox);
+						token_index += 2;
+					},
+					ASTNode::BoxMake => {
+						if let Some(v) = s.pop(){
+							let prim = HeapValue::Primitive(v);
+							s.push(h.insert_to_heap(prim));
+						}else{
+							err_break!{needs_n_args_only_n_provided("box make", "One", "none")}
+						}
+						token_index += 2;
+					},
+					ASTNode::BoxOpen => {
+						match s.pop(){
+							Some(Value::MiscBox(bn)) => {
+								let mbx = Value::MiscBox(bn);
+								if let Some(HeapValue::Primitive(v)) = 
+								h.get_heap_ref(mbx)
+								{
+									s.push(*v);	
+								}else{
+									err_break!{bad_box_error("box open", mbx, Value::NULLBox, false)}
+								}						
+							},
+							Some(v) => {
+								err_break!{format!("Box open error!\
+									 Top of stack must be type MiscBox! \
+									Attempted value: {}", v)}
+							},
+							None => {
+								err_break!{needs_n_args_only_n_provided("box open", "One", "none")}
+							}
+						}
+						token_index += 2;
+					},
+					ASTNode::BoxAlter => {
+						match s.pop2(){
+							(Some(Value::MiscBox(bn)), Some(new_v)) => {
+								let mbx = Value::MiscBox(bn);
+								if let Some(HeapValue::Primitive(old_v)) = 
+								h.get_heap_ref_mut(mbx)
+								{
+									if is_valid_mutation(*old_v, new_v){
+										*old_v = new_v;
+									}else{
+										err_break!{invalid_mutation_error("box altr", *old_v, new_v)}
+									}
+								}else{
+									err_break!{bad_box_error("box altr", mbx, Value::NULLBox, false)}
+								}
+							},
+							(Some(a), Some(b)) => {
+								err_break!{box_alter_type_error(a, b)}
+							},
+							(None, Some(_)) => {
+								err_break!{needs_n_args_only_n_provided("box altr", "Two", "only one")}
+							},
+							(None, None) => {
+								err_break!{needs_n_args_only_n_provided("box altr", "Two", "none")}
+							},
+							_ => {err_break!{should_never_get_here_for_func("box altr")}},
+						}
+						token_index += 2;
+					},
                     ASTNode::If(data) => {
                         match s.pop(){
                             Some(Value::Boolean(b)) => {
@@ -371,82 +377,68 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 					
 						token_index += data.token_count;
                     },
-                    ASTNode::Function(data) => {
-                        match data.cmd{
-                            FunCmd::Define => {
-								let name = data.name.as_str();
-								if !fns.func_def(name, data.clone()){
-									err_break!{func_already_defined(name)}
-								}
-								token_index = token_index + 2 + data.body_token_count;		
-                            },
-                            FunCmd::Call => {
-								let name = data.name.as_str();
-                                let call_data = match fns.get_data(name){
-                                    Some(d) => d,
-                                    None => { err_break!{func_not_defined(name)} }, 
-                                };
-								let bod_res = 
-								run_program(
+					ASTNode::FunctionDefine(data) => {
+						let name = data.name.as_str();
+						if !fns.func_def(name, data.clone()){
+							err_break!{func_already_defined(name)}
+						}
+						token_index = token_index + 2 + data.body_token_count;		
+					},
+					ASTNode::FunctionCall(name) => {
+						match fns.get_data(name){
+							Some(call_data) => {
+								let bod_res = run_program(
 									&call_data.bod, s, h, 
-									vars, fns, &call_data.f_file_info, call_data.start_token_index);
+									vars, fns, &call_data.f_file_info, 
+									call_data.start_token_index
+								);
 
 								match bod_res{
 									Ok(_) => token_index += 3,
 									Err(e) => {err_break!{e}}
 								}
-                            },
-							_ => {err_break!{should_never_get_here_for_func("function")}}
-                        }
-                    },
-                    ASTNode::LocVar(data) => {
-                        match data.cmd{
-                            VarCmd::Make => {
-                                match s.pop(){
-                                    Some(v) => {
-										let name = &data.name;
-										if !vars.mak_loc(name, v){
-											err_break!{variable_already_exists_error("loc mak", name)}
-										}
-                                    },
-                                    None => {
-                                        err_break!{local_variable_lack_of_args_error("creation (mak)")}
-                                    },
-                                }
-                            },
-                            VarCmd::Get => {
-								let name = &data.name;
-								if let Some(v) = vars.get_loc(name){
-									s.push(v);
-								}else{
-									err_break!{variable_nonexist_error("loc get", name)}	
-								}
-                            },
-                            VarCmd::Mutate => {
-                                match s.pop(){
-                                    Some(new_v) => {
-										let name = &data.name;
-										match vars.mut_loc(name, new_v){
-											0 => (),
-											1 => {
-												err_break!{variable_nonexist_error("loc mut", name)}
-											},
-											2 => {
-												let old_v = vars.get_loc(name).unwrap();	
-												err_break!{invalid_mutation_error("loc mut", old_v, new_v)}
-											},
-											_ => {err_break!{should_never_get_here_for_func("var mut")}}
-										}	
-                                    },
-                                    None => {
-                                        err_break!{local_variable_lack_of_args_error("mutation (mut)")}
-                                    },
-                                }
-                            },
-                            _ => { err_break!{invalid_loc_cmd()} },
-                        }
+							},
+							None => { err_break!{func_not_defined(name)} }, 
+						};
+					},
+					ASTNode::LocVarMak(data) => {
+						if let Some(v) = s.pop() {
+							let name = &data.name;
+							if !vars.mak_loc(name, v){
+								err_break!{variable_already_exists_error("loc mak", name)}
+							}
+						}else{
+							err_break!{local_variable_lack_of_args_error("creation (mak)")}
+						}
 						token_index += 3;
-                    },
+					},
+					ASTNode::LocVarGet(data) => {
+						let name = &data.name;
+						if let Some(v) = vars.get_loc(name){
+							s.push(v);
+						}else{
+							err_break!{variable_nonexist_error("loc get", name)}	
+						}
+						token_index += 3;
+					},
+					ASTNode::LocVarMut(data) => {
+						if let Some(new_v) = s.pop(){
+							let name = &data.name;
+							match vars.mut_loc(name, new_v){
+								0 => (),
+								1 => {
+									err_break!{variable_nonexist_error("loc mut", name)}
+								},
+								2 => {
+									let old_v = vars.get_loc(name).unwrap();	
+									err_break!{invalid_mutation_error("loc mut", old_v, new_v)}
+								},
+								_ => {err_break!{should_never_get_here_for_func("var mut")}}
+							}	
+						}else{
+							err_break!{local_variable_lack_of_args_error("mutation (mut)")}
+						}
+					},
                     ASTNode::AttErr(data) => {
 						let att_res = 
 						run_program(&data.att, s, h, vars, fns, file, token_index + 1);

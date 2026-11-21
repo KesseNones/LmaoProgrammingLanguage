@@ -486,43 +486,34 @@ impl TryCast<&HashMap<String, Value>> for SuperValue{
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]
-pub enum Operator{
+pub enum StackOperator{
 	Add, Sub, Mul, Div, 
 	Mod, Pow, 
 
 	UsizeMax, U8Max, U16Max, U32Max, U64Max,  
 	IsizeMax, I8Max, I16Max, I32Max, I64Max, 
 
-	Swap, Drop, DropStack, Rot, Dup, DeepDup, 
+	Swap, Drop, DropStack, Rot, Dup, 
 
 	Equal, NotEqual, GreaterThan, LessThan, GreaterThanEqualTo,
-	LessThanEqualTo, StringCompare, Concat,
+	LessThanEqualTo, 
 
 	And, Or, Xor, Not,
 
-	Push, Pop, Fpush, Fpop, Index, Length,
-
-	IsEmpty, Clear, Contains, ChangeItemAt,
-	
 	IsWhitespaceChar, IsAlphaChar, IsNumChar,
 
-	ObjAddField, ObjGetField, ObjMutField, ObjRemField,
+	BitOr, BitAnd, BitXor, BitNot, BitShift, 
 
-	BitOr, BitAnd, BitXor, BitNot, BitShift, Cast,
+	PrintChar, ReadChar, 
 
-	PrintLine, ReadLine, PrintChar, ReadChar, Print, Read, 
-	DebugPrintStack, DebugPrintHeap,
-
-	FileWrite, FileRead, FileCreate, FileRemove, FileExists,
-
-	QueryType, LeaveScopeIfTrue, ThrowCustomError, GetArgs, 
-	IsValidBox, TimeUnixNow, TimeWait, 
+	LeaveScopeIfTrue, 
+	TimeUnixNow, TimeWait, 
 
 	Unknown
 }
 
-impl Default for Operator{
-	fn default() -> Self{Operator::Unknown}
+impl Default for StackOperator{
+	fn default() -> Self{StackOperator::Unknown}
 }
 macro_rules! match_call{
 	($mac:ident) => {
@@ -539,56 +530,37 @@ macro_rules! match_call{
 			("u64Max", U64Max),
 
 			("swap", Swap),	("drop", Drop),	("dropStack", DropStack),	
-			("rot", Rot), ("dup", Dup),	("deepDup", DeepDup),	
+			("rot", Rot), ("dup", Dup),		
 
 			("==", Equal), ("!=", NotEqual), (">", GreaterThan), ("<", LessThan), 
 			(">=", GreaterThanEqualTo), ("<=", LessThanEqualTo), 
-			("stringCompare", StringCompare), ("++", Concat),
 
 			("and", And), ("&&", And), ("or", Or), ("||", Or), 
 			("xor", Xor), ("not", Not), ("!", Not),
 
-			("push", Push), ("p", Push), ("pop", Pop), ("po", Pop), 
-			("fpush", Fpush), ("fp", Fpush), ("fpop", Fpop), ("fpo", Fpop), 
-			("index", Index), ("length", Length), ("len", Length),
-
-			("isEmpty", IsEmpty), ("clear", Clear), 
-			("contains", Contains), ("changeItemAt", ChangeItemAt),
-
 			("isWhitespaceChar", IsWhitespaceChar), ("isAlphaChar", IsAlphaChar), 
 			("isNumChar", IsNumChar),
 
-			("objAddField", ObjAddField), ("objGetField", ObjGetField), 
-			("objMutField", ObjMutField), ("objRemField", ObjRemField),
-
 			("bitOr", BitOr), ("|", BitOr), ("bitAnd", BitAnd), 
 			("&", BitAnd), ("bitXor", BitXor), ("^", BitXor), ("bitNot", BitNot), 
-			("bitShift", BitShift), ("cast", Cast),
+			("bitShift", BitShift), 
 
-			("printLine", PrintLine), ("readLine", ReadLine), 
 			("printChar", PrintChar), ("readChar", ReadChar), 
-			("print", Print), ("read", Read), ("debugPrintStack", DebugPrintStack), 
-			("debugPrintHeap", DebugPrintHeap),
 
-			("fileWrite", FileWrite), ("fileRead", FileRead), 
-			("fileCreate", FileCreate), ("fileRemove", FileRemove), 
-			("fileExists", FileExists),
-
-			("queryType", QueryType), ("leaveScopeIfTrue", LeaveScopeIfTrue), 
-			("throwCustomError", ThrowCustomError), ("getArgs", GetArgs), 
-			("isValidBox", IsValidBox), ("timeUnixNow", TimeUnixNow), 
+			("leaveScopeIfTrue", LeaveScopeIfTrue), 
+			("timeUnixNow", TimeUnixNow), 
 			("timeWait", TimeWait),
 		}
 	};
 }
 
-impl Operator{
+impl StackOperator{
 	fn new(op_name: &str) -> Self{
 		macro_rules! op_match{
 			($(($name:literal, $var:ident)),* $(,)?) => {
 				match op_name{
-					$($name => Operator::$var,)*			
-					_ => Operator::Unknown,
+					$($name => StackOperator::$var,)*			
+					_ => StackOperator::Unknown,
 				}	
 			};
 		}	
@@ -599,7 +571,94 @@ impl Operator{
 			($(($name:literal, $var:ident)),* $(,)?) => {
 				#[allow(unreachable_patterns)]
 				match self{
-					$(Operator::$var => $name.to_string(),)*			
+					$(StackOperator::$var => $name.to_string(),)*			
+					_ => "Unknown".to_string(),
+				}	
+			};
+		}
+		match_call!{op_match}
+	}
+}
+
+#[derive(PartialEq, Eq, Clone, Copy)]
+pub enum HeapOperator{
+	DeepDup, Concat, StringCompare,
+
+	Push, Pop, Fpush, Fpop, Index, Length,
+
+	IsEmpty, Clear, Contains, ChangeItemAt,
+	
+	ObjAddField, ObjGetField, ObjMutField, ObjRemField,
+
+	Cast,
+
+	PrintLine, ReadLine, Print, Read, 
+	DebugPrintHeap, DebugPrintStack,
+
+	FileWrite, FileRead, FileCreate, FileRemove, FileExists,
+
+	QueryType, ThrowCustomError, GetArgs, 
+	IsValidBox,  
+
+	Unknown
+}
+
+impl Default for HeapOperator{
+	fn default() -> Self{HeapOperator::Unknown}
+}
+macro_rules! match_call{
+	($mac:ident) => {
+		$mac!{
+			("deepDup", DeepDup),	
+
+			("stringCompare", StringCompare), ("++", Concat),
+
+			("push", Push), ("p", Push), ("pop", Pop), ("po", Pop), 
+			("fpush", Fpush), ("fp", Fpush), ("fpop", Fpop), ("fpo", Fpop), 
+			("index", Index), ("length", Length), ("len", Length),
+
+			("isEmpty", IsEmpty), ("clear", Clear), 
+			("contains", Contains), ("changeItemAt", ChangeItemAt),
+
+			("objAddField", ObjAddField), ("objGetField", ObjGetField), 
+			("objMutField", ObjMutField), ("objRemField", ObjRemField),
+
+			("cast", Cast),
+
+			("printLine", PrintLine), ("readLine", ReadLine), 
+			("print", Print), ("read", Read),  
+			("debugPrintStack", DebugPrintStack),
+			("debugPrintHeap", DebugPrintHeap),
+
+			("fileWrite", FileWrite), ("fileRead", FileRead), 
+			("fileCreate", FileCreate), ("fileRemove", FileRemove), 
+			("fileExists", FileExists),
+
+			("queryType", QueryType), 
+			("throwCustomError", ThrowCustomError), ("getArgs", GetArgs), 
+			("isValidBox", IsValidBox),  
+		}
+	};
+}
+
+impl HeapOperator{
+	fn new(op_name: &str) -> Self{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				match op_name{
+					$($name => HeapOperator::$var,)*			
+					_ => HeapOperator::Unknown,
+				}	
+			};
+		}	
+		match_call!{op_match}	
+	}
+	pub fn stringify(&self) -> String{
+		macro_rules! op_match{
+			($(($name:literal, $var:ident)),* $(,)?) => {
+				#[allow(unreachable_patterns)]
+				match self{
+					$(HeapOperator::$var => $name.to_string(),)*			
 					_ => "Unknown".to_string(),
 				}	
 			};
@@ -668,7 +727,8 @@ impl FileInfo{
 #[derive(PartialEq, Eq, Clone)]
 pub enum Token{
 	Val(SuperValue),
-	Op(Operator),
+	Sop(StackOperator),
+	Hop(HeapOperator),
 	If,
 	Else,
 	While,
@@ -696,7 +756,8 @@ impl fmt::Display for Token{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self {
 			Token::Val(v) => write!(f, "Value: {}", v),
-			Token::Op(o) => write!(f, "Op: {}", o.stringify()),
+			Token::Sop(o) => write!(f, "Sop: {}", o.stringify()),
+			Token::Hop(o) => write!(f, "Hop: {}", o.stringify()),
 			Token::If => write!(f, "If"),
 			Token::Else => write!(f, "Else"),
 			Token::While => write!(f, "While"),
@@ -820,7 +881,6 @@ impl fmt::Display for FunCmd{
 
 #[derive(Clone)]
 pub struct FuncData{
-	pub cmd: FunCmd,
 	pub name: String,
 	pub bod: ASTNode,
 	pub body_token_count: usize,
@@ -829,10 +889,9 @@ pub struct FuncData{
 }
 
 impl FuncData{
-	pub fn new(c: FunCmd, n: &str, b: ASTNode, 
+	pub fn new(n: &str, b: ASTNode, 
 	start: usize, size: usize, fi: Rc<FileInfo>) -> Rc<Self>{
 		Rc::new(FuncData{
-			cmd: c,
 			name: n.to_string(),
 			bod: b,
 			body_token_count: size,
@@ -863,14 +922,12 @@ impl IfData{
 #[derive(Clone)]
 pub struct VarData{
 	pub name: String,
-	pub cmd: VarCmd,
 }
 
 impl VarData{
-	fn new(n: &str, c: VarCmd) -> Box<Self>{
+	fn new(n: &str) -> Box<Self>{
 		Box::new(VarData{
 			name: n.to_string(),
-			cmd: c
 		})
 	}
 }
@@ -930,16 +987,27 @@ impl DeferData{
 //The various types of nodes that are part of the Abstract Syntax Tree
 #[derive(Clone)]
 pub enum ASTNode{
-	Op(Operator),
+	Sop(StackOperator),
+	Hop(HeapOperator),
 	Val(Value),	
 	HeapVal(Box<HeapValue>),
 	If(Box<IfData>),
 	While(Box<WhileData>),
 	Expression(Box<Vec<ASTNode>>),
-	Function(Rc<FuncData>),
-	Variable(Box<VarData>),
-	LocVar(Box<VarData>),
-	BoxOp(BoxCmd),
+	FunctionDefine(Rc<FuncData>),
+	FunctionCall(Box<String>),
+	VariableMak(Box<VarData>),
+	VariableGet(Box<VarData>),
+	VariableMut(Box<VarData>),
+	VariableDel(Box<VarData>),
+	LocVarMak(Box<VarData>),
+	LocVarGet(Box<VarData>),
+	LocVarMut(Box<VarData>),
+	BoxMake,
+	BoxOpen,
+	BoxAlter,
+	BoxFree,
+	BoxNull,
 	AttErr(Box<AttErrData>),
 	Defer(Rc<DeferData>),
 	CastTo(CastType),
@@ -962,7 +1030,8 @@ impl Default for ASTNode{
 impl fmt::Display for ASTNode{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
 		match self{
-			ASTNode::Op(id) => write!(f, "Operator {}", id.stringify()),
+			ASTNode::Sop(id) => write!(f, "Stack Operator {}", id.stringify()),
+			ASTNode::Hop(id) => write!(f, "Heap Operator {}", id.stringify()),
 			ASTNode::Val(v) => write!(f, "{}", v),
 			ASTNode::HeapVal(hv) => write!(f, "{}", hv),
 			ASTNode::If(data) => write!(f, "If [true_branch: {}, false_branch: {}]", data.if_true, data.if_false),
@@ -971,12 +1040,24 @@ impl fmt::Display for ASTNode{
 				let strs: Vec<String> = vec.iter().map(|n| format!("{}", n)).collect();
 				write!(f, "Expression [{}]", strs.join(", "))
 			},
-			ASTNode::Function(data) => {
-				write!(f, "Function [cmd: {}, name: {}, body: {}]", data.cmd, data.name, data.bod)
+			ASTNode::FunctionDefine(data) => {
+				write!(f, "Function Define [name: {}, body: {}]", data.name, data.bod)
 			},
-			ASTNode::Variable(data) => write!(f, "Variable [name: {}, cmd: {}]", data.name, data.cmd),
-			ASTNode::LocVar(data) => write!(f, "Local Variable [name: {}, cmd: {}]", data.name, data.cmd),
-			ASTNode::BoxOp(op) => write!(f, "BoxOp {}", op),
+			ASTNode::FunctionCall(name) => {
+				write!(f, "Function Call [name: {}]", name)	
+			},
+			ASTNode::VariableMak(data) => write!(f, "Variable Make [name: {}]", data.name),
+			ASTNode::VariableGet(data) => write!(f, "Variable Get [name: {}]", data.name),
+			ASTNode::VariableMut(data) => write!(f, "Variable Mutate [name: {}]", data.name),
+			ASTNode::VariableDel(data) => write!(f, "Variable Delete [name: {}]", data.name),
+			ASTNode::LocVarMak(data) => write!(f, "Local Variable Make [name: {}]", data.name),
+			ASTNode::LocVarGet(data) => write!(f, "Local Variable Get [name: {}]", data.name),
+			ASTNode::LocVarMut(data) => write!(f, "Local Variable Mut [name: {}]", data.name),
+			ASTNode::BoxMake => write!(f, "Box Make"),
+			ASTNode::BoxOpen => write!(f, "Box Open"),
+			ASTNode::BoxFree => write!(f, "Box Free"),
+			ASTNode::BoxNull => write!(f, "Box Null"),
+			ASTNode::BoxAlter => write!(f, "Box Alter"),
 			ASTNode::AttErr(data) => write!(f, "AttErr [attempt: {}, err: {}]", data.att, data.err),
 			ASTNode::Defer(data) => write!(f, "Defer [{}]", data.body),
 			ASTNode::CastTo(data_type) => write!(f, "CastTo {}", data_type),
@@ -1327,22 +1408,23 @@ fn lex_token(tok: &str) -> Result<Token, String>{
 				"else" => Ok(Token::Else),
 				//General catch-all case mostly meant for operators.
 				t => {
-					//If valid operator, kick that back.
-					let op_val = Operator::new(&t);
-					if op_val != Operator::Unknown{
-						return Ok(Token::Op(op_val));
+					match (StackOperator::new(&t), HeapOperator::new(&t)) {
+						(StackOperator::Unknown, HeapOperator::Unknown) => {
+							//If alphanumeric only, kick back as fragment.
+							for c in t.chars(){
+								if c.is_whitespace(){
+									return Err(
+										format!(
+									"Token: \"{}\" is not a valid Token!", t)
+									);
+								}
+							}	
+							Ok(Token::Fragment(t.to_string()))	
+						},
+						(StackOperator::Unknown, hop) => Ok(Token::Hop(hop)),
+						(sop, HeapOperator::Unknown) => Ok(Token::Sop(sop)),
+						(_, _) => Err("SHOULD NEVER GET HERE FOR OP PARSING!".to_string()),
 					}
-
-					//If alphanumeric only, kick back as fragment.
-					for c in t.chars(){
-						if c.is_whitespace(){
-							return Err(
-								format!(
-							"Token: \"{}\" is not a valid Token!", t)
-							);
-						}
-					}	
-					Ok(Token::Fragment(t.to_string()))
 				}, 
 			}	
 		};
@@ -1529,8 +1611,13 @@ pub fn make_ast_prime(
 	mut token_index: usize,
 	fancy_op: Token
 ) -> Result<(Vec<ASTNode>, usize), String>{
-
 	let mut already_parsed: Vec<ASTNode> = Vec::new();
+	macro_rules! push_var{
+		($type:ident, $name:ident) => {
+			let vd = VarData::new($name);
+			already_parsed.push(ASTNode::$type(vd));	
+		};
+	}
 
 	//Loops through all tokens in expression.
 	loop{
@@ -1571,7 +1658,8 @@ pub fn make_ast_prime(
 					}				
 				},
 				//Basically a direct translation.
-				Token::Op(o) => already_parsed.push(ASTNode::Op(*o)),
+				Token::Sop(o) => already_parsed.push(ASTNode::Sop(*o)),
+				Token::Hop(o) => already_parsed.push(ASTNode::Hop(*o)),
 				//If you see a rogue fragment like this, error out!
 				Token::Fragment(f) => {
 					let e = rogue_fragment_err(f);
@@ -1716,15 +1804,24 @@ pub fn make_ast_prime(
 						(Some(Token::Fragment(a)), Some(Token::Fragment(name)), 
 						Some(Token::Terminator)) => 
 						{
-							//Parses command and throws a fit if not known.
-							let command = VarCmd::new(a);
-							if command == VarCmd::Unknown{
-								let e = unknown_var_cmd(a, name, true);
-								return Err(file.err_str_tok(&e, token_index));
+							match VarCmd::new(a) {
+								VarCmd::Make => {
+									push_var!{VariableMak, name}		
+								},
+								VarCmd::Get => {
+									push_var!{VariableGet, name}		
+								},
+								VarCmd::Mutate => {
+									push_var!{VariableMut, name}		
+								},
+								VarCmd::Delete => {
+									push_var!{VariableDel, name}		
+								},
+								VarCmd::Unknown => {
+									let e = unknown_var_cmd(a, name, true);
+									return Err(file.err_str_tok(&e, token_index));
+								},
 							}
-
-							let var_data = VarData::new(name, command);
-							already_parsed.push(ASTNode::Variable(var_data));
 							token_index += 3;
 						},
 						(Some(a), Some(b), Some(c)) => {
@@ -1753,15 +1850,21 @@ pub fn make_ast_prime(
 						(Some(Token::Fragment(a)), Some(Token::Fragment(name)), 
 						Some(Token::Terminator)) => 
 						{
-							//Parses command and throws a fit if not known.
-							let command = VarCmd::new(a);
-							if command == VarCmd::Unknown || command == VarCmd::Delete{
-								let e = unknown_var_cmd(a, name, false);
-								return Err(file.err_str_tok(&e, token_index));
+							match VarCmd::new(a) {
+								VarCmd::Make => {
+									push_var!{LocVarMak, name}		
+								},
+								VarCmd::Get => {
+									push_var!{LocVarGet, name}		
+								},
+								VarCmd::Mutate => {
+									push_var!{LocVarMut, name}		
+								},
+								VarCmd::Unknown | VarCmd::Delete => {
+									let e = unknown_var_cmd(a, name, false);
+									return Err(file.err_str_tok(&e, token_index));
+								},
 							}
-
-							let var_data = VarData::new(name, command);
-							already_parsed.push(ASTNode::LocVar(var_data));
 							token_index += 3;
 						},
 						(Some(a), Some(b), Some(c)) => {
@@ -1786,12 +1889,18 @@ pub fn make_ast_prime(
 				Token::Box => {
 					match (tokens.get(token_index + 1), tokens.get(token_index + 2)){
 						(Some(Token::Fragment(f)), Some(Token::Terminator)) => {
-							let cmd = BoxCmd::new(f);
-							if cmd == BoxCmd::Unknown{
-								let e = invalid_box_command(f);
-								return Err(file.err_str_tok(&e, token_index));
-							}
-							already_parsed.push(ASTNode::BoxOp(cmd));	
+							let box_node = match BoxCmd::new(f){
+								BoxCmd::Make => ASTNode::BoxMake,
+								BoxCmd::Open => ASTNode::BoxOpen,
+								BoxCmd::Alter => ASTNode::BoxAlter,
+								BoxCmd::Free => ASTNode::BoxFree,
+								BoxCmd::Null => ASTNode::BoxNull,
+								BoxCmd::Unknown => {
+									let e = invalid_box_command(f);
+									return Err(file.err_str_tok(&e, token_index));
+								},
+							};
+							already_parsed.push(box_node);
 							token_index += 2;
 						},
 						(Some(a), Some(b)) => {
@@ -1848,11 +1957,10 @@ pub fn make_ast_prime(
 									{
 										Ok((f_bod, token_index_prime)) => {
 											let f_data = FuncData::new(
-												FunCmd::Define, name, 
-												f_bod.into(), token_index + 3, 
+												name, f_bod.into(), token_index + 3, 
 												token_index_prime - (token_index + 2),
 												file.clone());
-											already_parsed.push(ASTNode::Function(f_data));
+											already_parsed.push(ASTNode::FunctionDefine(f_data));
 											token_index = token_index_prime;
 										},
 										Err(e) => return Err(file.err_str_tok(&e, token_index)),
@@ -1863,11 +1971,10 @@ pub fn make_ast_prime(
 									// it checks for a terminator and that's it.
 									match tokens.get(token_index + 3){
 										Some(Token::Terminator) => {
-											let nil_file = Rc::new(FileInfo::new("", ""));
-											let f_data = FuncData::new(
-												FunCmd::Call, name, 
-												Vec::new().into(), 0, 0, nil_file);
-											already_parsed.push(ASTNode::Function(f_data));
+											let name_cpy = Box::new(name.clone());
+											already_parsed.push(
+												ASTNode::FunctionCall(name_cpy)
+											);
 
 											token_index += 3;
 										},
