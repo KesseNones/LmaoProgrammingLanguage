@@ -216,11 +216,13 @@ impl Default for VirtualStackValue {
 macro_rules! translation_match{
     ($target:ident, $type:ident, $($var:ident, $res:ident),* $(,)?) => {
         match $target{
-            $(Value::$var(_) => VirtualStackValue::$res,)*
+            $($type::$var(_) => VirtualStackValue::$res,)*
             _ => VirtualStackValue::NBx
         }	
     };
 }
+
+//Methods that are used to convert values into virtual stack values.
 impl VirtualStackValue{
     fn val_to_virt(v: Value) -> Self{
         translation_match!{
@@ -247,6 +249,16 @@ impl VirtualStackValue{
             ListBox, LBx,
             ObjectBox, OBx,
             MiscBox, MBx,
+        }
+    }
+    fn heap_to_virt(v: HeapValue) -> Self{
+        translation_match!{
+            v, HeapValue,
+
+            String, SBx,
+            List, LBx, 
+            Object, OBx,
+            Primitive, MBx
         }
     }
 }
