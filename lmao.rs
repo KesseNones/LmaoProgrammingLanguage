@@ -539,8 +539,14 @@ v_stack: &mut VirtualStack, mut token_index: usize)
         ASTNode::Expression(nodes) => {
             for node in nodes.iter(){
                 match node{
-					ASTNode::Val(v) => (),
-					ASTNode::HeapVal(hv) => (),
+					ASTNode::Val(v) => {
+                        let new_val = VirtualStackValue::val_to_virt(*v);
+                        v_stack.push(new_val);
+                    },
+					ASTNode::HeapVal(hv) => {
+                        let new_val = VirtualStackValue::heap_to_virt(&**hv);
+                        v_stack.push(new_val);
+                    },
 					ASTNode::Sop(id) => (),
 					ASTNode::Hop(id) => (),
 					ASTNode::VariableMak(data) => {

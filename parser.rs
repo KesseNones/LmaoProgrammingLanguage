@@ -224,7 +224,7 @@ macro_rules! translation_match{
 
 //Methods that are used to convert values into virtual stack values.
 impl VirtualStackValue{
-    fn val_to_virt(v: Value) -> Self{
+    pub fn val_to_virt(v: Value) -> Self{
         translation_match!{
             v, Value,
             Int8, I8,
@@ -251,7 +251,7 @@ impl VirtualStackValue{
             MiscBox, MBx,
         }
     }
-    fn heap_to_virt(v: HeapValue) -> Self{
+    pub fn heap_to_virt(v: &HeapValue) -> Self{
         translation_match!{
             v, HeapValue,
 

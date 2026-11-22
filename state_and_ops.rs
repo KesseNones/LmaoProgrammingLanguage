@@ -68,6 +68,9 @@ impl VirtualStack{
     pub fn new() -> Self{
        VirtualStack{data: Vec::new()}
     }
+    pub fn push(&mut self, v: VirtualStackValue){
+        self.data.push(v); 
+    }
 }
 
 #[derive(Clone)]
