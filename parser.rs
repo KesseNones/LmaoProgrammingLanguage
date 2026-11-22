@@ -1750,9 +1750,17 @@ pub fn make_ast_prime(
 				Token::Val(sup_val) => {
 					match sup_val{
 						SuperValue::Reg(v) => {
+                            //Converts to virtual value and pushes to stack.
+                            let virt = VirtualStackValue::val_to_virt(*v);
+                            vstack.push(virt);
+
 							already_parsed.push(ASTNode::Val(*v));
 						},
 						SuperValue::Heap(hv) => {
+                            //Converts to virtual value and pushes to stack.
+                            let virt = VirtualStackValue::heap_to_virt(&**hv);
+                            vstack.push(virt);
+
 							already_parsed.push(ASTNode::HeapVal(Box::new(*hv.clone())));
 						},
 					}				
