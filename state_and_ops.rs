@@ -59,6 +59,17 @@ impl Stack{
 	}
 }
 
+
+#[derive(Clone)]
+pub struct VirtualStack{
+    data: Vec<VirtualStackValue>
+}
+impl VirtualStack{
+    pub fn new() -> Self{
+       VirtualStack{data: Vec::new()}
+    }
+}
+
 #[derive(Clone)]
 pub struct Heap{
 	heap: Vec<(HeapValue, bool)>,

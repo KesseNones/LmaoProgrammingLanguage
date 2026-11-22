@@ -521,7 +521,8 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 }
 
 //Iterates recursively through the AST and effectively runs the program doing so.
-fn pre_runtime_check(ast: &ASTNode, file: &FileInfo, mut token_index: usize) 
+fn pre_runtime_check(ast: &ASTNode, file: &FileInfo, 
+v_stack: &mut VirtualStack, mut token_index: usize) 
 -> Result<(RetCode, usize), Box::<String>>
 {
     let mut deferred: Option<Vec<Rc<DeferData>>> = None;
@@ -618,7 +619,8 @@ fn pre_runtime_check(ast: &ASTNode, file: &FileInfo, mut token_index: usize)
 //Takes in an input AST and calls recursive run through it.
 //Makes use of data structures like a quasi-stack to check.
 fn pre_runtime_run(ast: &ASTNode, file: &FileInfo) -> Result<RetCode, Box<String>>{
-    match pre_runtime_check(ast, file, 0){
+    let mut v_stack = VirtualStack::new();
+    match pre_runtime_check(ast, file, &mut v_stack, 0){
         Ok(_) => Ok(RetCode::Normal),
         Err(e) => Err(e)
     }
