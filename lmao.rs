@@ -617,8 +617,11 @@ fn pre_runtime_check(ast: &ASTNode, file: &FileInfo, mut token_index: usize)
 
 //Takes in an input AST and calls recursive run through it.
 //Makes use of data structures like a quasi-stack to check.
-fn pre_runtime_run(ast: &ASTNode) -> Result<RetCode, String>{
-    Ok(RetCode::Normal) 
+fn pre_runtime_run(ast: &ASTNode, file: &FileInfo) -> Result<RetCode, Box<String>>{
+    match pre_runtime_check(ast, file, 0){
+        Ok(_) => Ok(RetCode::Normal),
+        Err(e) => Err(e)
+    }
 }
 
 //Given an input program string and args, 
