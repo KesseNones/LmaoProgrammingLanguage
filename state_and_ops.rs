@@ -71,6 +71,9 @@ impl VirtualStack{
     pub fn push(&mut self, v: VirtualStackValue){
         self.data.push(v); 
     }
+    pub fn pop(&mut self) -> Option<VirtualStackValue>{
+        self.data.pop();
+    }
 }
 
 #[derive(Clone)]
