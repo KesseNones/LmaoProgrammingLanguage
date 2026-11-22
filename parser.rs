@@ -191,6 +191,12 @@ impl Default for SuperValue {
 	}
 }
 
+macro_rules! vsv {
+    ($variant:ident) => {
+        VirtualStackValue::$variant
+    };
+}
+
 //Holds virtual values for the stack.
 //This is used for type-checking and stack size counts.
 //Used exclusively by pre-runtime checks.
@@ -555,6 +561,11 @@ impl TryCast<&HashMap<String, Value>> for SuperValue{
 			_ => Err(Self::CastError::InvalidCast)
 		}
 	}
+}
+macro_rules! so {
+    ($variant:ident) => {
+        StackOperator::$variant
+    };
 }
 
 #[derive(PartialEq, Eq, Clone, Copy)]

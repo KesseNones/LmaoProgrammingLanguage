@@ -72,7 +72,7 @@ impl VirtualStack{
         self.data.push(v); 
     }
     pub fn pop(&mut self) -> Option<VirtualStackValue>{
-        self.data.pop();
+        self.data.pop()
     }
 }
 
