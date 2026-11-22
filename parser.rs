@@ -191,6 +191,28 @@ impl Default for SuperValue {
 	}
 }
 
+//Holds virtual values for the stack.
+//This is used for type-checking and stack size counts.
+//Used exclusively by pre-runtime checks.
+#[derive(PartialEq, Clone, Copy, PartialOrd)]
+pub enum VirtualStackValue {
+    I8, I16, I32, I64, ISz,
+    U8, U16, U32, U64, USz,
+
+    F32, F64,
+
+    Chr, Bool,
+
+    SBx, LBx, OBx, MBx, NBx
+}
+
+//Just returns NullBox. Easy.
+impl Default for VirtualStackValue {    
+    fn default() -> Self{
+        VirtualStackValue::NBx
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum CastType{
 	Usize, Uint8, Uint16, Uint32, Uint64,
