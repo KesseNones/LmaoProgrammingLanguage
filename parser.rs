@@ -213,6 +213,44 @@ impl Default for VirtualStackValue {
     }
 }
 
+macro_rules! translation_match{
+    ($target:ident, $type:ident, $($var:ident, $res:ident),* $(,)?) => {
+        match $target{
+            $(Value::$var(_) => VirtualStackValue::$res,)*
+            _ => VirtualStackValue::NBx
+        }	
+    };
+}
+impl VirtualStackValue{
+    fn val_to_virt(v: Value) -> Self{
+        translation_match!{
+            v, Value,
+            Int8, I8,
+            Int16, I16,
+            Int32, I32,
+            Int64, I64,
+            IntSize, ISz,
+
+            UInt8, U8,
+            UInt16, U16,
+            UInt32, U32,
+            UInt64, U64,
+            UIntSize, USz,
+
+            Float32, F32,
+            Float64, F64,
+
+            Char, Chr,
+            Boolean, Bool,
+
+            StringBox, SBx, 
+            ListBox, LBx,
+            ObjectBox, OBx,
+            MiscBox, MBx,
+        }
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum CastType{
 	Usize, Uint8, Uint16, Uint32, Uint64,
