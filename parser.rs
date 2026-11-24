@@ -1810,7 +1810,13 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
                 _ => panic!("BAD BAD BAD2!"),
             }  
         },
-
+        so!(Drop) => {
+            if let None = st.pop(){
+                Some(insufficient_stack_op_args(op, 1, 0))
+            }else{
+                None
+            }
+        },
         _ => None
     }
 }
