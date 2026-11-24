@@ -1798,6 +1798,19 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
         so!(U64Max) => {st.push(vsv!(U64)); None},
         so!(UsizeMax) => {st.push(vsv!(USz)); None},
 
+        so!(Swap) => {
+            match (st.pop(), st.pop()){
+                (Some(a), Some(b)) => {
+                    st.push(a);
+                    st.push(b);
+                    None
+                },
+                (Some(_), None) => Some(insufficient_stack_op_args(op, 2, 1)),
+                (None, None) => Some(insufficient_stack_op_args(op, 2, 0)),
+                _ => panic!("BAD BAD BAD2!"),
+            }  
+        },
+
         _ => None
     }
 }
