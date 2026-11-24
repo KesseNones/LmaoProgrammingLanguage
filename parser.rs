@@ -200,7 +200,7 @@ macro_rules! vsv {
 //Holds virtual values for the stack.
 //This is used for type-checking and stack size counts.
 //Used exclusively by pre-runtime checks.
-#[derive(PartialEq, Clone, Copy, PartialOrd)]
+#[derive(PartialEq, Eq, Clone, Copy, PartialOrd)]
 pub enum VirtualStackValue {
     I8, I16, I32, I64, ISz,
     U8, U16, U32, U64, USz,
@@ -216,6 +216,12 @@ pub enum VirtualStackValue {
 impl Default for VirtualStackValue {    
     fn default() -> Self{
         VirtualStackValue::NBx
+    }
+}
+
+impl fmt::Display for VirtualStackValue{
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
+        write!(f, "{}", self) 
     }
 }
 
@@ -1719,13 +1725,53 @@ fn vsv_is_integer(v: VirtualStackValue) -> bool{
     }
 }
 
+//Returns true if float variant of VirtualStackValue.
+fn vsv_is_float(v: VirtualStackValue) -> bool{
+    return vsv_match!{
+        v, 
+        F32, F64
+    }
+}
+
+fn insufficient_stack_op_args(op: StackOperator, expected: u32, received: u32) 
+-> String
+{
+    format!("Insufficient arguments provided for {}! Expected {}, only got {}!", 
+        op.stringify(), expected, received)
+}
+
+fn invalid_two_provided(op: StackOperator, a: VirtualStackValue, b: VirtualStackValue) 
+-> String
+{
+    format!("Invalid two types provided for operator {}! Received {} and {}", 
+        op.stringify(), a, b)
+}
+
+//Goes through and makes sure types 
+//and arg counts are valid for all stack ops.
 fn check_stack_op(op: StackOperator, st: &mut VirtualStack) 
 -> Option<String>
 {
     match op{
+        //Basic arithmetic operators 
         so!(Add) | so!(Sub) | so!(Mul) | so!(Div) =>{
-            let foo: bool = vsv_is_integer(st.pop().unwrap());
-            None
+            match (st.pop(), st.pop()){
+                (Some(a), Some(b)) => {
+                    if a == b && vsv_is_integer(a) && vsv_is_float(a){
+                        st.push(a);
+                        None
+                    }else{
+                        Some(invalid_two_provided(op, a, b))
+                    }
+                },
+                (Some(a), None) => {
+                    Some(insufficient_stack_op_args(op, 2, 1))
+                },
+                (None, None) => {
+                    Some(insufficient_stack_op_args(op, 2, 0))
+                },
+                _ => panic!("BAD BAD BAD!")
+            } 
         },
         _ => None
     }
