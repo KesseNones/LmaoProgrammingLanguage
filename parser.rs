@@ -1784,6 +1784,7 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
                 |x, y| x == y && (vsv_is_integer(x) || vsv_is_float(x)))
         },
         so!(Mod) => binary_op_check(op, st, |x, y| x == y && vsv_is_integer(x)), 
+        so!(Pow) => binary_op_check(op, st, |x, y| x == y && vsv_is_float(x)), 
         _ => None
     }
 }
