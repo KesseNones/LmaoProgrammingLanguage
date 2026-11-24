@@ -200,7 +200,7 @@ macro_rules! vsv {
 //Holds virtual values for the stack.
 //This is used for type-checking and stack size counts.
 //Used exclusively by pre-runtime checks.
-#[derive(PartialEq, Eq, Clone, Copy, PartialOrd)]
+#[derive(PartialEq, Eq, Clone, Copy, PartialOrd, Debug)]
 pub enum VirtualStackValue {
     I8, I16, I32, I64, ISz,
     U8, U16, U32, U64, USz,
@@ -221,7 +221,7 @@ impl Default for VirtualStackValue {
 
 impl fmt::Display for VirtualStackValue{
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result{
-        write!(f, "{}", self) 
+        write!(f, "{:?}", self) 
     }
 }
 
@@ -1757,7 +1757,7 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
         so!(Add) | so!(Sub) | so!(Mul) | so!(Div) =>{
             match (st.pop(), st.pop()){
                 (Some(a), Some(b)) => {
-                    if a == b && vsv_is_integer(a) && vsv_is_float(a){
+                    if a == b && (vsv_is_integer(a) || vsv_is_float(a)){
                         st.push(a);
                         None
                     }else{
@@ -1840,7 +1840,12 @@ fn make_ast_prime(
 					}				
 				},
 				//Basically a direct translation.
-				Token::Sop(o) => already_parsed.push(ASTNode::Sop(*o)),
+				Token::Sop(o) => {
+                    if let Some(err) = check_stack_op(*o, vstack){
+                        return Err(file.err_str_tok(&err, token_index));
+                    }
+                    already_parsed.push(ASTNode::Sop(*o));
+                },
 				Token::Hop(o) => already_parsed.push(ASTNode::Hop(*o)),
 				//If you see a rogue fragment like this, error out!
 				Token::Fragment(f) => {
