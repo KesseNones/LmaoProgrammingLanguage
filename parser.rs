@@ -1703,8 +1703,36 @@ fn f_missing_both_args() -> String{
 	.to_string()
 }
 
+//Macro used to shortcut matching checks for VirtualStackValues.
+macro_rules! vsv_match {
+    ($expr:expr, $($var:ident),* $(,)?) => {
+        matches!($expr, $(VirtualStackValue::$var)|*)
+    };
+}
+
+//Returns true if VirtualStackValue is indeed an integer and false otherwise.
+fn vsv_is_integer(v: VirtualStackValue) -> bool{
+    return vsv_match!{
+        v, 
+        I8, I16, I32, I64, ISz,
+        U8, U16, U32, U64, USz
+    }
+}
+
+fn check_stack_op(op: StackOperator, st: &mut VirtualStack) 
+-> Option<String>
+{
+    match op{
+        so!(Add) | so!(Sub) | so!(Mul) | so!(Div) =>{
+            let foo: bool = vsv_is_integer(st.pop().unwrap());
+            None
+        },
+        _ => None
+    }
+}
+
 //This function does the heavy-lifting of recursively building the AST and checking stuff.
-pub fn make_ast_prime(
+fn make_ast_prime(
 	file: Rc<FileInfo>,
 	tokens: &Vec<Token>, 
 	mut token_index: usize,
