@@ -1832,6 +1832,15 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
                 _ => panic!("BoRKED!")
             }
         },
+        so!(Dup) => {
+            if let Some(v) = st.pop(){
+                st.push(v);
+                st.push(v);
+                None
+            }else{
+                Some(insufficient_stack_op_args(op, 1, 0))
+            }
+        },
         _ => None
     }
 }
