@@ -1818,6 +1818,20 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
             }
         },
         so!(DropStack) => {st.data.clear(); None},
+        so!(Rot) => {
+            match (st.pop(), st.pop(), st.pop()){
+                (Some(a), Some(b), Some(c)) => {
+                    st.push(a);
+                    st.push(c);
+                    st.push(b);
+                    None
+                },
+                (Some(_), Some(_), None) => Some(insufficient_stack_op_args(op, 3, 2)),
+                (Some(_), None, None) => Some(insufficient_stack_op_args(op, 3, 1)),
+                (None, None, None) => Some(insufficient_stack_op_args(op, 3, 0)),
+                _ => panic!("BoRKED!")
+            }
+        },
         _ => None
     }
 }
