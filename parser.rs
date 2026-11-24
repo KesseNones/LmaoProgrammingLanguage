@@ -1747,6 +1747,31 @@ fn invalid_two_provided(op: StackOperator, a: VirtualStackValue, b: VirtualStack
         op.stringify(), a, b)
 }
 
+//Performs a binary operator check using the provided closure.
+fn binary_op_check(
+    op: StackOperator, st: &mut VirtualStack, 
+    pred: impl Fn(VirtualStackValue, VirtualStackValue) -> bool
+) -> Option<String>
+{
+    match (st.pop(), st.pop()){
+        (Some(b), Some(a)) => {
+            if pred(a, b){
+                st.push(a);
+                None
+            }else{
+                Some(invalid_two_provided(op, a, b))
+            }
+        },
+        (Some(_), None) => {
+            Some(insufficient_stack_op_args(op, 2, 1))
+        },
+        (None, None) => {
+            Some(insufficient_stack_op_args(op, 2, 0))
+        },
+        _ => panic!("BAD BAD BAD!")
+    } 
+}
+
 //Goes through and makes sure types 
 //and arg counts are valid for all stack ops.
 fn check_stack_op(op: StackOperator, st: &mut VirtualStack) 
@@ -1755,24 +1780,10 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
     match op{
         //Basic arithmetic operators 
         so!(Add) | so!(Sub) | so!(Mul) | so!(Div) =>{
-            match (st.pop(), st.pop()){
-                (Some(a), Some(b)) => {
-                    if a == b && (vsv_is_integer(a) || vsv_is_float(a)){
-                        st.push(a);
-                        None
-                    }else{
-                        Some(invalid_two_provided(op, a, b))
-                    }
-                },
-                (Some(a), None) => {
-                    Some(insufficient_stack_op_args(op, 2, 1))
-                },
-                (None, None) => {
-                    Some(insufficient_stack_op_args(op, 2, 0))
-                },
-                _ => panic!("BAD BAD BAD!")
-            } 
+            binary_op_check(op, st, 
+                |x, y| x == y && (vsv_is_integer(x) || vsv_is_float(x)))
         },
+        
         _ => None
     }
 }
