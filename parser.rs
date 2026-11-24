@@ -1785,6 +1785,19 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
         },
         so!(Mod) => binary_op_check(op, st, |x, y| x == y && vsv_is_integer(x)), 
         so!(Pow) => binary_op_check(op, st, |x, y| x == y && vsv_is_float(x)), 
+
+        so!(I8Max) => {st.push(vsv!(I8)); None},
+        so!(I16Max) => {st.push(vsv!(I16)); None},
+        so!(I32Max) => {st.push(vsv!(I32)); None},
+        so!(I64Max) => {st.push(vsv!(I64)); None},
+        so!(IsizeMax) => {st.push(vsv!(ISz)); None},
+
+        so!(U8Max) => {st.push(vsv!(U8)); None},
+        so!(U16Max) => {st.push(vsv!(U16)); None},
+        so!(U32Max) => {st.push(vsv!(U32)); None},
+        so!(U64Max) => {st.push(vsv!(U64)); None},
+        so!(UsizeMax) => {st.push(vsv!(USz)); None},
+
         _ => None
     }
 }
