@@ -1817,6 +1817,7 @@ fn check_stack_op(op: StackOperator, st: &mut VirtualStack)
                 None
             }
         },
+        so!(DropStack) => {st.data.clear(); None},
         _ => None
     }
 }
