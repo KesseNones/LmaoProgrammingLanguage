@@ -1892,16 +1892,18 @@ fn make_ast_prime(
 				Token::Val(sup_val) => {
 					match sup_val{
 						SuperValue::Reg(v) => {
+                            //UNCOMMENT LATER TO RESTORE PART OF CHECKING!
                             //Converts to virtual value and pushes to stack.
-                            let virt = VirtualStackValue::val_to_virt(*v);
-                            vstack.push(virt);
+                            //let virt = VirtualStackValue::val_to_virt(*v);
+                            //vstack.push(virt);
 
 							already_parsed.push(ASTNode::Val(*v));
 						},
 						SuperValue::Heap(hv) => {
+                            //UNCOMMENT LATER TO RESTORE PART OF CHECKING!
                             //Converts to virtual value and pushes to stack.
-                            let virt = VirtualStackValue::heap_to_virt(&**hv);
-                            vstack.push(virt);
+                            //let virt = VirtualStackValue::heap_to_virt(&**hv);
+                            //vstack.push(virt);
 
 							already_parsed.push(ASTNode::HeapVal(Box::new(*hv.clone())));
 						},
@@ -1909,9 +1911,10 @@ fn make_ast_prime(
 				},
 				//Basically a direct translation.
 				Token::Sop(o) => {
-                    if let Some(err) = check_stack_op(*o, vstack){
-                        return Err(file.err_str_tok(&err, token_index));
-                    }
+                    //UNCOMMENT LATER TO RESTORE PART OF CHECKING!
+                    //if let Some(err) = check_stack_op(*o, vstack){
+                    //    return Err(file.err_str_tok(&err, token_index));
+                    //}
                     already_parsed.push(ASTNode::Sop(*o));
                 },
 				Token::Hop(o) => already_parsed.push(ASTNode::Hop(*o)),
