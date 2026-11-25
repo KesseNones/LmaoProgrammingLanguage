@@ -39,12 +39,21 @@ define i32 @main() {
         }
     } 
 
+    //Turns ll file into o file using llc
     let stat = Command::new("llc")
         .args(["-filetype=obj", "bogus.ll", "-o", "bogus.o"])
         .status()
         .expect("FAILED TO RUN llc COMMAND");
-
     if !stat.success(){
         println!("Failed to turn to machine code because {}", stat);
+    }
+
+    //Turns ll file into o file using llc
+    let stat2 = Command::new("clang")
+        .args(["bogus.o", "-o", "bogus"])
+        .status()
+        .expect("FAILED TO RUN clang LINKING COMMAND");
+    if !stat2.success(){
+        println!("Failed to turn to machine code because {}", stat2);
     }
 }

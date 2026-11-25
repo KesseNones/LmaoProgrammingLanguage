@@ -1,6 +1,6 @@
 [package]
 name = "LmaoProgrammingLanguage"
-version = "0.32.26"
+version = "0.32.27"
 edition = "2024"
 
 [dependencies]
