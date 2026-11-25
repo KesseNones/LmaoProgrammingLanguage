@@ -1,6 +1,6 @@
 [package]
 name = "LmaoProgrammingLanguage"
-version = "0.32.23"
+version = "0.32.24"
 edition = "2024"
 
 [dependencies]
@@ -8,7 +8,7 @@ edition = "2024"
 [[bin]]
 name = "lmao"
 path = "lmao.rs"
-#[[bin]]
-#name = "lmaoc"
-#path = "lmaoc.rs"
+[[bin]]
+name = "lmaoc"
+path = "lmaoc.rs"
 
