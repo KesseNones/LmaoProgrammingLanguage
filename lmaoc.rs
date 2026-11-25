@@ -4,6 +4,7 @@ use std::fs::OpenOptions;
 use std::io::Read;
 use std::io::Write; 
 use std::path::Path;
+use std::process::Command;
 
 fn main(){
     let argv: Vec<String> = args().collect();
@@ -37,4 +38,13 @@ define i32 @main() {
             return;
         }
     } 
+
+    let stat = Command::new("llc")
+        .args(["-filetype=obj", "bogus.ll", "-o", "bogus.o"])
+        .status()
+        .expect("FAILED TO RUN llc COMMAND");
+
+    if !stat.success(){
+        println!("Failed to turn to machine code because {}", stat);
+    }
 }
