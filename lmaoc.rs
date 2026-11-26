@@ -8,6 +8,24 @@ use std::process::Command;
 mod parser;
 use parser::*;
 
+//Takes in an AST and emits the LLVM instructions 
+//by appending to instructions reference.
+fn traverse_ast_and_emit(ast: &ASTNode, instructions: &mut Vec<String>){
+    match ast{
+        //Necessary since outermost node is a file.
+        ASTNode::File(data) => {
+            traverse_ast_and_emit(&data.program, instructions)
+        },
+        ASTNode::Val(Value::Int32(i)) => {
+            let alloc = "%sp = alloca i32, align 4";
+            let store = format!("store i32 {}, ptr %sp, align 4", i);
+            instructions.push(alloc.to_string());
+            instructions.push(store);
+        },
+        _ => (),
+    }   
+}
+
 //Takes in an input file path from args and tries to compile the input program.
 // Returns an error string if there's an error and None if it's all fine.
 fn compile(argv: &Vec<String>, prog_path_str: &str) -> Option<String>{
