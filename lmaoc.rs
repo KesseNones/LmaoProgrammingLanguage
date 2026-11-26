@@ -16,11 +16,18 @@ fn traverse_ast_and_emit(ast: &ASTNode, instructions: &mut Vec<String>){
         ASTNode::File(data) => {
             traverse_ast_and_emit(&data.program, instructions)
         },
-        ASTNode::Val(Value::Int32(i)) => {
-            let alloc = "%sp = alloca i32, align 4";
-            let store = format!("store i32 {}, ptr %sp, align 4", i);
-            instructions.push(alloc.to_string());
-            instructions.push(store);
+        ASTNode::Expression(nodes) => {
+            for node in nodes.iter(){
+                match node{
+                    ASTNode::Val(Value::Int32(i)) => {
+                        let alloc = "%sp = alloca i32, align 4";
+                        let store = format!("store i32 {}, ptr %sp, align 4", i);
+                        instructions.push(alloc.to_string());
+                        instructions.push(store);
+                    },
+                    _ => (),
+                } 
+            }
         },
         _ => (),
     }   
@@ -63,6 +70,13 @@ fn compile(argv: &Vec<String>, prog_path_str: &str) -> Option<String>{
         Ok(ast) => ast,
         Err(e) => return Some(format!("{}", e)),
     };
+
+    let mut instructions: Vec<String> = Vec::new();
+    traverse_ast_and_emit(&ast, &mut instructions);
+
+    for line in instructions.iter(){
+        println!("{}", line);
+    }
 
     //Temporary garbage program.
     let bogus = "
