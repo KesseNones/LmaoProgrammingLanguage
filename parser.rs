@@ -1231,7 +1231,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 
 	let mut i: usize = 0;
 	loop{
-		if i > chars.len() - 1{
+		if i >= chars.len(){
 			if in_string{
 				let t: String = curr_token.iter().collect();
 				let err_str = format!("String \"{}\" not ended with matching double quotation!", t);
@@ -1371,7 +1371,7 @@ pub fn tokenize(mut file: FileInfo, imported: &mut HashMap<String, ()>)
 			},
 			_ => return Err(file.err_str_line("SHOULD NEVER GET HERE!!!!!!!", line)),
 		}
-		if chars[i] == '\n' && i < chars.len() - 1{
+		if chars[i] == '\n' && i + 1 < chars.len(){
 			line += 1;
 		}
 
