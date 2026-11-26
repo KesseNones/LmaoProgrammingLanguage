@@ -32,6 +32,12 @@ fn compile(prog_path_str: &str) -> Option<String>{
             return Some(format!("Unable to open {} because {}", prog_file_str, e));
         }
     };
+    let mut prog_str: String = String::new();
+    if let Err(e) = input_file.read_to_string(&mut prog_str){
+        return Some(format!("Unable to open {} because {}", prog_file_str, e));
+    }
+
+    println!("read in:\n{}", prog_str);
 
     //Temporary garbage program.
     let bogus = "
