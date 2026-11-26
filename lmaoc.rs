@@ -20,7 +20,8 @@ fn main(){
     let prog_file = match prog_path.file_name(){
         Some(f) => f,
         None => {
-            println!("Failed to extract file name from input path {}", prog_path.display());
+            println!("Failed to extract file name \
+                from input path {}", prog_path.display());
             return;
         },
     };
@@ -28,7 +29,6 @@ fn main(){
     //Extracts program name from given program file.
     let prog_file_str = prog_file.display().to_string();
     let program_name: String = prog_file_str.split(".").next().unwrap().to_string();
-    println!("GAVE ME PROGRAM: {} from file {}", program_name, prog_file_str);
 
     let bogus = "
 define i32 @main() {
@@ -37,12 +37,13 @@ define i32 @main() {
 }
 ";
 
-    let bogus_path = Path::new("./bogus.ll");
+    let llvm_name = format!("{}.ll", program_name);
+    let llvm_path = Path::new(&llvm_name);
     let mut file = match OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
-        .open(bogus_path)
+        .open(llvm_path)
     {
         Ok(f) => f,
         Err(e) => {
@@ -60,8 +61,9 @@ define i32 @main() {
     } 
 
     //Turns ll file into o file using llc
+    let obj_name = format!("{}.o", program_name);
     let stat = Command::new("llc")
-        .args(["-filetype=obj", "bogus.ll", "-o", "bogus.o"])
+        .args(["-filetype=obj", &llvm_name, "-o", &obj_name])
         .status()
         .expect("FAILED TO RUN llc COMMAND");
     if !stat.success(){
@@ -70,7 +72,7 @@ define i32 @main() {
 
     //Turns ll file into o file using llc
     let stat2 = Command::new("clang")
-        .args(["bogus.o", "-o", "bogus"])
+        .args([&obj_name, "-o", &program_name])
         .status()
         .expect("FAILED TO RUN clang LINKING COMMAND");
     if !stat2.success(){
