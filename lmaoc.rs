@@ -8,7 +8,7 @@ use std::process::Command;
 
 //Takes in an input file path from args and tries to compile the input program.
 // Returns an error string if there's an error and None if it's all fine.
-fn compile(prog_path_str: &str) -> Option<String>{
+fn compile(argv: &Vec<String>, prog_path_str: &str) -> Option<String>{
     //Handles input file path and extracts file name.
     let prog_path = Path::new(prog_path_str);
     let prog_file = match prog_path.file_name(){
@@ -36,8 +36,6 @@ fn compile(prog_path_str: &str) -> Option<String>{
     if let Err(e) = input_file.read_to_string(&mut prog_str){
         return Some(format!("Unable to open {} because {}", prog_file_str, e));
     }
-
-    println!("read in:\n{}", prog_str);
 
     //Temporary garbage program.
     let bogus = "
@@ -111,7 +109,7 @@ fn main(){
         return;
     }
 
-    match compile(&argv[1]){
+    match compile(&argv, &argv[1]){
         Some(e) => println!("{}", e),
         None => ()
     }

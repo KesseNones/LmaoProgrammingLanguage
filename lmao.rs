@@ -545,7 +545,6 @@ prev_state: Option<(Stack, Heap, Variables, Functions)>
 	match parse_string_to_ast(&argv, program_string){
 		Ok(ast) => {
 			if let ASTNode::File(data) = ast{
-                //RUN PROGRAM RUNTIME CHECKS HERE BEFORE RUNNING IT
 				let res = run_program(&data.program, &mut s, &mut h, 
 				&mut vs, &mut fs, &data.file, 0);
 				(res, s, h, vs, fs)
