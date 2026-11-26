@@ -438,6 +438,7 @@ mut token_index: usize) -> Result<(RetCode, usize), Box::<String>>
 						}else{
 							err_break!{local_variable_lack_of_args_error("mutation (mut)")}
 						}
+                        token_index += 3;
 					},
                     ASTNode::AttErr(data) => {
 						let att_res = 
