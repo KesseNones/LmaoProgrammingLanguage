@@ -25,6 +25,13 @@ fn traverse_ast_and_emit(ast: &ASTNode, instructions: &mut Vec<String>){
                         instructions.push(alloc.to_string());
                         instructions.push(store);
                     },
+                    ASTNode::Sop(StackOperator::Add) => {
+                        let load = "= load i32, ptr %sp, align 4";
+                        let load_a = format!("{} {}", "%a", load);
+                        let load_b = format!("{} {}", "%b", load);
+                        instructions.push(load_a);
+                        instructions.push(load_b);
+                    },
                     _ => (),
                 } 
             }
