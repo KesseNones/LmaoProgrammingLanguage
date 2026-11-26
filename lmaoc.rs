@@ -54,6 +54,7 @@ pc: &mut u32, stack: &mut Vec<u32>)
                         instructions.push(alloc);
                         instructions.push(store);
                         stack.push(*pc + 1);
+                        *pc += 1;
                     },
                     _ => (),
                 } 
@@ -110,9 +111,13 @@ fn compile(argv: &Vec<String>, prog_path_str: &str) -> Option<String>{
     //Start and end of program IR.
     let start = "define i32 @main() {\nentry:\n";
 
-    instructions.push(format!("%end = load i32, ptr %sp{}, align 4", 
-            stack.pop().unwrap()));
-    instructions.push(format!("ret i32 %end"));
+    if stack.len() > 0{
+        instructions.push(format!("%end = load i32, ptr %sp{}, align 4", 
+                stack.pop().unwrap()));
+        instructions.push(format!("ret i32 %end"));
+    }else{
+        instructions.push(format!("ret i32 0"));
+    }
 
     let end = "\n}\n";
 
@@ -169,7 +174,7 @@ fn compile(argv: &Vec<String>, prog_path_str: &str) -> Option<String>{
         },
     };
     if !stat2.success(){
-        return Some(format!("Failed to turn to machine code because {}", stat));
+        return Some(format!("Failed to turn to machine code because {}", stat2));
     }
      
     None
