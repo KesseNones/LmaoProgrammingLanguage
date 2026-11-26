@@ -109,7 +109,12 @@ fn compile(argv: &Vec<String>, prog_path_str: &str) -> Option<String>{
 
     //Start and end of program IR.
     let start = "define i32 @main() {\nentry:\n";
-    let end = "\nret i32 64\n}";
+
+    instructions.push(format!("%end = load i32, ptr %sp{}, align 4", 
+            stack.pop().unwrap()));
+    instructions.push(format!("ret i32 %end"));
+
+    let end = "\n}\n";
 
     //Builds program string.
     let prog_str = format!("{}{}{}", start, instructions.join("\n"), end);
