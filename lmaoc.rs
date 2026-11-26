@@ -23,6 +23,16 @@ fn compile(prog_path_str: &str) -> Option<String>{
     let prog_file_str = prog_file.display().to_string();
     let program_name: String = prog_file_str.split(".").next().unwrap().to_string();
 
+    let mut input_file = match OpenOptions::new()
+        .read(true)
+        .open(prog_path)
+    {
+        Ok(f) => f,
+        Err(e) => {
+            return Some(format!("Unable to open {} because {}", prog_file_str, e));
+        }
+    };
+
     //Temporary garbage program.
     let bogus = "
 define i32 @main() {
