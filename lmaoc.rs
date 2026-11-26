@@ -5,6 +5,8 @@ use std::io::Read;
 use std::io::Write; 
 use std::path::Path;
 use std::process::Command;
+mod parser;
+use parser::*;
 
 //Takes in an input file path from args and tries to compile the input program.
 // Returns an error string if there's an error and None if it's all fine.
@@ -36,6 +38,13 @@ fn compile(argv: &Vec<String>, prog_path_str: &str) -> Option<String>{
     if let Err(e) = input_file.read_to_string(&mut prog_str){
         return Some(format!("Unable to open {} because {}", prog_file_str, e));
     }
+
+    //Tries to parse program string into ast.
+    //Errors if it failed.
+    let ast = match parse_string_to_ast(argv, prog_str){
+        Ok(ast) => ast,
+        Err(e) => return Some(format!("{}", e)),
+    };
 
     //Temporary garbage program.
     let bogus = "
