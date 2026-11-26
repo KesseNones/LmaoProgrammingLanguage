@@ -10,6 +10,26 @@ fn main(){
     let argv: Vec<String> = args().collect();
     let argc = argv.len();
 
+    if argc < 2{
+        println!("No input file to compile provided!");
+        return;
+    }
+
+    //Handles input file path and extracts file name.
+    let prog_path = Path::new(&argv[1]);
+    let prog_file = match prog_path.file_name(){
+        Some(f) => f,
+        None => {
+            println!("Failed to extract file name from input path {}", prog_path.display());
+            return;
+        },
+    };
+    
+    //Extracts program name from given program file.
+    let prog_file_str = prog_file.display().to_string();
+    let program_name: String = prog_file_str.split(".").next().unwrap().to_string();
+    println!("GAVE ME PROGRAM: {} from file {}", program_name, prog_file_str);
+
     let bogus = "
 define i32 @main() {
     entry:
